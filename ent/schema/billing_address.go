@@ -29,7 +29,7 @@ func (Address) Fields() []ent.Field {
 // Edges of the Address.
 func (Address) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("customer", Customer.Type).Ref("billing_address").Unique(),
-		edge.From("customer", Customer.Type).Ref("addresses"),
+		edge.From("customer", Customer.Type).Ref("billing_addresses"),
+		edge.From("customer", Customer.Type).Ref("delivery_addresses"),
 	}
 }
