@@ -8,12 +8,10 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// Customer holds the schema definition for the Customer entity.
 type Customer struct {
 	ent.Schema
 }
 
-// Fields of the Customer.
 func (Customer) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name").NotEmpty().Unique().MaxLen(20),
@@ -25,14 +23,14 @@ func (Customer) Fields() []ent.Field {
 
 }
 
-// Edges of the Customer.
 func (Customer) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("orders", Order.Type),
-		edge.To("billing_address", Address.Type).Unique(),
-		edge.To("addresses", Address.Type),
-		edge.To("tel", Tel.Type),
+		edge.To("billing_address", BillingAddress.Type),
+		edge.To("delivery_addresses", BillingAddress.Type),
+		edge.To("tels", Tel.Type),
 		edge.To("created_by", User.Type).Unique(),
 		edge.To("notes", Note.Type),
+		edge.To("login", Login.Type).Unique(),
 	}
 }

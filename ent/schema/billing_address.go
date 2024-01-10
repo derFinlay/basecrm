@@ -9,27 +9,22 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// Address holds the schema definition for the Address entity.
-type Address struct {
+type BillingAddress struct {
 	ent.Schema
 }
 
-// Fields of the Address.
-func (Address) Fields() []ent.Field {
+func (BillingAddress) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("city").NotEmpty(),
 		field.String("street").NotEmpty(),
 		field.String("zip").Match(regexp.MustCompile("[0-9]{5}")),
-		field.String("number").NotEmpty(),
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 
-// Edges of the Address.
-func (Address) Edges() []ent.Edge {
+func (BillingAddress) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("customer", Customer.Type).Ref("billing_addresses"),
-		edge.From("customer", Customer.Type).Ref("delivery_addresses"),
 	}
 }
