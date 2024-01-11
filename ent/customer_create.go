@@ -10,8 +10,10 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/derfinlay/basecrm/ent/address"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/deliveryaddress"
+	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/tel"
@@ -86,53 +88,49 @@ func (cc *CustomerCreate) AddOrders(o ...*Order) *CustomerCreate {
 	return cc.AddOrderIDs(ids...)
 }
 
-// SetBillingAddressID sets the "billing_address" edge to the Address entity by ID.
-func (cc *CustomerCreate) SetBillingAddressID(id int) *CustomerCreate {
-	cc.mutation.SetBillingAddressID(id)
+// AddBillingAddressIDs adds the "billing_addresses" edge to the BillingAddress entity by IDs.
+func (cc *CustomerCreate) AddBillingAddressIDs(ids ...int) *CustomerCreate {
+	cc.mutation.AddBillingAddressIDs(ids...)
 	return cc
 }
 
-// SetNillableBillingAddressID sets the "billing_address" edge to the Address entity by ID if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressID(id *int) *CustomerCreate {
-	if id != nil {
-		cc = cc.SetBillingAddressID(*id)
+// AddBillingAddresses adds the "billing_addresses" edges to the BillingAddress entity.
+func (cc *CustomerCreate) AddBillingAddresses(b ...*BillingAddress) *CustomerCreate {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
 	}
+	return cc.AddBillingAddressIDs(ids...)
+}
+
+// AddDeliveryAddressIDs adds the "delivery_addresses" edge to the DeliveryAddress entity by IDs.
+func (cc *CustomerCreate) AddDeliveryAddressIDs(ids ...int) *CustomerCreate {
+	cc.mutation.AddDeliveryAddressIDs(ids...)
 	return cc
 }
 
-// SetBillingAddress sets the "billing_address" edge to the Address entity.
-func (cc *CustomerCreate) SetBillingAddress(a *Address) *CustomerCreate {
-	return cc.SetBillingAddressID(a.ID)
-}
-
-// AddAddressIDs adds the "addresses" edge to the Address entity by IDs.
-func (cc *CustomerCreate) AddAddressIDs(ids ...int) *CustomerCreate {
-	cc.mutation.AddAddressIDs(ids...)
-	return cc
-}
-
-// AddAddresses adds the "addresses" edges to the Address entity.
-func (cc *CustomerCreate) AddAddresses(a ...*Address) *CustomerCreate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+// AddDeliveryAddresses adds the "delivery_addresses" edges to the DeliveryAddress entity.
+func (cc *CustomerCreate) AddDeliveryAddresses(d ...*DeliveryAddress) *CustomerCreate {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
 	}
-	return cc.AddAddressIDs(ids...)
+	return cc.AddDeliveryAddressIDs(ids...)
 }
 
-// AddPhoneIDs adds the "phone" edge to the Tel entity by IDs.
-func (cc *CustomerCreate) AddPhoneIDs(ids ...int) *CustomerCreate {
-	cc.mutation.AddPhoneIDs(ids...)
+// AddTelIDs adds the "tels" edge to the Tel entity by IDs.
+func (cc *CustomerCreate) AddTelIDs(ids ...int) *CustomerCreate {
+	cc.mutation.AddTelIDs(ids...)
 	return cc
 }
 
-// AddPhone adds the "phone" edges to the Tel entity.
-func (cc *CustomerCreate) AddPhone(t ...*Tel) *CustomerCreate {
+// AddTels adds the "tels" edges to the Tel entity.
+func (cc *CustomerCreate) AddTels(t ...*Tel) *CustomerCreate {
 	ids := make([]int, len(t))
 	for i := range t {
 		ids[i] = t[i].ID
 	}
-	return cc.AddPhoneIDs(ids...)
+	return cc.AddTelIDs(ids...)
 }
 
 // SetCreatedByID sets the "created_by" edge to the User entity by ID.
@@ -167,6 +165,25 @@ func (cc *CustomerCreate) AddNotes(n ...*Note) *CustomerCreate {
 		ids[i] = n[i].ID
 	}
 	return cc.AddNoteIDs(ids...)
+}
+
+// SetLoginID sets the "login" edge to the Login entity by ID.
+func (cc *CustomerCreate) SetLoginID(id int) *CustomerCreate {
+	cc.mutation.SetLoginID(id)
+	return cc
+}
+
+// SetNillableLoginID sets the "login" edge to the Login entity by ID if the given value is not nil.
+func (cc *CustomerCreate) SetNillableLoginID(id *int) *CustomerCreate {
+	if id != nil {
+		cc = cc.SetLoginID(*id)
+	}
+	return cc
+}
+
+// SetLogin sets the "login" edge to the Login entity.
+func (cc *CustomerCreate) SetLogin(l *Login) *CustomerCreate {
+	return cc.SetLoginID(l.ID)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
@@ -308,32 +325,15 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := cc.mutation.BillingAddressIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   customer.BillingAddressTable,
-			Columns: []string{customer.BillingAddressColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.customer_billing_address = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := cc.mutation.AddressesIDs(); len(nodes) > 0 {
+	if nodes := cc.mutation.BillingAddressesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.AddressesTable,
-			Columns: []string{customer.AddressesColumn},
+			Table:   customer.BillingAddressesTable,
+			Columns: []string{customer.BillingAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -341,12 +341,28 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := cc.mutation.PhoneIDs(); len(nodes) > 0 {
+	if nodes := cc.mutation.DeliveryAddressesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.PhoneTable,
-			Columns: []string{customer.PhoneColumn},
+			Table:   customer.DeliveryAddressesTable,
+			Columns: []string{customer.DeliveryAddressesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cc.mutation.TelsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   customer.TelsTable,
+			Columns: customer.TelsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -388,6 +404,23 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cc.mutation.LoginIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.LoginTable,
+			Columns: []string{customer.LoginColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(login.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.customer_login = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

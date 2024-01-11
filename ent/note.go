@@ -5,19 +5,120 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
+	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/ent/order"
+	"github.com/derfinlay/basecrm/ent/tel"
 )
 
 // Note is the model entity for the Note schema.
 type Note struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
-	ID             int `json:"id,omitempty"`
-	customer_notes *int
-	selectValues   sql.SelectValues
+	ID int `json:"id,omitempty"`
+	// Content holds the value of the "content" field.
+	Content string `json:"content,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the NoteQuery when eager-loading is set.
+	Edges                  NoteEdges `json:"edges"`
+	billing_address_notes  *int
+	customer_notes         *int
+	delivery_address_notes *int
+	order_notes            *int
+	tel_note               *int
+	selectValues           sql.SelectValues
+}
+
+// NoteEdges holds the relations/edges for other nodes in the graph.
+type NoteEdges struct {
+	// Customer holds the value of the customer edge.
+	Customer *Customer `json:"customer,omitempty"`
+	// Orders holds the value of the orders edge.
+	Orders *Order `json:"orders,omitempty"`
+	// BillingAddress holds the value of the billing_address edge.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+	// DeliveryAddress holds the value of the delivery_address edge.
+	DeliveryAddress *DeliveryAddress `json:"delivery_address,omitempty"`
+	// Tel holds the value of the tel edge.
+	Tel *Tel `json:"tel,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [5]bool
+}
+
+// CustomerOrErr returns the Customer value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) CustomerOrErr() (*Customer, error) {
+	if e.loadedTypes[0] {
+		if e.Customer == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: customer.Label}
+		}
+		return e.Customer, nil
+	}
+	return nil, &NotLoadedError{edge: "customer"}
+}
+
+// OrdersOrErr returns the Orders value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) OrdersOrErr() (*Order, error) {
+	if e.loadedTypes[1] {
+		if e.Orders == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: order.Label}
+		}
+		return e.Orders, nil
+	}
+	return nil, &NotLoadedError{edge: "orders"}
+}
+
+// BillingAddressOrErr returns the BillingAddress value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) BillingAddressOrErr() (*BillingAddress, error) {
+	if e.loadedTypes[2] {
+		if e.BillingAddress == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: billingaddress.Label}
+		}
+		return e.BillingAddress, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_address"}
+}
+
+// DeliveryAddressOrErr returns the DeliveryAddress value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) DeliveryAddressOrErr() (*DeliveryAddress, error) {
+	if e.loadedTypes[3] {
+		if e.DeliveryAddress == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: deliveryaddress.Label}
+		}
+		return e.DeliveryAddress, nil
+	}
+	return nil, &NotLoadedError{edge: "delivery_address"}
+}
+
+// TelOrErr returns the Tel value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) TelOrErr() (*Tel, error) {
+	if e.loadedTypes[4] {
+		if e.Tel == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: tel.Label}
+		}
+		return e.Tel, nil
+	}
+	return nil, &NotLoadedError{edge: "tel"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -27,7 +128,19 @@ func (*Note) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case note.FieldID:
 			values[i] = new(sql.NullInt64)
-		case note.ForeignKeys[0]: // customer_notes
+		case note.FieldContent:
+			values[i] = new(sql.NullString)
+		case note.FieldCreatedAt, note.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
+		case note.ForeignKeys[0]: // billing_address_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[1]: // customer_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[2]: // delivery_address_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[3]: // order_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[4]: // tel_note
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -50,12 +163,58 @@ func (n *Note) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			n.ID = int(value.Int64)
+		case note.FieldContent:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field content", values[i])
+			} else if value.Valid {
+				n.Content = value.String
+			}
+		case note.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				n.CreatedAt = value.Time
+			}
+		case note.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				n.UpdatedAt = value.Time
+			}
 		case note.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field billing_address_notes", value)
+			} else if value.Valid {
+				n.billing_address_notes = new(int)
+				*n.billing_address_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field customer_notes", value)
 			} else if value.Valid {
 				n.customer_notes = new(int)
 				*n.customer_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[2]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field delivery_address_notes", value)
+			} else if value.Valid {
+				n.delivery_address_notes = new(int)
+				*n.delivery_address_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[3]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field order_notes", value)
+			} else if value.Valid {
+				n.order_notes = new(int)
+				*n.order_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[4]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field tel_note", value)
+			} else if value.Valid {
+				n.tel_note = new(int)
+				*n.tel_note = int(value.Int64)
 			}
 		default:
 			n.selectValues.Set(columns[i], values[i])
@@ -68,6 +227,31 @@ func (n *Note) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (n *Note) Value(name string) (ent.Value, error) {
 	return n.selectValues.Get(name)
+}
+
+// QueryCustomer queries the "customer" edge of the Note entity.
+func (n *Note) QueryCustomer() *CustomerQuery {
+	return NewNoteClient(n.config).QueryCustomer(n)
+}
+
+// QueryOrders queries the "orders" edge of the Note entity.
+func (n *Note) QueryOrders() *OrderQuery {
+	return NewNoteClient(n.config).QueryOrders(n)
+}
+
+// QueryBillingAddress queries the "billing_address" edge of the Note entity.
+func (n *Note) QueryBillingAddress() *BillingAddressQuery {
+	return NewNoteClient(n.config).QueryBillingAddress(n)
+}
+
+// QueryDeliveryAddress queries the "delivery_address" edge of the Note entity.
+func (n *Note) QueryDeliveryAddress() *DeliveryAddressQuery {
+	return NewNoteClient(n.config).QueryDeliveryAddress(n)
+}
+
+// QueryTel queries the "tel" edge of the Note entity.
+func (n *Note) QueryTel() *TelQuery {
+	return NewNoteClient(n.config).QueryTel(n)
 }
 
 // Update returns a builder for updating this Note.
@@ -92,7 +276,15 @@ func (n *Note) Unwrap() *Note {
 func (n *Note) String() string {
 	var builder strings.Builder
 	builder.WriteString("Note(")
-	builder.WriteString(fmt.Sprintf("id=%v", n.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", n.ID))
+	builder.WriteString("content=")
+	builder.WriteString(n.Content)
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(n.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(n.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

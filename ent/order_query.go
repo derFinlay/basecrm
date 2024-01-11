@@ -4,12 +4,16 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
+	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
@@ -17,11 +21,14 @@ import (
 // OrderQuery is the builder for querying Order entities.
 type OrderQuery struct {
 	config
-	ctx        *QueryContext
-	order      []order.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Order
-	withFKs    bool
+	ctx          *QueryContext
+	order        []order.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.Order
+	withCustomer *CustomerQuery
+	withAddress  *BillingAddressQuery
+	withNotes    *NoteQuery
+	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -56,6 +63,72 @@ func (oq *OrderQuery) Unique(unique bool) *OrderQuery {
 func (oq *OrderQuery) Order(o ...order.OrderOption) *OrderQuery {
 	oq.order = append(oq.order, o...)
 	return oq
+}
+
+// QueryCustomer chains the current query on the "customer" edge.
+func (oq *OrderQuery) QueryCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: oq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := oq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := oq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, selector),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, order.CustomerTable, order.CustomerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(oq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAddress chains the current query on the "address" edge.
+func (oq *OrderQuery) QueryAddress() *BillingAddressQuery {
+	query := (&BillingAddressClient{config: oq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := oq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := oq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, selector),
+			sqlgraph.To(billingaddress.Table, billingaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, order.AddressTable, order.AddressColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(oq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNotes chains the current query on the "notes" edge.
+func (oq *OrderQuery) QueryNotes() *NoteQuery {
+	query := (&NoteClient{config: oq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := oq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := oq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, selector),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, order.NotesTable, order.NotesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(oq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Order entity from the query.
@@ -245,15 +318,51 @@ func (oq *OrderQuery) Clone() *OrderQuery {
 		return nil
 	}
 	return &OrderQuery{
-		config:     oq.config,
-		ctx:        oq.ctx.Clone(),
-		order:      append([]order.OrderOption{}, oq.order...),
-		inters:     append([]Interceptor{}, oq.inters...),
-		predicates: append([]predicate.Order{}, oq.predicates...),
+		config:       oq.config,
+		ctx:          oq.ctx.Clone(),
+		order:        append([]order.OrderOption{}, oq.order...),
+		inters:       append([]Interceptor{}, oq.inters...),
+		predicates:   append([]predicate.Order{}, oq.predicates...),
+		withCustomer: oq.withCustomer.Clone(),
+		withAddress:  oq.withAddress.Clone(),
+		withNotes:    oq.withNotes.Clone(),
 		// clone intermediate query.
 		sql:  oq.sql.Clone(),
 		path: oq.path,
 	}
+}
+
+// WithCustomer tells the query-builder to eager-load the nodes that are connected to
+// the "customer" edge. The optional arguments are used to configure the query builder of the edge.
+func (oq *OrderQuery) WithCustomer(opts ...func(*CustomerQuery)) *OrderQuery {
+	query := (&CustomerClient{config: oq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	oq.withCustomer = query
+	return oq
+}
+
+// WithAddress tells the query-builder to eager-load the nodes that are connected to
+// the "address" edge. The optional arguments are used to configure the query builder of the edge.
+func (oq *OrderQuery) WithAddress(opts ...func(*BillingAddressQuery)) *OrderQuery {
+	query := (&BillingAddressClient{config: oq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	oq.withAddress = query
+	return oq
+}
+
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (oq *OrderQuery) WithNotes(opts ...func(*NoteQuery)) *OrderQuery {
+	query := (&NoteClient{config: oq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	oq.withNotes = query
+	return oq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -262,12 +371,12 @@ func (oq *OrderQuery) Clone() *OrderQuery {
 // Example:
 //
 //	var v []struct {
-//		Test string `json:"test,omitempty"`
+//		Status string `json:"status,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Order.Query().
-//		GroupBy(order.FieldTest).
+//		GroupBy(order.FieldStatus).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (oq *OrderQuery) GroupBy(field string, fields ...string) *OrderGroupBy {
@@ -285,11 +394,11 @@ func (oq *OrderQuery) GroupBy(field string, fields ...string) *OrderGroupBy {
 // Example:
 //
 //	var v []struct {
-//		Test string `json:"test,omitempty"`
+//		Status string `json:"status,omitempty"`
 //	}
 //
 //	client.Order.Query().
-//		Select(order.FieldTest).
+//		Select(order.FieldStatus).
 //		Scan(ctx, &v)
 func (oq *OrderQuery) Select(fields ...string) *OrderSelect {
 	oq.ctx.Fields = append(oq.ctx.Fields, fields...)
@@ -332,10 +441,18 @@ func (oq *OrderQuery) prepareQuery(ctx context.Context) error {
 
 func (oq *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order, error) {
 	var (
-		nodes   = []*Order{}
-		withFKs = oq.withFKs
-		_spec   = oq.querySpec()
+		nodes       = []*Order{}
+		withFKs     = oq.withFKs
+		_spec       = oq.querySpec()
+		loadedTypes = [3]bool{
+			oq.withCustomer != nil,
+			oq.withAddress != nil,
+			oq.withNotes != nil,
+		}
 	)
+	if oq.withCustomer != nil || oq.withAddress != nil {
+		withFKs = true
+	}
 	if withFKs {
 		_spec.Node.Columns = append(_spec.Node.Columns, order.ForeignKeys...)
 	}
@@ -345,6 +462,7 @@ func (oq *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order,
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Order{config: oq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -356,7 +474,122 @@ func (oq *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := oq.withCustomer; query != nil {
+		if err := oq.loadCustomer(ctx, query, nodes, nil,
+			func(n *Order, e *Customer) { n.Edges.Customer = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := oq.withAddress; query != nil {
+		if err := oq.loadAddress(ctx, query, nodes, nil,
+			func(n *Order, e *BillingAddress) { n.Edges.Address = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := oq.withNotes; query != nil {
+		if err := oq.loadNotes(ctx, query, nodes,
+			func(n *Order) { n.Edges.Notes = []*Note{} },
+			func(n *Order, e *Note) { n.Edges.Notes = append(n.Edges.Notes, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (oq *OrderQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*Order, init func(*Order), assign func(*Order, *Customer)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Order)
+	for i := range nodes {
+		if nodes[i].order_customer == nil {
+			continue
+		}
+		fk := *nodes[i].order_customer
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customer.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "order_customer" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (oq *OrderQuery) loadAddress(ctx context.Context, query *BillingAddressQuery, nodes []*Order, init func(*Order), assign func(*Order, *BillingAddress)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Order)
+	for i := range nodes {
+		if nodes[i].order_address == nil {
+			continue
+		}
+		fk := *nodes[i].order_address
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billingaddress.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "order_address" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (oq *OrderQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*Order, init func(*Order), assign func(*Order, *Note)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Order)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Note(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(order.NotesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.order_notes
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "order_notes" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "order_notes" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (oq *OrderQuery) sqlCount(ctx context.Context) (int, error) {

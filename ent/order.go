@@ -5,9 +5,12 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
+	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/order"
 )
 
@@ -16,10 +19,67 @@ type Order struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
-	// Test holds the value of the "test" field.
-	Test            string `json:"test,omitempty"`
+	// Status holds the value of the "status" field.
+	Status string `json:"status,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the OrderQuery when eager-loading is set.
+	Edges           OrderEdges `json:"edges"`
 	customer_orders *int
+	order_customer  *int
+	order_address   *int
 	selectValues    sql.SelectValues
+}
+
+// OrderEdges holds the relations/edges for other nodes in the graph.
+type OrderEdges struct {
+	// Customer holds the value of the customer edge.
+	Customer *Customer `json:"customer,omitempty"`
+	// Address holds the value of the address edge.
+	Address *BillingAddress `json:"address,omitempty"`
+	// Notes holds the value of the notes edge.
+	Notes []*Note `json:"notes,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [3]bool
+}
+
+// CustomerOrErr returns the Customer value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e OrderEdges) CustomerOrErr() (*Customer, error) {
+	if e.loadedTypes[0] {
+		if e.Customer == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: customer.Label}
+		}
+		return e.Customer, nil
+	}
+	return nil, &NotLoadedError{edge: "customer"}
+}
+
+// AddressOrErr returns the Address value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e OrderEdges) AddressOrErr() (*BillingAddress, error) {
+	if e.loadedTypes[1] {
+		if e.Address == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: billingaddress.Label}
+		}
+		return e.Address, nil
+	}
+	return nil, &NotLoadedError{edge: "address"}
+}
+
+// NotesOrErr returns the Notes value or an error if the edge
+// was not loaded in eager-loading.
+func (e OrderEdges) NotesOrErr() ([]*Note, error) {
+	if e.loadedTypes[2] {
+		return e.Notes, nil
+	}
+	return nil, &NotLoadedError{edge: "notes"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -29,9 +89,15 @@ func (*Order) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case order.FieldID:
 			values[i] = new(sql.NullInt64)
-		case order.FieldTest:
+		case order.FieldStatus:
 			values[i] = new(sql.NullString)
+		case order.FieldCreatedAt, order.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		case order.ForeignKeys[0]: // customer_orders
+			values[i] = new(sql.NullInt64)
+		case order.ForeignKeys[1]: // order_customer
+			values[i] = new(sql.NullInt64)
+		case order.ForeignKeys[2]: // order_address
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -54,11 +120,23 @@ func (o *Order) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			o.ID = int(value.Int64)
-		case order.FieldTest:
+		case order.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field test", values[i])
+				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				o.Test = value.String
+				o.Status = value.String
+			}
+		case order.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				o.CreatedAt = value.Time
+			}
+		case order.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				o.UpdatedAt = value.Time
 			}
 		case order.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -66,6 +144,20 @@ func (o *Order) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				o.customer_orders = new(int)
 				*o.customer_orders = int(value.Int64)
+			}
+		case order.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field order_customer", value)
+			} else if value.Valid {
+				o.order_customer = new(int)
+				*o.order_customer = int(value.Int64)
+			}
+		case order.ForeignKeys[2]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field order_address", value)
+			} else if value.Valid {
+				o.order_address = new(int)
+				*o.order_address = int(value.Int64)
 			}
 		default:
 			o.selectValues.Set(columns[i], values[i])
@@ -78,6 +170,21 @@ func (o *Order) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (o *Order) Value(name string) (ent.Value, error) {
 	return o.selectValues.Get(name)
+}
+
+// QueryCustomer queries the "customer" edge of the Order entity.
+func (o *Order) QueryCustomer() *CustomerQuery {
+	return NewOrderClient(o.config).QueryCustomer(o)
+}
+
+// QueryAddress queries the "address" edge of the Order entity.
+func (o *Order) QueryAddress() *BillingAddressQuery {
+	return NewOrderClient(o.config).QueryAddress(o)
+}
+
+// QueryNotes queries the "notes" edge of the Order entity.
+func (o *Order) QueryNotes() *NoteQuery {
+	return NewOrderClient(o.config).QueryNotes(o)
 }
 
 // Update returns a builder for updating this Order.
@@ -103,8 +210,14 @@ func (o *Order) String() string {
 	var builder strings.Builder
 	builder.WriteString("Order(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", o.ID))
-	builder.WriteString("test=")
-	builder.WriteString(o.Test)
+	builder.WriteString("status=")
+	builder.WriteString(o.Status)
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(o.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(o.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

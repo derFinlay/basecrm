@@ -12,8 +12,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/derfinlay/basecrm/ent/address"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/deliveryaddress"
+	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
@@ -80,14 +82,16 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			address.Table:  address.ValidColumn,
-			customer.Table: customer.ValidColumn,
-			note.Table:     note.ValidColumn,
-			order.Table:    order.ValidColumn,
-			position.Table: position.ValidColumn,
-			role.Table:     role.ValidColumn,
-			tel.Table:      tel.ValidColumn,
-			user.Table:     user.ValidColumn,
+			billingaddress.Table:  billingaddress.ValidColumn,
+			customer.Table:        customer.ValidColumn,
+			deliveryaddress.Table: deliveryaddress.ValidColumn,
+			login.Table:           login.ValidColumn,
+			note.Table:            note.ValidColumn,
+			order.Table:           order.ValidColumn,
+			position.Table:        position.ValidColumn,
+			role.Table:            role.ValidColumn,
+			tel.Table:             tel.ValidColumn,
+			user.Table:            user.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

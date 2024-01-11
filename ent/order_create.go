@@ -6,9 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
+	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 )
 
@@ -19,10 +23,99 @@ type OrderCreate struct {
 	hooks    []Hook
 }
 
-// SetTest sets the "test" field.
-func (oc *OrderCreate) SetTest(s string) *OrderCreate {
-	oc.mutation.SetTest(s)
+// SetStatus sets the "status" field.
+func (oc *OrderCreate) SetStatus(s string) *OrderCreate {
+	oc.mutation.SetStatus(s)
 	return oc
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (oc *OrderCreate) SetNillableStatus(s *string) *OrderCreate {
+	if s != nil {
+		oc.SetStatus(*s)
+	}
+	return oc
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (oc *OrderCreate) SetCreatedAt(t time.Time) *OrderCreate {
+	oc.mutation.SetCreatedAt(t)
+	return oc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (oc *OrderCreate) SetNillableCreatedAt(t *time.Time) *OrderCreate {
+	if t != nil {
+		oc.SetCreatedAt(*t)
+	}
+	return oc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (oc *OrderCreate) SetUpdatedAt(t time.Time) *OrderCreate {
+	oc.mutation.SetUpdatedAt(t)
+	return oc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (oc *OrderCreate) SetNillableUpdatedAt(t *time.Time) *OrderCreate {
+	if t != nil {
+		oc.SetUpdatedAt(*t)
+	}
+	return oc
+}
+
+// SetCustomerID sets the "customer" edge to the Customer entity by ID.
+func (oc *OrderCreate) SetCustomerID(id int) *OrderCreate {
+	oc.mutation.SetCustomerID(id)
+	return oc
+}
+
+// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
+func (oc *OrderCreate) SetNillableCustomerID(id *int) *OrderCreate {
+	if id != nil {
+		oc = oc.SetCustomerID(*id)
+	}
+	return oc
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (oc *OrderCreate) SetCustomer(c *Customer) *OrderCreate {
+	return oc.SetCustomerID(c.ID)
+}
+
+// SetAddressID sets the "address" edge to the BillingAddress entity by ID.
+func (oc *OrderCreate) SetAddressID(id int) *OrderCreate {
+	oc.mutation.SetAddressID(id)
+	return oc
+}
+
+// SetNillableAddressID sets the "address" edge to the BillingAddress entity by ID if the given value is not nil.
+func (oc *OrderCreate) SetNillableAddressID(id *int) *OrderCreate {
+	if id != nil {
+		oc = oc.SetAddressID(*id)
+	}
+	return oc
+}
+
+// SetAddress sets the "address" edge to the BillingAddress entity.
+func (oc *OrderCreate) SetAddress(b *BillingAddress) *OrderCreate {
+	return oc.SetAddressID(b.ID)
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (oc *OrderCreate) AddNoteIDs(ids ...int) *OrderCreate {
+	oc.mutation.AddNoteIDs(ids...)
+	return oc
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (oc *OrderCreate) AddNotes(n ...*Note) *OrderCreate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return oc.AddNoteIDs(ids...)
 }
 
 // Mutation returns the OrderMutation object of the builder.
@@ -32,6 +125,7 @@ func (oc *OrderCreate) Mutation() *OrderMutation {
 
 // Save creates the Order in the database.
 func (oc *OrderCreate) Save(ctx context.Context) (*Order, error) {
+	oc.defaults()
 	return withHooks(ctx, oc.sqlSave, oc.mutation, oc.hooks)
 }
 
@@ -57,10 +151,32 @@ func (oc *OrderCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (oc *OrderCreate) defaults() {
+	if _, ok := oc.mutation.Status(); !ok {
+		v := order.DefaultStatus
+		oc.mutation.SetStatus(v)
+	}
+	if _, ok := oc.mutation.CreatedAt(); !ok {
+		v := order.DefaultCreatedAt()
+		oc.mutation.SetCreatedAt(v)
+	}
+	if _, ok := oc.mutation.UpdatedAt(); !ok {
+		v := order.DefaultUpdatedAt()
+		oc.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (oc *OrderCreate) check() error {
-	if _, ok := oc.mutation.Test(); !ok {
-		return &ValidationError{Name: "test", err: errors.New(`ent: missing required field "Order.test"`)}
+	if _, ok := oc.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Order.status"`)}
+	}
+	if _, ok := oc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Order.created_at"`)}
+	}
+	if _, ok := oc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Order.updated_at"`)}
 	}
 	return nil
 }
@@ -88,9 +204,67 @@ func (oc *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 		_node = &Order{config: oc.config}
 		_spec = sqlgraph.NewCreateSpec(order.Table, sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt))
 	)
-	if value, ok := oc.mutation.Test(); ok {
-		_spec.SetField(order.FieldTest, field.TypeString, value)
-		_node.Test = value
+	if value, ok := oc.mutation.Status(); ok {
+		_spec.SetField(order.FieldStatus, field.TypeString, value)
+		_node.Status = value
+	}
+	if value, ok := oc.mutation.CreatedAt(); ok {
+		_spec.SetField(order.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := oc.mutation.UpdatedAt(); ok {
+		_spec.SetField(order.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if nodes := oc.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.CustomerTable,
+			Columns: []string{order.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.order_customer = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := oc.mutation.AddressIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.AddressTable,
+			Columns: []string{order.AddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.order_address = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := oc.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.NotesTable,
+			Columns: []string{order.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -113,6 +287,7 @@ func (ocb *OrderCreateBulk) Save(ctx context.Context) ([]*Order, error) {
 	for i := range ocb.builders {
 		func(i int, root context.Context) {
 			builder := ocb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*OrderMutation)
 				if !ok {

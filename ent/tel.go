@@ -5,19 +5,62 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
 
 // Tel is the model entity for the Tel schema.
 type Tel struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
-	ID             int `json:"id,omitempty"`
-	customer_phone *int
-	selectValues   sql.SelectValues
+	ID int `json:"id,omitempty"`
+	// Tel holds the value of the "tel" field.
+	Tel string `json:"tel,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TelQuery when eager-loading is set.
+	Edges        TelEdges `json:"edges"`
+	selectValues sql.SelectValues
+}
+
+// TelEdges holds the relations/edges for other nodes in the graph.
+type TelEdges struct {
+	// Note holds the value of the note edge.
+	Note *Note `json:"note,omitempty"`
+	// Customer holds the value of the customer edge.
+	Customer []*Customer `json:"customer,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// NoteOrErr returns the Note value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e TelEdges) NoteOrErr() (*Note, error) {
+	if e.loadedTypes[0] {
+		if e.Note == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: note.Label}
+		}
+		return e.Note, nil
+	}
+	return nil, &NotLoadedError{edge: "note"}
+}
+
+// CustomerOrErr returns the Customer value or an error if the edge
+// was not loaded in eager-loading.
+func (e TelEdges) CustomerOrErr() ([]*Customer, error) {
+	if e.loadedTypes[1] {
+		return e.Customer, nil
+	}
+	return nil, &NotLoadedError{edge: "customer"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -27,8 +70,10 @@ func (*Tel) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case tel.FieldID:
 			values[i] = new(sql.NullInt64)
-		case tel.ForeignKeys[0]: // customer_phone
-			values[i] = new(sql.NullInt64)
+		case tel.FieldTel:
+			values[i] = new(sql.NullString)
+		case tel.FieldCreatedAt, tel.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -50,12 +95,23 @@ func (t *Tel) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			t.ID = int(value.Int64)
-		case tel.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field customer_phone", value)
+		case tel.FieldTel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tel", values[i])
 			} else if value.Valid {
-				t.customer_phone = new(int)
-				*t.customer_phone = int(value.Int64)
+				t.Tel = value.String
+			}
+		case tel.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				t.CreatedAt = value.Time
+			}
+		case tel.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				t.UpdatedAt = value.Time
 			}
 		default:
 			t.selectValues.Set(columns[i], values[i])
@@ -68,6 +124,16 @@ func (t *Tel) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (t *Tel) Value(name string) (ent.Value, error) {
 	return t.selectValues.Get(name)
+}
+
+// QueryNote queries the "note" edge of the Tel entity.
+func (t *Tel) QueryNote() *NoteQuery {
+	return NewTelClient(t.config).QueryNote(t)
+}
+
+// QueryCustomer queries the "customer" edge of the Tel entity.
+func (t *Tel) QueryCustomer() *CustomerQuery {
+	return NewTelClient(t.config).QueryCustomer(t)
 }
 
 // Update returns a builder for updating this Tel.
@@ -92,7 +158,15 @@ func (t *Tel) Unwrap() *Tel {
 func (t *Tel) String() string {
 	var builder strings.Builder
 	builder.WriteString("Tel(")
-	builder.WriteString(fmt.Sprintf("id=%v", t.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", t.ID))
+	builder.WriteString("tel=")
+	builder.WriteString(t.Tel)
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(t.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(t.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

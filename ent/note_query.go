@@ -10,18 +10,28 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
+	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
+	"github.com/derfinlay/basecrm/ent/tel"
 )
 
 // NoteQuery is the builder for querying Note entities.
 type NoteQuery struct {
 	config
-	ctx        *QueryContext
-	order      []note.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Note
-	withFKs    bool
+	ctx                 *QueryContext
+	order               []note.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.Note
+	withCustomer        *CustomerQuery
+	withOrders          *OrderQuery
+	withBillingAddress  *BillingAddressQuery
+	withDeliveryAddress *DeliveryAddressQuery
+	withTel             *TelQuery
+	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -56,6 +66,116 @@ func (nq *NoteQuery) Unique(unique bool) *NoteQuery {
 func (nq *NoteQuery) Order(o ...note.OrderOption) *NoteQuery {
 	nq.order = append(nq.order, o...)
 	return nq
+}
+
+// QueryCustomer chains the current query on the "customer" edge.
+func (nq *NoteQuery) QueryCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: nq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := nq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := nq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, selector),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.CustomerTable, note.CustomerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrders chains the current query on the "orders" edge.
+func (nq *NoteQuery) QueryOrders() *OrderQuery {
+	query := (&OrderClient{config: nq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := nq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := nq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, selector),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.OrdersTable, note.OrdersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingAddress chains the current query on the "billing_address" edge.
+func (nq *NoteQuery) QueryBillingAddress() *BillingAddressQuery {
+	query := (&BillingAddressClient{config: nq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := nq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := nq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, selector),
+			sqlgraph.To(billingaddress.Table, billingaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.BillingAddressTable, note.BillingAddressColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryDeliveryAddress chains the current query on the "delivery_address" edge.
+func (nq *NoteQuery) QueryDeliveryAddress() *DeliveryAddressQuery {
+	query := (&DeliveryAddressClient{config: nq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := nq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := nq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, selector),
+			sqlgraph.To(deliveryaddress.Table, deliveryaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.DeliveryAddressTable, note.DeliveryAddressColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTel chains the current query on the "tel" edge.
+func (nq *NoteQuery) QueryTel() *TelQuery {
+	query := (&TelClient{config: nq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := nq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := nq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, selector),
+			sqlgraph.To(tel.Table, tel.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, note.TelTable, note.TelColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Note entity from the query.
@@ -245,19 +365,91 @@ func (nq *NoteQuery) Clone() *NoteQuery {
 		return nil
 	}
 	return &NoteQuery{
-		config:     nq.config,
-		ctx:        nq.ctx.Clone(),
-		order:      append([]note.OrderOption{}, nq.order...),
-		inters:     append([]Interceptor{}, nq.inters...),
-		predicates: append([]predicate.Note{}, nq.predicates...),
+		config:              nq.config,
+		ctx:                 nq.ctx.Clone(),
+		order:               append([]note.OrderOption{}, nq.order...),
+		inters:              append([]Interceptor{}, nq.inters...),
+		predicates:          append([]predicate.Note{}, nq.predicates...),
+		withCustomer:        nq.withCustomer.Clone(),
+		withOrders:          nq.withOrders.Clone(),
+		withBillingAddress:  nq.withBillingAddress.Clone(),
+		withDeliveryAddress: nq.withDeliveryAddress.Clone(),
+		withTel:             nq.withTel.Clone(),
 		// clone intermediate query.
 		sql:  nq.sql.Clone(),
 		path: nq.path,
 	}
 }
 
+// WithCustomer tells the query-builder to eager-load the nodes that are connected to
+// the "customer" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithCustomer(opts ...func(*CustomerQuery)) *NoteQuery {
+	query := (&CustomerClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	nq.withCustomer = query
+	return nq
+}
+
+// WithOrders tells the query-builder to eager-load the nodes that are connected to
+// the "orders" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithOrders(opts ...func(*OrderQuery)) *NoteQuery {
+	query := (&OrderClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	nq.withOrders = query
+	return nq
+}
+
+// WithBillingAddress tells the query-builder to eager-load the nodes that are connected to
+// the "billing_address" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithBillingAddress(opts ...func(*BillingAddressQuery)) *NoteQuery {
+	query := (&BillingAddressClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	nq.withBillingAddress = query
+	return nq
+}
+
+// WithDeliveryAddress tells the query-builder to eager-load the nodes that are connected to
+// the "delivery_address" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithDeliveryAddress(opts ...func(*DeliveryAddressQuery)) *NoteQuery {
+	query := (&DeliveryAddressClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	nq.withDeliveryAddress = query
+	return nq
+}
+
+// WithTel tells the query-builder to eager-load the nodes that are connected to
+// the "tel" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithTel(opts ...func(*TelQuery)) *NoteQuery {
+	query := (&TelClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	nq.withTel = query
+	return nq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Content string `json:"content,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Note.Query().
+//		GroupBy(note.FieldContent).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
 func (nq *NoteQuery) GroupBy(field string, fields ...string) *NoteGroupBy {
 	nq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &NoteGroupBy{build: nq}
@@ -269,6 +461,16 @@ func (nq *NoteQuery) GroupBy(field string, fields ...string) *NoteGroupBy {
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Content string `json:"content,omitempty"`
+//	}
+//
+//	client.Note.Query().
+//		Select(note.FieldContent).
+//		Scan(ctx, &v)
 func (nq *NoteQuery) Select(fields ...string) *NoteSelect {
 	nq.ctx.Fields = append(nq.ctx.Fields, fields...)
 	sbuild := &NoteSelect{NoteQuery: nq}
@@ -310,10 +512,20 @@ func (nq *NoteQuery) prepareQuery(ctx context.Context) error {
 
 func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, error) {
 	var (
-		nodes   = []*Note{}
-		withFKs = nq.withFKs
-		_spec   = nq.querySpec()
+		nodes       = []*Note{}
+		withFKs     = nq.withFKs
+		_spec       = nq.querySpec()
+		loadedTypes = [5]bool{
+			nq.withCustomer != nil,
+			nq.withOrders != nil,
+			nq.withBillingAddress != nil,
+			nq.withDeliveryAddress != nil,
+			nq.withTel != nil,
+		}
 	)
+	if nq.withCustomer != nil || nq.withOrders != nil || nq.withBillingAddress != nil || nq.withDeliveryAddress != nil || nq.withTel != nil {
+		withFKs = true
+	}
 	if withFKs {
 		_spec.Node.Columns = append(_spec.Node.Columns, note.ForeignKeys...)
 	}
@@ -323,6 +535,7 @@ func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, e
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Note{config: nq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -334,7 +547,198 @@ func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := nq.withCustomer; query != nil {
+		if err := nq.loadCustomer(ctx, query, nodes, nil,
+			func(n *Note, e *Customer) { n.Edges.Customer = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := nq.withOrders; query != nil {
+		if err := nq.loadOrders(ctx, query, nodes, nil,
+			func(n *Note, e *Order) { n.Edges.Orders = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := nq.withBillingAddress; query != nil {
+		if err := nq.loadBillingAddress(ctx, query, nodes, nil,
+			func(n *Note, e *BillingAddress) { n.Edges.BillingAddress = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := nq.withDeliveryAddress; query != nil {
+		if err := nq.loadDeliveryAddress(ctx, query, nodes, nil,
+			func(n *Note, e *DeliveryAddress) { n.Edges.DeliveryAddress = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := nq.withTel; query != nil {
+		if err := nq.loadTel(ctx, query, nodes, nil,
+			func(n *Note, e *Tel) { n.Edges.Tel = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (nq *NoteQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*Note, init func(*Note), assign func(*Note, *Customer)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Note)
+	for i := range nodes {
+		if nodes[i].customer_notes == nil {
+			continue
+		}
+		fk := *nodes[i].customer_notes
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customer.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "customer_notes" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (nq *NoteQuery) loadOrders(ctx context.Context, query *OrderQuery, nodes []*Note, init func(*Note), assign func(*Note, *Order)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Note)
+	for i := range nodes {
+		if nodes[i].order_notes == nil {
+			continue
+		}
+		fk := *nodes[i].order_notes
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(order.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "order_notes" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (nq *NoteQuery) loadBillingAddress(ctx context.Context, query *BillingAddressQuery, nodes []*Note, init func(*Note), assign func(*Note, *BillingAddress)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Note)
+	for i := range nodes {
+		if nodes[i].billing_address_notes == nil {
+			continue
+		}
+		fk := *nodes[i].billing_address_notes
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billingaddress.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "billing_address_notes" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (nq *NoteQuery) loadDeliveryAddress(ctx context.Context, query *DeliveryAddressQuery, nodes []*Note, init func(*Note), assign func(*Note, *DeliveryAddress)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Note)
+	for i := range nodes {
+		if nodes[i].delivery_address_notes == nil {
+			continue
+		}
+		fk := *nodes[i].delivery_address_notes
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(deliveryaddress.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "delivery_address_notes" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (nq *NoteQuery) loadTel(ctx context.Context, query *TelQuery, nodes []*Note, init func(*Note), assign func(*Note, *Tel)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Note)
+	for i := range nodes {
+		if nodes[i].tel_note == nil {
+			continue
+		}
+		fk := *nodes[i].tel_note
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(tel.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tel_note" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (nq *NoteQuery) sqlCount(ctx context.Context) (int, error) {

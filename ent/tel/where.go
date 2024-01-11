@@ -3,7 +3,10 @@
 package tel
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
 
@@ -50,6 +53,212 @@ func IDLT(id int) predicate.Tel {
 // IDLTE applies the LTE predicate on the ID field.
 func IDLTE(id int) predicate.Tel {
 	return predicate.Tel(sql.FieldLTE(FieldID, id))
+}
+
+// Tel applies equality check predicate on the "tel" field. It's identical to TelEQ.
+func Tel(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldEQ(FieldTel, v))
+}
+
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// TelEQ applies the EQ predicate on the "tel" field.
+func TelEQ(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldEQ(FieldTel, v))
+}
+
+// TelNEQ applies the NEQ predicate on the "tel" field.
+func TelNEQ(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldNEQ(FieldTel, v))
+}
+
+// TelIn applies the In predicate on the "tel" field.
+func TelIn(vs ...string) predicate.Tel {
+	return predicate.Tel(sql.FieldIn(FieldTel, vs...))
+}
+
+// TelNotIn applies the NotIn predicate on the "tel" field.
+func TelNotIn(vs ...string) predicate.Tel {
+	return predicate.Tel(sql.FieldNotIn(FieldTel, vs...))
+}
+
+// TelGT applies the GT predicate on the "tel" field.
+func TelGT(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldGT(FieldTel, v))
+}
+
+// TelGTE applies the GTE predicate on the "tel" field.
+func TelGTE(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldGTE(FieldTel, v))
+}
+
+// TelLT applies the LT predicate on the "tel" field.
+func TelLT(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldLT(FieldTel, v))
+}
+
+// TelLTE applies the LTE predicate on the "tel" field.
+func TelLTE(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldLTE(FieldTel, v))
+}
+
+// TelContains applies the Contains predicate on the "tel" field.
+func TelContains(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldContains(FieldTel, v))
+}
+
+// TelHasPrefix applies the HasPrefix predicate on the "tel" field.
+func TelHasPrefix(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldHasPrefix(FieldTel, v))
+}
+
+// TelHasSuffix applies the HasSuffix predicate on the "tel" field.
+func TelHasSuffix(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldHasSuffix(FieldTel, v))
+}
+
+// TelEqualFold applies the EqualFold predicate on the "tel" field.
+func TelEqualFold(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldEqualFold(FieldTel, v))
+}
+
+// TelContainsFold applies the ContainsFold predicate on the "tel" field.
+func TelContainsFold(v string) predicate.Tel {
+	return predicate.Tel(sql.FieldContainsFold(FieldTel, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.Tel {
+	return predicate.Tel(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// HasNote applies the HasEdge predicate on the "note" edge.
+func HasNote() predicate.Tel {
+	return predicate.Tel(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, NoteTable, NoteColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNoteWith applies the HasEdge predicate on the "note" edge with a given conditions (other predicates).
+func HasNoteWith(preds ...predicate.Note) predicate.Tel {
+	return predicate.Tel(func(s *sql.Selector) {
+		step := newNoteStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCustomer applies the HasEdge predicate on the "customer" edge.
+func HasCustomer() predicate.Tel {
+	return predicate.Tel(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, CustomerTable, CustomerPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCustomerWith applies the HasEdge predicate on the "customer" edge with a given conditions (other predicates).
+func HasCustomerWith(preds ...predicate.Customer) predicate.Tel {
+	return predicate.Tel(func(s *sql.Selector) {
+		step := newCustomerStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

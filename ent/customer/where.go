@@ -378,21 +378,21 @@ func HasOrdersWith(preds ...predicate.Order) predicate.Customer {
 	})
 }
 
-// HasBillingAddress applies the HasEdge predicate on the "billing_address" edge.
-func HasBillingAddress() predicate.Customer {
+// HasBillingAddresses applies the HasEdge predicate on the "billing_addresses" edge.
+func HasBillingAddresses() predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, BillingAddressTable, BillingAddressColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingAddressesTable, BillingAddressesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasBillingAddressWith applies the HasEdge predicate on the "billing_address" edge with a given conditions (other predicates).
-func HasBillingAddressWith(preds ...predicate.Address) predicate.Customer {
+// HasBillingAddressesWith applies the HasEdge predicate on the "billing_addresses" edge with a given conditions (other predicates).
+func HasBillingAddressesWith(preds ...predicate.BillingAddress) predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
-		step := newBillingAddressStep()
+		step := newBillingAddressesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -401,21 +401,21 @@ func HasBillingAddressWith(preds ...predicate.Address) predicate.Customer {
 	})
 }
 
-// HasAddresses applies the HasEdge predicate on the "addresses" edge.
-func HasAddresses() predicate.Customer {
+// HasDeliveryAddresses applies the HasEdge predicate on the "delivery_addresses" edge.
+func HasDeliveryAddresses() predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, AddressesTable, AddressesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, DeliveryAddressesTable, DeliveryAddressesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAddressesWith applies the HasEdge predicate on the "addresses" edge with a given conditions (other predicates).
-func HasAddressesWith(preds ...predicate.Address) predicate.Customer {
+// HasDeliveryAddressesWith applies the HasEdge predicate on the "delivery_addresses" edge with a given conditions (other predicates).
+func HasDeliveryAddressesWith(preds ...predicate.DeliveryAddress) predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
-		step := newAddressesStep()
+		step := newDeliveryAddressesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -424,21 +424,21 @@ func HasAddressesWith(preds ...predicate.Address) predicate.Customer {
 	})
 }
 
-// HasPhone applies the HasEdge predicate on the "phone" edge.
-func HasPhone() predicate.Customer {
+// HasTels applies the HasEdge predicate on the "tels" edge.
+func HasTels() predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, PhoneTable, PhoneColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, TelsTable, TelsPrimaryKey...),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasPhoneWith applies the HasEdge predicate on the "phone" edge with a given conditions (other predicates).
-func HasPhoneWith(preds ...predicate.Tel) predicate.Customer {
+// HasTelsWith applies the HasEdge predicate on the "tels" edge with a given conditions (other predicates).
+func HasTelsWith(preds ...predicate.Tel) predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
-		step := newPhoneStep()
+		step := newTelsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -485,6 +485,29 @@ func HasNotes() predicate.Customer {
 func HasNotesWith(preds ...predicate.Note) predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
 		step := newNotesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasLogin applies the HasEdge predicate on the "login" edge.
+func HasLogin() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, LoginTable, LoginColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLoginWith applies the HasEdge predicate on the "login" edge with a given conditions (other predicates).
+func HasLoginWith(preds ...predicate.Login) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newLoginStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

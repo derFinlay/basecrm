@@ -11,8 +11,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/derfinlay/basecrm/ent/address"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/deliveryaddress"
+	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
@@ -96,53 +98,49 @@ func (cu *CustomerUpdate) AddOrders(o ...*Order) *CustomerUpdate {
 	return cu.AddOrderIDs(ids...)
 }
 
-// SetBillingAddressID sets the "billing_address" edge to the Address entity by ID.
-func (cu *CustomerUpdate) SetBillingAddressID(id int) *CustomerUpdate {
-	cu.mutation.SetBillingAddressID(id)
+// AddBillingAddressIDs adds the "billing_addresses" edge to the BillingAddress entity by IDs.
+func (cu *CustomerUpdate) AddBillingAddressIDs(ids ...int) *CustomerUpdate {
+	cu.mutation.AddBillingAddressIDs(ids...)
 	return cu
 }
 
-// SetNillableBillingAddressID sets the "billing_address" edge to the Address entity by ID if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableBillingAddressID(id *int) *CustomerUpdate {
-	if id != nil {
-		cu = cu.SetBillingAddressID(*id)
+// AddBillingAddresses adds the "billing_addresses" edges to the BillingAddress entity.
+func (cu *CustomerUpdate) AddBillingAddresses(b ...*BillingAddress) *CustomerUpdate {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
 	}
+	return cu.AddBillingAddressIDs(ids...)
+}
+
+// AddDeliveryAddressIDs adds the "delivery_addresses" edge to the DeliveryAddress entity by IDs.
+func (cu *CustomerUpdate) AddDeliveryAddressIDs(ids ...int) *CustomerUpdate {
+	cu.mutation.AddDeliveryAddressIDs(ids...)
 	return cu
 }
 
-// SetBillingAddress sets the "billing_address" edge to the Address entity.
-func (cu *CustomerUpdate) SetBillingAddress(a *Address) *CustomerUpdate {
-	return cu.SetBillingAddressID(a.ID)
-}
-
-// AddAddressIDs adds the "addresses" edge to the Address entity by IDs.
-func (cu *CustomerUpdate) AddAddressIDs(ids ...int) *CustomerUpdate {
-	cu.mutation.AddAddressIDs(ids...)
-	return cu
-}
-
-// AddAddresses adds the "addresses" edges to the Address entity.
-func (cu *CustomerUpdate) AddAddresses(a ...*Address) *CustomerUpdate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+// AddDeliveryAddresses adds the "delivery_addresses" edges to the DeliveryAddress entity.
+func (cu *CustomerUpdate) AddDeliveryAddresses(d ...*DeliveryAddress) *CustomerUpdate {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
 	}
-	return cu.AddAddressIDs(ids...)
+	return cu.AddDeliveryAddressIDs(ids...)
 }
 
-// AddPhoneIDs adds the "phone" edge to the Tel entity by IDs.
-func (cu *CustomerUpdate) AddPhoneIDs(ids ...int) *CustomerUpdate {
-	cu.mutation.AddPhoneIDs(ids...)
+// AddTelIDs adds the "tels" edge to the Tel entity by IDs.
+func (cu *CustomerUpdate) AddTelIDs(ids ...int) *CustomerUpdate {
+	cu.mutation.AddTelIDs(ids...)
 	return cu
 }
 
-// AddPhone adds the "phone" edges to the Tel entity.
-func (cu *CustomerUpdate) AddPhone(t ...*Tel) *CustomerUpdate {
+// AddTels adds the "tels" edges to the Tel entity.
+func (cu *CustomerUpdate) AddTels(t ...*Tel) *CustomerUpdate {
 	ids := make([]int, len(t))
 	for i := range t {
 		ids[i] = t[i].ID
 	}
-	return cu.AddPhoneIDs(ids...)
+	return cu.AddTelIDs(ids...)
 }
 
 // SetCreatedByID sets the "created_by" edge to the User entity by ID.
@@ -179,6 +177,25 @@ func (cu *CustomerUpdate) AddNotes(n ...*Note) *CustomerUpdate {
 	return cu.AddNoteIDs(ids...)
 }
 
+// SetLoginID sets the "login" edge to the Login entity by ID.
+func (cu *CustomerUpdate) SetLoginID(id int) *CustomerUpdate {
+	cu.mutation.SetLoginID(id)
+	return cu
+}
+
+// SetNillableLoginID sets the "login" edge to the Login entity by ID if the given value is not nil.
+func (cu *CustomerUpdate) SetNillableLoginID(id *int) *CustomerUpdate {
+	if id != nil {
+		cu = cu.SetLoginID(*id)
+	}
+	return cu
+}
+
+// SetLogin sets the "login" edge to the Login entity.
+func (cu *CustomerUpdate) SetLogin(l *Login) *CustomerUpdate {
+	return cu.SetLoginID(l.ID)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cu *CustomerUpdate) Mutation() *CustomerMutation {
 	return cu.mutation
@@ -205,52 +222,67 @@ func (cu *CustomerUpdate) RemoveOrders(o ...*Order) *CustomerUpdate {
 	return cu.RemoveOrderIDs(ids...)
 }
 
-// ClearBillingAddress clears the "billing_address" edge to the Address entity.
-func (cu *CustomerUpdate) ClearBillingAddress() *CustomerUpdate {
-	cu.mutation.ClearBillingAddress()
+// ClearBillingAddresses clears all "billing_addresses" edges to the BillingAddress entity.
+func (cu *CustomerUpdate) ClearBillingAddresses() *CustomerUpdate {
+	cu.mutation.ClearBillingAddresses()
 	return cu
 }
 
-// ClearAddresses clears all "addresses" edges to the Address entity.
-func (cu *CustomerUpdate) ClearAddresses() *CustomerUpdate {
-	cu.mutation.ClearAddresses()
+// RemoveBillingAddressIDs removes the "billing_addresses" edge to BillingAddress entities by IDs.
+func (cu *CustomerUpdate) RemoveBillingAddressIDs(ids ...int) *CustomerUpdate {
+	cu.mutation.RemoveBillingAddressIDs(ids...)
 	return cu
 }
 
-// RemoveAddressIDs removes the "addresses" edge to Address entities by IDs.
-func (cu *CustomerUpdate) RemoveAddressIDs(ids ...int) *CustomerUpdate {
-	cu.mutation.RemoveAddressIDs(ids...)
-	return cu
-}
-
-// RemoveAddresses removes "addresses" edges to Address entities.
-func (cu *CustomerUpdate) RemoveAddresses(a ...*Address) *CustomerUpdate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+// RemoveBillingAddresses removes "billing_addresses" edges to BillingAddress entities.
+func (cu *CustomerUpdate) RemoveBillingAddresses(b ...*BillingAddress) *CustomerUpdate {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
 	}
-	return cu.RemoveAddressIDs(ids...)
+	return cu.RemoveBillingAddressIDs(ids...)
 }
 
-// ClearPhone clears all "phone" edges to the Tel entity.
-func (cu *CustomerUpdate) ClearPhone() *CustomerUpdate {
-	cu.mutation.ClearPhone()
+// ClearDeliveryAddresses clears all "delivery_addresses" edges to the DeliveryAddress entity.
+func (cu *CustomerUpdate) ClearDeliveryAddresses() *CustomerUpdate {
+	cu.mutation.ClearDeliveryAddresses()
 	return cu
 }
 
-// RemovePhoneIDs removes the "phone" edge to Tel entities by IDs.
-func (cu *CustomerUpdate) RemovePhoneIDs(ids ...int) *CustomerUpdate {
-	cu.mutation.RemovePhoneIDs(ids...)
+// RemoveDeliveryAddressIDs removes the "delivery_addresses" edge to DeliveryAddress entities by IDs.
+func (cu *CustomerUpdate) RemoveDeliveryAddressIDs(ids ...int) *CustomerUpdate {
+	cu.mutation.RemoveDeliveryAddressIDs(ids...)
 	return cu
 }
 
-// RemovePhone removes "phone" edges to Tel entities.
-func (cu *CustomerUpdate) RemovePhone(t ...*Tel) *CustomerUpdate {
+// RemoveDeliveryAddresses removes "delivery_addresses" edges to DeliveryAddress entities.
+func (cu *CustomerUpdate) RemoveDeliveryAddresses(d ...*DeliveryAddress) *CustomerUpdate {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return cu.RemoveDeliveryAddressIDs(ids...)
+}
+
+// ClearTels clears all "tels" edges to the Tel entity.
+func (cu *CustomerUpdate) ClearTels() *CustomerUpdate {
+	cu.mutation.ClearTels()
+	return cu
+}
+
+// RemoveTelIDs removes the "tels" edge to Tel entities by IDs.
+func (cu *CustomerUpdate) RemoveTelIDs(ids ...int) *CustomerUpdate {
+	cu.mutation.RemoveTelIDs(ids...)
+	return cu
+}
+
+// RemoveTels removes "tels" edges to Tel entities.
+func (cu *CustomerUpdate) RemoveTels(t ...*Tel) *CustomerUpdate {
 	ids := make([]int, len(t))
 	for i := range t {
 		ids[i] = t[i].ID
 	}
-	return cu.RemovePhoneIDs(ids...)
+	return cu.RemoveTelIDs(ids...)
 }
 
 // ClearCreatedBy clears the "created_by" edge to the User entity.
@@ -278,6 +310,12 @@ func (cu *CustomerUpdate) RemoveNotes(n ...*Note) *CustomerUpdate {
 		ids[i] = n[i].ID
 	}
 	return cu.RemoveNoteIDs(ids...)
+}
+
+// ClearLogin clears the "login" edge to the Login entity.
+func (cu *CustomerUpdate) ClearLogin() *CustomerUpdate {
+	cu.mutation.ClearLogin()
+	return cu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -405,28 +443,44 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if cu.mutation.BillingAddressCleared() {
+	if cu.mutation.BillingAddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.BillingAddressTable,
-			Columns: []string{customer.BillingAddressColumn},
+			Table:   customer.BillingAddressesTable,
+			Columns: []string{customer.BillingAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cu.mutation.BillingAddressIDs(); len(nodes) > 0 {
+	if nodes := cu.mutation.RemovedBillingAddressesIDs(); len(nodes) > 0 && !cu.mutation.BillingAddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.BillingAddressTable,
-			Columns: []string{customer.BillingAddressColumn},
+			Table:   customer.BillingAddressesTable,
+			Columns: []string{customer.BillingAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.BillingAddressesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingAddressesTable,
+			Columns: []string{customer.BillingAddressesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -434,28 +488,28 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if cu.mutation.AddressesCleared() {
+	if cu.mutation.DeliveryAddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.AddressesTable,
-			Columns: []string{customer.AddressesColumn},
+			Table:   customer.DeliveryAddressesTable,
+			Columns: []string{customer.DeliveryAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cu.mutation.RemovedAddressesIDs(); len(nodes) > 0 && !cu.mutation.AddressesCleared() {
+	if nodes := cu.mutation.RemovedDeliveryAddressesIDs(); len(nodes) > 0 && !cu.mutation.DeliveryAddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.AddressesTable,
-			Columns: []string{customer.AddressesColumn},
+			Table:   customer.DeliveryAddressesTable,
+			Columns: []string{customer.DeliveryAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -463,15 +517,15 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cu.mutation.AddressesIDs(); len(nodes) > 0 {
+	if nodes := cu.mutation.DeliveryAddressesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.AddressesTable,
-			Columns: []string{customer.AddressesColumn},
+			Table:   customer.DeliveryAddressesTable,
+			Columns: []string{customer.DeliveryAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -479,12 +533,12 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if cu.mutation.PhoneCleared() {
+	if cu.mutation.TelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
-			Table:   customer.PhoneTable,
-			Columns: []string{customer.PhoneColumn},
+			Table:   customer.TelsTable,
+			Columns: customer.TelsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -492,12 +546,12 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cu.mutation.RemovedPhoneIDs(); len(nodes) > 0 && !cu.mutation.PhoneCleared() {
+	if nodes := cu.mutation.RemovedTelsIDs(); len(nodes) > 0 && !cu.mutation.TelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
-			Table:   customer.PhoneTable,
-			Columns: []string{customer.PhoneColumn},
+			Table:   customer.TelsTable,
+			Columns: customer.TelsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -508,12 +562,12 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cu.mutation.PhoneIDs(); len(nodes) > 0 {
+	if nodes := cu.mutation.TelsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
-			Table:   customer.PhoneTable,
-			Columns: []string{customer.PhoneColumn},
+			Table:   customer.TelsTable,
+			Columns: customer.TelsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -591,6 +645,35 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.LoginCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.LoginTable,
+			Columns: []string{customer.LoginColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(login.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.LoginIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.LoginTable,
+			Columns: []string{customer.LoginColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(login.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -681,53 +764,49 @@ func (cuo *CustomerUpdateOne) AddOrders(o ...*Order) *CustomerUpdateOne {
 	return cuo.AddOrderIDs(ids...)
 }
 
-// SetBillingAddressID sets the "billing_address" edge to the Address entity by ID.
-func (cuo *CustomerUpdateOne) SetBillingAddressID(id int) *CustomerUpdateOne {
-	cuo.mutation.SetBillingAddressID(id)
+// AddBillingAddressIDs adds the "billing_addresses" edge to the BillingAddress entity by IDs.
+func (cuo *CustomerUpdateOne) AddBillingAddressIDs(ids ...int) *CustomerUpdateOne {
+	cuo.mutation.AddBillingAddressIDs(ids...)
 	return cuo
 }
 
-// SetNillableBillingAddressID sets the "billing_address" edge to the Address entity by ID if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableBillingAddressID(id *int) *CustomerUpdateOne {
-	if id != nil {
-		cuo = cuo.SetBillingAddressID(*id)
+// AddBillingAddresses adds the "billing_addresses" edges to the BillingAddress entity.
+func (cuo *CustomerUpdateOne) AddBillingAddresses(b ...*BillingAddress) *CustomerUpdateOne {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
 	}
+	return cuo.AddBillingAddressIDs(ids...)
+}
+
+// AddDeliveryAddressIDs adds the "delivery_addresses" edge to the DeliveryAddress entity by IDs.
+func (cuo *CustomerUpdateOne) AddDeliveryAddressIDs(ids ...int) *CustomerUpdateOne {
+	cuo.mutation.AddDeliveryAddressIDs(ids...)
 	return cuo
 }
 
-// SetBillingAddress sets the "billing_address" edge to the Address entity.
-func (cuo *CustomerUpdateOne) SetBillingAddress(a *Address) *CustomerUpdateOne {
-	return cuo.SetBillingAddressID(a.ID)
-}
-
-// AddAddressIDs adds the "addresses" edge to the Address entity by IDs.
-func (cuo *CustomerUpdateOne) AddAddressIDs(ids ...int) *CustomerUpdateOne {
-	cuo.mutation.AddAddressIDs(ids...)
-	return cuo
-}
-
-// AddAddresses adds the "addresses" edges to the Address entity.
-func (cuo *CustomerUpdateOne) AddAddresses(a ...*Address) *CustomerUpdateOne {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+// AddDeliveryAddresses adds the "delivery_addresses" edges to the DeliveryAddress entity.
+func (cuo *CustomerUpdateOne) AddDeliveryAddresses(d ...*DeliveryAddress) *CustomerUpdateOne {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
 	}
-	return cuo.AddAddressIDs(ids...)
+	return cuo.AddDeliveryAddressIDs(ids...)
 }
 
-// AddPhoneIDs adds the "phone" edge to the Tel entity by IDs.
-func (cuo *CustomerUpdateOne) AddPhoneIDs(ids ...int) *CustomerUpdateOne {
-	cuo.mutation.AddPhoneIDs(ids...)
+// AddTelIDs adds the "tels" edge to the Tel entity by IDs.
+func (cuo *CustomerUpdateOne) AddTelIDs(ids ...int) *CustomerUpdateOne {
+	cuo.mutation.AddTelIDs(ids...)
 	return cuo
 }
 
-// AddPhone adds the "phone" edges to the Tel entity.
-func (cuo *CustomerUpdateOne) AddPhone(t ...*Tel) *CustomerUpdateOne {
+// AddTels adds the "tels" edges to the Tel entity.
+func (cuo *CustomerUpdateOne) AddTels(t ...*Tel) *CustomerUpdateOne {
 	ids := make([]int, len(t))
 	for i := range t {
 		ids[i] = t[i].ID
 	}
-	return cuo.AddPhoneIDs(ids...)
+	return cuo.AddTelIDs(ids...)
 }
 
 // SetCreatedByID sets the "created_by" edge to the User entity by ID.
@@ -764,6 +843,25 @@ func (cuo *CustomerUpdateOne) AddNotes(n ...*Note) *CustomerUpdateOne {
 	return cuo.AddNoteIDs(ids...)
 }
 
+// SetLoginID sets the "login" edge to the Login entity by ID.
+func (cuo *CustomerUpdateOne) SetLoginID(id int) *CustomerUpdateOne {
+	cuo.mutation.SetLoginID(id)
+	return cuo
+}
+
+// SetNillableLoginID sets the "login" edge to the Login entity by ID if the given value is not nil.
+func (cuo *CustomerUpdateOne) SetNillableLoginID(id *int) *CustomerUpdateOne {
+	if id != nil {
+		cuo = cuo.SetLoginID(*id)
+	}
+	return cuo
+}
+
+// SetLogin sets the "login" edge to the Login entity.
+func (cuo *CustomerUpdateOne) SetLogin(l *Login) *CustomerUpdateOne {
+	return cuo.SetLoginID(l.ID)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cuo *CustomerUpdateOne) Mutation() *CustomerMutation {
 	return cuo.mutation
@@ -790,52 +888,67 @@ func (cuo *CustomerUpdateOne) RemoveOrders(o ...*Order) *CustomerUpdateOne {
 	return cuo.RemoveOrderIDs(ids...)
 }
 
-// ClearBillingAddress clears the "billing_address" edge to the Address entity.
-func (cuo *CustomerUpdateOne) ClearBillingAddress() *CustomerUpdateOne {
-	cuo.mutation.ClearBillingAddress()
+// ClearBillingAddresses clears all "billing_addresses" edges to the BillingAddress entity.
+func (cuo *CustomerUpdateOne) ClearBillingAddresses() *CustomerUpdateOne {
+	cuo.mutation.ClearBillingAddresses()
 	return cuo
 }
 
-// ClearAddresses clears all "addresses" edges to the Address entity.
-func (cuo *CustomerUpdateOne) ClearAddresses() *CustomerUpdateOne {
-	cuo.mutation.ClearAddresses()
+// RemoveBillingAddressIDs removes the "billing_addresses" edge to BillingAddress entities by IDs.
+func (cuo *CustomerUpdateOne) RemoveBillingAddressIDs(ids ...int) *CustomerUpdateOne {
+	cuo.mutation.RemoveBillingAddressIDs(ids...)
 	return cuo
 }
 
-// RemoveAddressIDs removes the "addresses" edge to Address entities by IDs.
-func (cuo *CustomerUpdateOne) RemoveAddressIDs(ids ...int) *CustomerUpdateOne {
-	cuo.mutation.RemoveAddressIDs(ids...)
-	return cuo
-}
-
-// RemoveAddresses removes "addresses" edges to Address entities.
-func (cuo *CustomerUpdateOne) RemoveAddresses(a ...*Address) *CustomerUpdateOne {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+// RemoveBillingAddresses removes "billing_addresses" edges to BillingAddress entities.
+func (cuo *CustomerUpdateOne) RemoveBillingAddresses(b ...*BillingAddress) *CustomerUpdateOne {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
 	}
-	return cuo.RemoveAddressIDs(ids...)
+	return cuo.RemoveBillingAddressIDs(ids...)
 }
 
-// ClearPhone clears all "phone" edges to the Tel entity.
-func (cuo *CustomerUpdateOne) ClearPhone() *CustomerUpdateOne {
-	cuo.mutation.ClearPhone()
+// ClearDeliveryAddresses clears all "delivery_addresses" edges to the DeliveryAddress entity.
+func (cuo *CustomerUpdateOne) ClearDeliveryAddresses() *CustomerUpdateOne {
+	cuo.mutation.ClearDeliveryAddresses()
 	return cuo
 }
 
-// RemovePhoneIDs removes the "phone" edge to Tel entities by IDs.
-func (cuo *CustomerUpdateOne) RemovePhoneIDs(ids ...int) *CustomerUpdateOne {
-	cuo.mutation.RemovePhoneIDs(ids...)
+// RemoveDeliveryAddressIDs removes the "delivery_addresses" edge to DeliveryAddress entities by IDs.
+func (cuo *CustomerUpdateOne) RemoveDeliveryAddressIDs(ids ...int) *CustomerUpdateOne {
+	cuo.mutation.RemoveDeliveryAddressIDs(ids...)
 	return cuo
 }
 
-// RemovePhone removes "phone" edges to Tel entities.
-func (cuo *CustomerUpdateOne) RemovePhone(t ...*Tel) *CustomerUpdateOne {
+// RemoveDeliveryAddresses removes "delivery_addresses" edges to DeliveryAddress entities.
+func (cuo *CustomerUpdateOne) RemoveDeliveryAddresses(d ...*DeliveryAddress) *CustomerUpdateOne {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return cuo.RemoveDeliveryAddressIDs(ids...)
+}
+
+// ClearTels clears all "tels" edges to the Tel entity.
+func (cuo *CustomerUpdateOne) ClearTels() *CustomerUpdateOne {
+	cuo.mutation.ClearTels()
+	return cuo
+}
+
+// RemoveTelIDs removes the "tels" edge to Tel entities by IDs.
+func (cuo *CustomerUpdateOne) RemoveTelIDs(ids ...int) *CustomerUpdateOne {
+	cuo.mutation.RemoveTelIDs(ids...)
+	return cuo
+}
+
+// RemoveTels removes "tels" edges to Tel entities.
+func (cuo *CustomerUpdateOne) RemoveTels(t ...*Tel) *CustomerUpdateOne {
 	ids := make([]int, len(t))
 	for i := range t {
 		ids[i] = t[i].ID
 	}
-	return cuo.RemovePhoneIDs(ids...)
+	return cuo.RemoveTelIDs(ids...)
 }
 
 // ClearCreatedBy clears the "created_by" edge to the User entity.
@@ -863,6 +976,12 @@ func (cuo *CustomerUpdateOne) RemoveNotes(n ...*Note) *CustomerUpdateOne {
 		ids[i] = n[i].ID
 	}
 	return cuo.RemoveNoteIDs(ids...)
+}
+
+// ClearLogin clears the "login" edge to the Login entity.
+func (cuo *CustomerUpdateOne) ClearLogin() *CustomerUpdateOne {
+	cuo.mutation.ClearLogin()
+	return cuo
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -1020,28 +1139,44 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if cuo.mutation.BillingAddressCleared() {
+	if cuo.mutation.BillingAddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.BillingAddressTable,
-			Columns: []string{customer.BillingAddressColumn},
+			Table:   customer.BillingAddressesTable,
+			Columns: []string{customer.BillingAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cuo.mutation.BillingAddressIDs(); len(nodes) > 0 {
+	if nodes := cuo.mutation.RemovedBillingAddressesIDs(); len(nodes) > 0 && !cuo.mutation.BillingAddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.BillingAddressTable,
-			Columns: []string{customer.BillingAddressColumn},
+			Table:   customer.BillingAddressesTable,
+			Columns: []string{customer.BillingAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.BillingAddressesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingAddressesTable,
+			Columns: []string{customer.BillingAddressesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1049,28 +1184,28 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if cuo.mutation.AddressesCleared() {
+	if cuo.mutation.DeliveryAddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.AddressesTable,
-			Columns: []string{customer.AddressesColumn},
+			Table:   customer.DeliveryAddressesTable,
+			Columns: []string{customer.DeliveryAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cuo.mutation.RemovedAddressesIDs(); len(nodes) > 0 && !cuo.mutation.AddressesCleared() {
+	if nodes := cuo.mutation.RemovedDeliveryAddressesIDs(); len(nodes) > 0 && !cuo.mutation.DeliveryAddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.AddressesTable,
-			Columns: []string{customer.AddressesColumn},
+			Table:   customer.DeliveryAddressesTable,
+			Columns: []string{customer.DeliveryAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1078,15 +1213,15 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cuo.mutation.AddressesIDs(); len(nodes) > 0 {
+	if nodes := cuo.mutation.DeliveryAddressesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.AddressesTable,
-			Columns: []string{customer.AddressesColumn},
+			Table:   customer.DeliveryAddressesTable,
+			Columns: []string{customer.DeliveryAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(address.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1094,12 +1229,12 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if cuo.mutation.PhoneCleared() {
+	if cuo.mutation.TelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
-			Table:   customer.PhoneTable,
-			Columns: []string{customer.PhoneColumn},
+			Table:   customer.TelsTable,
+			Columns: customer.TelsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -1107,12 +1242,12 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cuo.mutation.RemovedPhoneIDs(); len(nodes) > 0 && !cuo.mutation.PhoneCleared() {
+	if nodes := cuo.mutation.RemovedTelsIDs(); len(nodes) > 0 && !cuo.mutation.TelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
-			Table:   customer.PhoneTable,
-			Columns: []string{customer.PhoneColumn},
+			Table:   customer.TelsTable,
+			Columns: customer.TelsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -1123,12 +1258,12 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := cuo.mutation.PhoneIDs(); len(nodes) > 0 {
+	if nodes := cuo.mutation.TelsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
-			Table:   customer.PhoneTable,
-			Columns: []string{customer.PhoneColumn},
+			Table:   customer.TelsTable,
+			Columns: customer.TelsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -1206,6 +1341,35 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.LoginCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.LoginTable,
+			Columns: []string{customer.LoginColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(login.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.LoginIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   customer.LoginTable,
+			Columns: []string{customer.LoginColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(login.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

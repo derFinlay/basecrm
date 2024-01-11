@@ -9,16 +9,16 @@ import (
 	"github.com/derfinlay/basecrm/ent"
 )
 
-// The AddressFunc type is an adapter to allow the use of ordinary
-// function as Address mutator.
-type AddressFunc func(context.Context, *ent.AddressMutation) (ent.Value, error)
+// The BillingAddressFunc type is an adapter to allow the use of ordinary
+// function as BillingAddress mutator.
+type BillingAddressFunc func(context.Context, *ent.BillingAddressMutation) (ent.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f AddressFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.AddressMutation); ok {
+func (f BillingAddressFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BillingAddressMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AddressMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BillingAddressMutation", m)
 }
 
 // The CustomerFunc type is an adapter to allow the use of ordinary
@@ -31,6 +31,30 @@ func (f CustomerFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CustomerMutation", m)
+}
+
+// The DeliveryAddressFunc type is an adapter to allow the use of ordinary
+// function as DeliveryAddress mutator.
+type DeliveryAddressFunc func(context.Context, *ent.DeliveryAddressMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DeliveryAddressFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DeliveryAddressMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DeliveryAddressMutation", m)
+}
+
+// The LoginFunc type is an adapter to allow the use of ordinary
+// function as Login mutator.
+type LoginFunc func(context.Context, *ent.LoginMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LoginFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LoginMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LoginMutation", m)
 }
 
 // The NoteFunc type is an adapter to allow the use of ordinary

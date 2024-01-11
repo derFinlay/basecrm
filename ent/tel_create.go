@@ -4,10 +4,14 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
 
@@ -18,6 +22,74 @@ type TelCreate struct {
 	hooks    []Hook
 }
 
+// SetTel sets the "tel" field.
+func (tc *TelCreate) SetTel(s string) *TelCreate {
+	tc.mutation.SetTel(s)
+	return tc
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (tc *TelCreate) SetCreatedAt(t time.Time) *TelCreate {
+	tc.mutation.SetCreatedAt(t)
+	return tc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (tc *TelCreate) SetNillableCreatedAt(t *time.Time) *TelCreate {
+	if t != nil {
+		tc.SetCreatedAt(*t)
+	}
+	return tc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (tc *TelCreate) SetUpdatedAt(t time.Time) *TelCreate {
+	tc.mutation.SetUpdatedAt(t)
+	return tc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (tc *TelCreate) SetNillableUpdatedAt(t *time.Time) *TelCreate {
+	if t != nil {
+		tc.SetUpdatedAt(*t)
+	}
+	return tc
+}
+
+// SetNoteID sets the "note" edge to the Note entity by ID.
+func (tc *TelCreate) SetNoteID(id int) *TelCreate {
+	tc.mutation.SetNoteID(id)
+	return tc
+}
+
+// SetNillableNoteID sets the "note" edge to the Note entity by ID if the given value is not nil.
+func (tc *TelCreate) SetNillableNoteID(id *int) *TelCreate {
+	if id != nil {
+		tc = tc.SetNoteID(*id)
+	}
+	return tc
+}
+
+// SetNote sets the "note" edge to the Note entity.
+func (tc *TelCreate) SetNote(n *Note) *TelCreate {
+	return tc.SetNoteID(n.ID)
+}
+
+// AddCustomerIDs adds the "customer" edge to the Customer entity by IDs.
+func (tc *TelCreate) AddCustomerIDs(ids ...int) *TelCreate {
+	tc.mutation.AddCustomerIDs(ids...)
+	return tc
+}
+
+// AddCustomer adds the "customer" edges to the Customer entity.
+func (tc *TelCreate) AddCustomer(c ...*Customer) *TelCreate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return tc.AddCustomerIDs(ids...)
+}
+
 // Mutation returns the TelMutation object of the builder.
 func (tc *TelCreate) Mutation() *TelMutation {
 	return tc.mutation
@@ -25,6 +97,7 @@ func (tc *TelCreate) Mutation() *TelMutation {
 
 // Save creates the Tel in the database.
 func (tc *TelCreate) Save(ctx context.Context) (*Tel, error) {
+	tc.defaults()
 	return withHooks(ctx, tc.sqlSave, tc.mutation, tc.hooks)
 }
 
@@ -50,8 +123,34 @@ func (tc *TelCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (tc *TelCreate) defaults() {
+	if _, ok := tc.mutation.CreatedAt(); !ok {
+		v := tel.DefaultCreatedAt()
+		tc.mutation.SetCreatedAt(v)
+	}
+	if _, ok := tc.mutation.UpdatedAt(); !ok {
+		v := tel.DefaultUpdatedAt()
+		tc.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (tc *TelCreate) check() error {
+	if _, ok := tc.mutation.Tel(); !ok {
+		return &ValidationError{Name: "tel", err: errors.New(`ent: missing required field "Tel.tel"`)}
+	}
+	if v, ok := tc.mutation.Tel(); ok {
+		if err := tel.TelValidator(v); err != nil {
+			return &ValidationError{Name: "tel", err: fmt.Errorf(`ent: validator failed for field "Tel.tel": %w`, err)}
+		}
+	}
+	if _, ok := tc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Tel.created_at"`)}
+	}
+	if _, ok := tc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Tel.updated_at"`)}
+	}
 	return nil
 }
 
@@ -78,6 +177,50 @@ func (tc *TelCreate) createSpec() (*Tel, *sqlgraph.CreateSpec) {
 		_node = &Tel{config: tc.config}
 		_spec = sqlgraph.NewCreateSpec(tel.Table, sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt))
 	)
+	if value, ok := tc.mutation.Tel(); ok {
+		_spec.SetField(tel.FieldTel, field.TypeString, value)
+		_node.Tel = value
+	}
+	if value, ok := tc.mutation.CreatedAt(); ok {
+		_spec.SetField(tel.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := tc.mutation.UpdatedAt(); ok {
+		_spec.SetField(tel.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if nodes := tc.mutation.NoteIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   tel.NoteTable,
+			Columns: []string{tel.NoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := tc.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tel.CustomerTable,
+			Columns: tel.CustomerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -99,6 +242,7 @@ func (tcb *TelCreateBulk) Save(ctx context.Context) ([]*Tel, error) {
 	for i := range tcb.builders {
 		func(i int, root context.Context) {
 			builder := tcb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*TelMutation)
 				if !ok {

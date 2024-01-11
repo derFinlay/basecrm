@@ -6,10 +6,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
+	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
@@ -27,18 +31,77 @@ func (ou *OrderUpdate) Where(ps ...predicate.Order) *OrderUpdate {
 	return ou
 }
 
-// SetTest sets the "test" field.
-func (ou *OrderUpdate) SetTest(s string) *OrderUpdate {
-	ou.mutation.SetTest(s)
+// SetStatus sets the "status" field.
+func (ou *OrderUpdate) SetStatus(s string) *OrderUpdate {
+	ou.mutation.SetStatus(s)
 	return ou
 }
 
-// SetNillableTest sets the "test" field if the given value is not nil.
-func (ou *OrderUpdate) SetNillableTest(s *string) *OrderUpdate {
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (ou *OrderUpdate) SetNillableStatus(s *string) *OrderUpdate {
 	if s != nil {
-		ou.SetTest(*s)
+		ou.SetStatus(*s)
 	}
 	return ou
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (ou *OrderUpdate) SetUpdatedAt(t time.Time) *OrderUpdate {
+	ou.mutation.SetUpdatedAt(t)
+	return ou
+}
+
+// SetCustomerID sets the "customer" edge to the Customer entity by ID.
+func (ou *OrderUpdate) SetCustomerID(id int) *OrderUpdate {
+	ou.mutation.SetCustomerID(id)
+	return ou
+}
+
+// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
+func (ou *OrderUpdate) SetNillableCustomerID(id *int) *OrderUpdate {
+	if id != nil {
+		ou = ou.SetCustomerID(*id)
+	}
+	return ou
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (ou *OrderUpdate) SetCustomer(c *Customer) *OrderUpdate {
+	return ou.SetCustomerID(c.ID)
+}
+
+// SetAddressID sets the "address" edge to the BillingAddress entity by ID.
+func (ou *OrderUpdate) SetAddressID(id int) *OrderUpdate {
+	ou.mutation.SetAddressID(id)
+	return ou
+}
+
+// SetNillableAddressID sets the "address" edge to the BillingAddress entity by ID if the given value is not nil.
+func (ou *OrderUpdate) SetNillableAddressID(id *int) *OrderUpdate {
+	if id != nil {
+		ou = ou.SetAddressID(*id)
+	}
+	return ou
+}
+
+// SetAddress sets the "address" edge to the BillingAddress entity.
+func (ou *OrderUpdate) SetAddress(b *BillingAddress) *OrderUpdate {
+	return ou.SetAddressID(b.ID)
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (ou *OrderUpdate) AddNoteIDs(ids ...int) *OrderUpdate {
+	ou.mutation.AddNoteIDs(ids...)
+	return ou
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (ou *OrderUpdate) AddNotes(n ...*Note) *OrderUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return ou.AddNoteIDs(ids...)
 }
 
 // Mutation returns the OrderMutation object of the builder.
@@ -46,8 +109,42 @@ func (ou *OrderUpdate) Mutation() *OrderMutation {
 	return ou.mutation
 }
 
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (ou *OrderUpdate) ClearCustomer() *OrderUpdate {
+	ou.mutation.ClearCustomer()
+	return ou
+}
+
+// ClearAddress clears the "address" edge to the BillingAddress entity.
+func (ou *OrderUpdate) ClearAddress() *OrderUpdate {
+	ou.mutation.ClearAddress()
+	return ou
+}
+
+// ClearNotes clears all "notes" edges to the Note entity.
+func (ou *OrderUpdate) ClearNotes() *OrderUpdate {
+	ou.mutation.ClearNotes()
+	return ou
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (ou *OrderUpdate) RemoveNoteIDs(ids ...int) *OrderUpdate {
+	ou.mutation.RemoveNoteIDs(ids...)
+	return ou
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (ou *OrderUpdate) RemoveNotes(n ...*Note) *OrderUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return ou.RemoveNoteIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (ou *OrderUpdate) Save(ctx context.Context) (int, error) {
+	ou.defaults()
 	return withHooks(ctx, ou.sqlSave, ou.mutation, ou.hooks)
 }
 
@@ -73,6 +170,14 @@ func (ou *OrderUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (ou *OrderUpdate) defaults() {
+	if _, ok := ou.mutation.UpdatedAt(); !ok {
+		v := order.UpdateDefaultUpdatedAt()
+		ou.mutation.SetUpdatedAt(v)
+	}
+}
+
 func (ou *OrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(order.Table, order.Columns, sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt))
 	if ps := ou.mutation.predicates; len(ps) > 0 {
@@ -82,8 +187,114 @@ func (ou *OrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := ou.mutation.Test(); ok {
-		_spec.SetField(order.FieldTest, field.TypeString, value)
+	if value, ok := ou.mutation.Status(); ok {
+		_spec.SetField(order.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := ou.mutation.UpdatedAt(); ok {
+		_spec.SetField(order.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if ou.mutation.CustomerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.CustomerTable,
+			Columns: []string{order.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ou.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.CustomerTable,
+			Columns: []string{order.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ou.mutation.AddressCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.AddressTable,
+			Columns: []string{order.AddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ou.mutation.AddressIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.AddressTable,
+			Columns: []string{order.AddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ou.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.NotesTable,
+			Columns: []string{order.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ou.mutation.RemovedNotesIDs(); len(nodes) > 0 && !ou.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.NotesTable,
+			Columns: []string{order.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ou.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.NotesTable,
+			Columns: []string{order.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ou.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -105,23 +316,115 @@ type OrderUpdateOne struct {
 	mutation *OrderMutation
 }
 
-// SetTest sets the "test" field.
-func (ouo *OrderUpdateOne) SetTest(s string) *OrderUpdateOne {
-	ouo.mutation.SetTest(s)
+// SetStatus sets the "status" field.
+func (ouo *OrderUpdateOne) SetStatus(s string) *OrderUpdateOne {
+	ouo.mutation.SetStatus(s)
 	return ouo
 }
 
-// SetNillableTest sets the "test" field if the given value is not nil.
-func (ouo *OrderUpdateOne) SetNillableTest(s *string) *OrderUpdateOne {
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (ouo *OrderUpdateOne) SetNillableStatus(s *string) *OrderUpdateOne {
 	if s != nil {
-		ouo.SetTest(*s)
+		ouo.SetStatus(*s)
 	}
 	return ouo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (ouo *OrderUpdateOne) SetUpdatedAt(t time.Time) *OrderUpdateOne {
+	ouo.mutation.SetUpdatedAt(t)
+	return ouo
+}
+
+// SetCustomerID sets the "customer" edge to the Customer entity by ID.
+func (ouo *OrderUpdateOne) SetCustomerID(id int) *OrderUpdateOne {
+	ouo.mutation.SetCustomerID(id)
+	return ouo
+}
+
+// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
+func (ouo *OrderUpdateOne) SetNillableCustomerID(id *int) *OrderUpdateOne {
+	if id != nil {
+		ouo = ouo.SetCustomerID(*id)
+	}
+	return ouo
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (ouo *OrderUpdateOne) SetCustomer(c *Customer) *OrderUpdateOne {
+	return ouo.SetCustomerID(c.ID)
+}
+
+// SetAddressID sets the "address" edge to the BillingAddress entity by ID.
+func (ouo *OrderUpdateOne) SetAddressID(id int) *OrderUpdateOne {
+	ouo.mutation.SetAddressID(id)
+	return ouo
+}
+
+// SetNillableAddressID sets the "address" edge to the BillingAddress entity by ID if the given value is not nil.
+func (ouo *OrderUpdateOne) SetNillableAddressID(id *int) *OrderUpdateOne {
+	if id != nil {
+		ouo = ouo.SetAddressID(*id)
+	}
+	return ouo
+}
+
+// SetAddress sets the "address" edge to the BillingAddress entity.
+func (ouo *OrderUpdateOne) SetAddress(b *BillingAddress) *OrderUpdateOne {
+	return ouo.SetAddressID(b.ID)
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (ouo *OrderUpdateOne) AddNoteIDs(ids ...int) *OrderUpdateOne {
+	ouo.mutation.AddNoteIDs(ids...)
+	return ouo
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (ouo *OrderUpdateOne) AddNotes(n ...*Note) *OrderUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return ouo.AddNoteIDs(ids...)
 }
 
 // Mutation returns the OrderMutation object of the builder.
 func (ouo *OrderUpdateOne) Mutation() *OrderMutation {
 	return ouo.mutation
+}
+
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (ouo *OrderUpdateOne) ClearCustomer() *OrderUpdateOne {
+	ouo.mutation.ClearCustomer()
+	return ouo
+}
+
+// ClearAddress clears the "address" edge to the BillingAddress entity.
+func (ouo *OrderUpdateOne) ClearAddress() *OrderUpdateOne {
+	ouo.mutation.ClearAddress()
+	return ouo
+}
+
+// ClearNotes clears all "notes" edges to the Note entity.
+func (ouo *OrderUpdateOne) ClearNotes() *OrderUpdateOne {
+	ouo.mutation.ClearNotes()
+	return ouo
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (ouo *OrderUpdateOne) RemoveNoteIDs(ids ...int) *OrderUpdateOne {
+	ouo.mutation.RemoveNoteIDs(ids...)
+	return ouo
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (ouo *OrderUpdateOne) RemoveNotes(n ...*Note) *OrderUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return ouo.RemoveNoteIDs(ids...)
 }
 
 // Where appends a list predicates to the OrderUpdate builder.
@@ -139,6 +442,7 @@ func (ouo *OrderUpdateOne) Select(field string, fields ...string) *OrderUpdateOn
 
 // Save executes the query and returns the updated Order entity.
 func (ouo *OrderUpdateOne) Save(ctx context.Context) (*Order, error) {
+	ouo.defaults()
 	return withHooks(ctx, ouo.sqlSave, ouo.mutation, ouo.hooks)
 }
 
@@ -161,6 +465,14 @@ func (ouo *OrderUpdateOne) Exec(ctx context.Context) error {
 func (ouo *OrderUpdateOne) ExecX(ctx context.Context) {
 	if err := ouo.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (ouo *OrderUpdateOne) defaults() {
+	if _, ok := ouo.mutation.UpdatedAt(); !ok {
+		v := order.UpdateDefaultUpdatedAt()
+		ouo.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -190,8 +502,114 @@ func (ouo *OrderUpdateOne) sqlSave(ctx context.Context) (_node *Order, err error
 			}
 		}
 	}
-	if value, ok := ouo.mutation.Test(); ok {
-		_spec.SetField(order.FieldTest, field.TypeString, value)
+	if value, ok := ouo.mutation.Status(); ok {
+		_spec.SetField(order.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := ouo.mutation.UpdatedAt(); ok {
+		_spec.SetField(order.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if ouo.mutation.CustomerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.CustomerTable,
+			Columns: []string{order.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ouo.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.CustomerTable,
+			Columns: []string{order.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ouo.mutation.AddressCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.AddressTable,
+			Columns: []string{order.AddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ouo.mutation.AddressIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.AddressTable,
+			Columns: []string{order.AddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ouo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.NotesTable,
+			Columns: []string{order.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ouo.mutation.RemovedNotesIDs(); len(nodes) > 0 && !ouo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.NotesTable,
+			Columns: []string{order.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ouo.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.NotesTable,
+			Columns: []string{order.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Order{config: ouo.config}
 	_spec.Assign = _node.assignValues

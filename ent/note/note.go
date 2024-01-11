@@ -3,7 +3,10 @@
 package note
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -11,19 +14,77 @@ const (
 	Label = "note"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldContent holds the string denoting the content field in the database.
+	FieldContent = "content"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
+	// EdgeCustomer holds the string denoting the customer edge name in mutations.
+	EdgeCustomer = "customer"
+	// EdgeOrders holds the string denoting the orders edge name in mutations.
+	EdgeOrders = "orders"
+	// EdgeBillingAddress holds the string denoting the billing_address edge name in mutations.
+	EdgeBillingAddress = "billing_address"
+	// EdgeDeliveryAddress holds the string denoting the delivery_address edge name in mutations.
+	EdgeDeliveryAddress = "delivery_address"
+	// EdgeTel holds the string denoting the tel edge name in mutations.
+	EdgeTel = "tel"
 	// Table holds the table name of the note in the database.
 	Table = "notes"
+	// CustomerTable is the table that holds the customer relation/edge.
+	CustomerTable = "notes"
+	// CustomerInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	CustomerInverseTable = "customers"
+	// CustomerColumn is the table column denoting the customer relation/edge.
+	CustomerColumn = "customer_notes"
+	// OrdersTable is the table that holds the orders relation/edge.
+	OrdersTable = "notes"
+	// OrdersInverseTable is the table name for the Order entity.
+	// It exists in this package in order to avoid circular dependency with the "order" package.
+	OrdersInverseTable = "orders"
+	// OrdersColumn is the table column denoting the orders relation/edge.
+	OrdersColumn = "order_notes"
+	// BillingAddressTable is the table that holds the billing_address relation/edge.
+	BillingAddressTable = "notes"
+	// BillingAddressInverseTable is the table name for the BillingAddress entity.
+	// It exists in this package in order to avoid circular dependency with the "billingaddress" package.
+	BillingAddressInverseTable = "billing_addresses"
+	// BillingAddressColumn is the table column denoting the billing_address relation/edge.
+	BillingAddressColumn = "billing_address_notes"
+	// DeliveryAddressTable is the table that holds the delivery_address relation/edge.
+	DeliveryAddressTable = "notes"
+	// DeliveryAddressInverseTable is the table name for the DeliveryAddress entity.
+	// It exists in this package in order to avoid circular dependency with the "deliveryaddress" package.
+	DeliveryAddressInverseTable = "delivery_addresses"
+	// DeliveryAddressColumn is the table column denoting the delivery_address relation/edge.
+	DeliveryAddressColumn = "delivery_address_notes"
+	// TelTable is the table that holds the tel relation/edge.
+	TelTable = "notes"
+	// TelInverseTable is the table name for the Tel entity.
+	// It exists in this package in order to avoid circular dependency with the "tel" package.
+	TelInverseTable = "tels"
+	// TelColumn is the table column denoting the tel relation/edge.
+	TelColumn = "tel_note"
 )
 
 // Columns holds all SQL columns for note fields.
 var Columns = []string{
 	FieldID,
+	FieldContent,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "notes"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
+	"billing_address_notes",
 	"customer_notes",
+	"delivery_address_notes",
+	"order_notes",
+	"tel_note",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -41,10 +102,104 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+)
+
 // OrderOption defines the ordering options for the Note queries.
 type OrderOption func(*sql.Selector)
 
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByContent orders the results by the content field.
+func ByContent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldContent, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByCustomerField orders the results by customer field.
+func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByOrdersField orders the results by orders field.
+func ByOrdersField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrdersStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByBillingAddressField orders the results by billing_address field.
+func ByBillingAddressField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingAddressStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByDeliveryAddressField orders the results by delivery_address field.
+func ByDeliveryAddressField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newDeliveryAddressStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByTelField orders the results by tel field.
+func ByTelField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTelStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newCustomerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
+	)
+}
+func newOrdersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrdersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrdersTable, OrdersColumn),
+	)
+}
+func newBillingAddressStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingAddressInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BillingAddressTable, BillingAddressColumn),
+	)
+}
+func newDeliveryAddressStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(DeliveryAddressInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, DeliveryAddressTable, DeliveryAddressColumn),
+	)
+}
+func newTelStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TelInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, TelTable, TelColumn),
+	)
 }

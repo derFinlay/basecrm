@@ -9,8 +9,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/derfinlay/basecrm/ent/address"
 	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/user"
 )
 
@@ -31,29 +31,31 @@ type Customer struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerQuery when eager-loading is set.
-	Edges                    CustomerEdges `json:"edges"`
-	customer_billing_address *int
-	customer_created_by      *int
-	selectValues             sql.SelectValues
+	Edges               CustomerEdges `json:"edges"`
+	customer_created_by *int
+	customer_login      *int
+	selectValues        sql.SelectValues
 }
 
 // CustomerEdges holds the relations/edges for other nodes in the graph.
 type CustomerEdges struct {
 	// Orders holds the value of the orders edge.
 	Orders []*Order `json:"orders,omitempty"`
-	// BillingAddress holds the value of the billing_address edge.
-	BillingAddress *Address `json:"billing_address,omitempty"`
-	// Addresses holds the value of the addresses edge.
-	Addresses []*Address `json:"addresses,omitempty"`
-	// Phone holds the value of the phone edge.
-	Phone []*Tel `json:"phone,omitempty"`
+	// BillingAddresses holds the value of the billing_addresses edge.
+	BillingAddresses []*BillingAddress `json:"billing_addresses,omitempty"`
+	// DeliveryAddresses holds the value of the delivery_addresses edge.
+	DeliveryAddresses []*DeliveryAddress `json:"delivery_addresses,omitempty"`
+	// Tels holds the value of the tels edge.
+	Tels []*Tel `json:"tels,omitempty"`
 	// CreatedBy holds the value of the created_by edge.
 	CreatedBy *User `json:"created_by,omitempty"`
 	// Notes holds the value of the notes edge.
 	Notes []*Note `json:"notes,omitempty"`
+	// Login holds the value of the login edge.
+	Login *Login `json:"login,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // OrdersOrErr returns the Orders value or an error if the edge
@@ -65,35 +67,31 @@ func (e CustomerEdges) OrdersOrErr() ([]*Order, error) {
 	return nil, &NotLoadedError{edge: "orders"}
 }
 
-// BillingAddressOrErr returns the BillingAddress value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e CustomerEdges) BillingAddressOrErr() (*Address, error) {
+// BillingAddressesOrErr returns the BillingAddresses value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) BillingAddressesOrErr() ([]*BillingAddress, error) {
 	if e.loadedTypes[1] {
-		if e.BillingAddress == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: address.Label}
-		}
-		return e.BillingAddress, nil
+		return e.BillingAddresses, nil
 	}
-	return nil, &NotLoadedError{edge: "billing_address"}
+	return nil, &NotLoadedError{edge: "billing_addresses"}
 }
 
-// AddressesOrErr returns the Addresses value or an error if the edge
+// DeliveryAddressesOrErr returns the DeliveryAddresses value or an error if the edge
 // was not loaded in eager-loading.
-func (e CustomerEdges) AddressesOrErr() ([]*Address, error) {
+func (e CustomerEdges) DeliveryAddressesOrErr() ([]*DeliveryAddress, error) {
 	if e.loadedTypes[2] {
-		return e.Addresses, nil
+		return e.DeliveryAddresses, nil
 	}
-	return nil, &NotLoadedError{edge: "addresses"}
+	return nil, &NotLoadedError{edge: "delivery_addresses"}
 }
 
-// PhoneOrErr returns the Phone value or an error if the edge
+// TelsOrErr returns the Tels value or an error if the edge
 // was not loaded in eager-loading.
-func (e CustomerEdges) PhoneOrErr() ([]*Tel, error) {
+func (e CustomerEdges) TelsOrErr() ([]*Tel, error) {
 	if e.loadedTypes[3] {
-		return e.Phone, nil
+		return e.Tels, nil
 	}
-	return nil, &NotLoadedError{edge: "phone"}
+	return nil, &NotLoadedError{edge: "tels"}
 }
 
 // CreatedByOrErr returns the CreatedBy value or an error if the edge
@@ -118,6 +116,19 @@ func (e CustomerEdges) NotesOrErr() ([]*Note, error) {
 	return nil, &NotLoadedError{edge: "notes"}
 }
 
+// LoginOrErr returns the Login value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CustomerEdges) LoginOrErr() (*Login, error) {
+	if e.loadedTypes[6] {
+		if e.Login == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: login.Label}
+		}
+		return e.Login, nil
+	}
+	return nil, &NotLoadedError{edge: "login"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Customer) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -129,9 +140,9 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
-		case customer.ForeignKeys[0]: // customer_billing_address
+		case customer.ForeignKeys[0]: // customer_created_by
 			values[i] = new(sql.NullInt64)
-		case customer.ForeignKeys[1]: // customer_created_by
+		case customer.ForeignKeys[1]: // customer_login
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -186,17 +197,17 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			}
 		case customer.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field customer_billing_address", value)
-			} else if value.Valid {
-				c.customer_billing_address = new(int)
-				*c.customer_billing_address = int(value.Int64)
-			}
-		case customer.ForeignKeys[1]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field customer_created_by", value)
 			} else if value.Valid {
 				c.customer_created_by = new(int)
 				*c.customer_created_by = int(value.Int64)
+			}
+		case customer.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field customer_login", value)
+			} else if value.Valid {
+				c.customer_login = new(int)
+				*c.customer_login = int(value.Int64)
 			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
@@ -216,19 +227,19 @@ func (c *Customer) QueryOrders() *OrderQuery {
 	return NewCustomerClient(c.config).QueryOrders(c)
 }
 
-// QueryBillingAddress queries the "billing_address" edge of the Customer entity.
-func (c *Customer) QueryBillingAddress() *AddressQuery {
-	return NewCustomerClient(c.config).QueryBillingAddress(c)
+// QueryBillingAddresses queries the "billing_addresses" edge of the Customer entity.
+func (c *Customer) QueryBillingAddresses() *BillingAddressQuery {
+	return NewCustomerClient(c.config).QueryBillingAddresses(c)
 }
 
-// QueryAddresses queries the "addresses" edge of the Customer entity.
-func (c *Customer) QueryAddresses() *AddressQuery {
-	return NewCustomerClient(c.config).QueryAddresses(c)
+// QueryDeliveryAddresses queries the "delivery_addresses" edge of the Customer entity.
+func (c *Customer) QueryDeliveryAddresses() *DeliveryAddressQuery {
+	return NewCustomerClient(c.config).QueryDeliveryAddresses(c)
 }
 
-// QueryPhone queries the "phone" edge of the Customer entity.
-func (c *Customer) QueryPhone() *TelQuery {
-	return NewCustomerClient(c.config).QueryPhone(c)
+// QueryTels queries the "tels" edge of the Customer entity.
+func (c *Customer) QueryTels() *TelQuery {
+	return NewCustomerClient(c.config).QueryTels(c)
 }
 
 // QueryCreatedBy queries the "created_by" edge of the Customer entity.
@@ -239,6 +250,11 @@ func (c *Customer) QueryCreatedBy() *UserQuery {
 // QueryNotes queries the "notes" edge of the Customer entity.
 func (c *Customer) QueryNotes() *NoteQuery {
 	return NewCustomerClient(c.config).QueryNotes(c)
+}
+
+// QueryLogin queries the "login" edge of the Customer entity.
+func (c *Customer) QueryLogin() *LoginQuery {
+	return NewCustomerClient(c.config).QueryLogin(c)
 }
 
 // Update returns a builder for updating this Customer.

@@ -26,8 +26,8 @@ func (Customer) Fields() []ent.Field {
 func (Customer) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("orders", Order.Type),
-		edge.To("billing_address", BillingAddress.Type),
-		edge.To("delivery_addresses", BillingAddress.Type),
+		edge.To("billing_addresses", BillingAddress.Type),
+		edge.To("delivery_addresses", DeliveryAddress.Type),
 		edge.To("tels", Tel.Type),
 		edge.To("created_by", User.Type).Unique(),
 		edge.To("notes", Note.Type),

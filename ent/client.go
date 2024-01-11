@@ -15,8 +15,10 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/derfinlay/basecrm/ent/address"
+	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/deliveryaddress"
+	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
@@ -30,10 +32,14 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
-	// Address is the client for interacting with the Address builders.
-	Address *AddressClient
+	// BillingAddress is the client for interacting with the BillingAddress builders.
+	BillingAddress *BillingAddressClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
+	// DeliveryAddress is the client for interacting with the DeliveryAddress builders.
+	DeliveryAddress *DeliveryAddressClient
+	// Login is the client for interacting with the Login builders.
+	Login *LoginClient
 	// Note is the client for interacting with the Note builders.
 	Note *NoteClient
 	// Order is the client for interacting with the Order builders.
@@ -57,8 +63,10 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
-	c.Address = NewAddressClient(c.config)
+	c.BillingAddress = NewBillingAddressClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
+	c.DeliveryAddress = NewDeliveryAddressClient(c.config)
+	c.Login = NewLoginClient(c.config)
 	c.Note = NewNoteClient(c.config)
 	c.Order = NewOrderClient(c.config)
 	c.Position = NewPositionClient(c.config)
@@ -155,16 +163,18 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:      ctx,
-		config:   cfg,
-		Address:  NewAddressClient(cfg),
-		Customer: NewCustomerClient(cfg),
-		Note:     NewNoteClient(cfg),
-		Order:    NewOrderClient(cfg),
-		Position: NewPositionClient(cfg),
-		Role:     NewRoleClient(cfg),
-		Tel:      NewTelClient(cfg),
-		User:     NewUserClient(cfg),
+		ctx:             ctx,
+		config:          cfg,
+		BillingAddress:  NewBillingAddressClient(cfg),
+		Customer:        NewCustomerClient(cfg),
+		DeliveryAddress: NewDeliveryAddressClient(cfg),
+		Login:           NewLoginClient(cfg),
+		Note:            NewNoteClient(cfg),
+		Order:           NewOrderClient(cfg),
+		Position:        NewPositionClient(cfg),
+		Role:            NewRoleClient(cfg),
+		Tel:             NewTelClient(cfg),
+		User:            NewUserClient(cfg),
 	}, nil
 }
 
@@ -182,23 +192,25 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:      ctx,
-		config:   cfg,
-		Address:  NewAddressClient(cfg),
-		Customer: NewCustomerClient(cfg),
-		Note:     NewNoteClient(cfg),
-		Order:    NewOrderClient(cfg),
-		Position: NewPositionClient(cfg),
-		Role:     NewRoleClient(cfg),
-		Tel:      NewTelClient(cfg),
-		User:     NewUserClient(cfg),
+		ctx:             ctx,
+		config:          cfg,
+		BillingAddress:  NewBillingAddressClient(cfg),
+		Customer:        NewCustomerClient(cfg),
+		DeliveryAddress: NewDeliveryAddressClient(cfg),
+		Login:           NewLoginClient(cfg),
+		Note:            NewNoteClient(cfg),
+		Order:           NewOrderClient(cfg),
+		Position:        NewPositionClient(cfg),
+		Role:            NewRoleClient(cfg),
+		Tel:             NewTelClient(cfg),
+		User:            NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Address.
+//		BillingAddress.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -221,7 +233,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Address, c.Customer, c.Note, c.Order, c.Position, c.Role, c.Tel, c.User,
+		c.BillingAddress, c.Customer, c.DeliveryAddress, c.Login, c.Note, c.Order,
+		c.Position, c.Role, c.Tel, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -231,7 +244,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Address, c.Customer, c.Note, c.Order, c.Position, c.Role, c.Tel, c.User,
+		c.BillingAddress, c.Customer, c.DeliveryAddress, c.Login, c.Note, c.Order,
+		c.Position, c.Role, c.Tel, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -240,10 +254,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
-	case *AddressMutation:
-		return c.Address.mutate(ctx, m)
+	case *BillingAddressMutation:
+		return c.BillingAddress.mutate(ctx, m)
 	case *CustomerMutation:
 		return c.Customer.mutate(ctx, m)
+	case *DeliveryAddressMutation:
+		return c.DeliveryAddress.mutate(ctx, m)
+	case *LoginMutation:
+		return c.Login.mutate(ctx, m)
 	case *NoteMutation:
 		return c.Note.mutate(ctx, m)
 	case *OrderMutation:
@@ -261,107 +279,107 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	}
 }
 
-// AddressClient is a client for the Address schema.
-type AddressClient struct {
+// BillingAddressClient is a client for the BillingAddress schema.
+type BillingAddressClient struct {
 	config
 }
 
-// NewAddressClient returns a client for the Address from the given config.
-func NewAddressClient(c config) *AddressClient {
-	return &AddressClient{config: c}
+// NewBillingAddressClient returns a client for the BillingAddress from the given config.
+func NewBillingAddressClient(c config) *BillingAddressClient {
+	return &BillingAddressClient{config: c}
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `address.Hooks(f(g(h())))`.
-func (c *AddressClient) Use(hooks ...Hook) {
-	c.hooks.Address = append(c.hooks.Address, hooks...)
+// A call to `Use(f, g, h)` equals to `billingaddress.Hooks(f(g(h())))`.
+func (c *BillingAddressClient) Use(hooks ...Hook) {
+	c.hooks.BillingAddress = append(c.hooks.BillingAddress, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `address.Intercept(f(g(h())))`.
-func (c *AddressClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Address = append(c.inters.Address, interceptors...)
+// A call to `Intercept(f, g, h)` equals to `billingaddress.Intercept(f(g(h())))`.
+func (c *BillingAddressClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingAddress = append(c.inters.BillingAddress, interceptors...)
 }
 
-// Create returns a builder for creating a Address entity.
-func (c *AddressClient) Create() *AddressCreate {
-	mutation := newAddressMutation(c.config, OpCreate)
-	return &AddressCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Create returns a builder for creating a BillingAddress entity.
+func (c *BillingAddressClient) Create() *BillingAddressCreate {
+	mutation := newBillingAddressMutation(c.config, OpCreate)
+	return &BillingAddressCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// CreateBulk returns a builder for creating a bulk of Address entities.
-func (c *AddressClient) CreateBulk(builders ...*AddressCreate) *AddressCreateBulk {
-	return &AddressCreateBulk{config: c.config, builders: builders}
+// CreateBulk returns a builder for creating a bulk of BillingAddress entities.
+func (c *BillingAddressClient) CreateBulk(builders ...*BillingAddressCreate) *BillingAddressCreateBulk {
+	return &BillingAddressCreateBulk{config: c.config, builders: builders}
 }
 
 // MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
 // a builder and applies setFunc on it.
-func (c *AddressClient) MapCreateBulk(slice any, setFunc func(*AddressCreate, int)) *AddressCreateBulk {
+func (c *BillingAddressClient) MapCreateBulk(slice any, setFunc func(*BillingAddressCreate, int)) *BillingAddressCreateBulk {
 	rv := reflect.ValueOf(slice)
 	if rv.Kind() != reflect.Slice {
-		return &AddressCreateBulk{err: fmt.Errorf("calling to AddressClient.MapCreateBulk with wrong type %T, need slice", slice)}
+		return &BillingAddressCreateBulk{err: fmt.Errorf("calling to BillingAddressClient.MapCreateBulk with wrong type %T, need slice", slice)}
 	}
-	builders := make([]*AddressCreate, rv.Len())
+	builders := make([]*BillingAddressCreate, rv.Len())
 	for i := 0; i < rv.Len(); i++ {
 		builders[i] = c.Create()
 		setFunc(builders[i], i)
 	}
-	return &AddressCreateBulk{config: c.config, builders: builders}
+	return &BillingAddressCreateBulk{config: c.config, builders: builders}
 }
 
-// Update returns an update builder for Address.
-func (c *AddressClient) Update() *AddressUpdate {
-	mutation := newAddressMutation(c.config, OpUpdate)
-	return &AddressUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Update returns an update builder for BillingAddress.
+func (c *BillingAddressClient) Update() *BillingAddressUpdate {
+	mutation := newBillingAddressMutation(c.config, OpUpdate)
+	return &BillingAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOne returns an update builder for the given entity.
-func (c *AddressClient) UpdateOne(a *Address) *AddressUpdateOne {
-	mutation := newAddressMutation(c.config, OpUpdateOne, withAddress(a))
-	return &AddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *BillingAddressClient) UpdateOne(ba *BillingAddress) *BillingAddressUpdateOne {
+	mutation := newBillingAddressMutation(c.config, OpUpdateOne, withBillingAddress(ba))
+	return &BillingAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *AddressClient) UpdateOneID(id int) *AddressUpdateOne {
-	mutation := newAddressMutation(c.config, OpUpdateOne, withAddressID(id))
-	return &AddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *BillingAddressClient) UpdateOneID(id int) *BillingAddressUpdateOne {
+	mutation := newBillingAddressMutation(c.config, OpUpdateOne, withBillingAddressID(id))
+	return &BillingAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// Delete returns a delete builder for Address.
-func (c *AddressClient) Delete() *AddressDelete {
-	mutation := newAddressMutation(c.config, OpDelete)
-	return &AddressDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Delete returns a delete builder for BillingAddress.
+func (c *BillingAddressClient) Delete() *BillingAddressDelete {
+	mutation := newBillingAddressMutation(c.config, OpDelete)
+	return &BillingAddressDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // DeleteOne returns a builder for deleting the given entity.
-func (c *AddressClient) DeleteOne(a *Address) *AddressDeleteOne {
-	return c.DeleteOneID(a.ID)
+func (c *BillingAddressClient) DeleteOne(ba *BillingAddress) *BillingAddressDeleteOne {
+	return c.DeleteOneID(ba.ID)
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *AddressClient) DeleteOneID(id int) *AddressDeleteOne {
-	builder := c.Delete().Where(address.ID(id))
+func (c *BillingAddressClient) DeleteOneID(id int) *BillingAddressDeleteOne {
+	builder := c.Delete().Where(billingaddress.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
-	return &AddressDeleteOne{builder}
+	return &BillingAddressDeleteOne{builder}
 }
 
-// Query returns a query builder for Address.
-func (c *AddressClient) Query() *AddressQuery {
-	return &AddressQuery{
+// Query returns a query builder for BillingAddress.
+func (c *BillingAddressClient) Query() *BillingAddressQuery {
+	return &BillingAddressQuery{
 		config: c.config,
-		ctx:    &QueryContext{Type: TypeAddress},
+		ctx:    &QueryContext{Type: TypeBillingAddress},
 		inters: c.Interceptors(),
 	}
 }
 
-// Get returns a Address entity by its id.
-func (c *AddressClient) Get(ctx context.Context, id int) (*Address, error) {
-	return c.Query().Where(address.ID(id)).Only(ctx)
+// Get returns a BillingAddress entity by its id.
+func (c *BillingAddressClient) Get(ctx context.Context, id int) (*BillingAddress, error) {
+	return c.Query().Where(billingaddress.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *AddressClient) GetX(ctx context.Context, id int) *Address {
+func (c *BillingAddressClient) GetX(ctx context.Context, id int) *BillingAddress {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -369,28 +387,60 @@ func (c *AddressClient) GetX(ctx context.Context, id int) *Address {
 	return obj
 }
 
+// QueryCustomer queries the customer edge of a BillingAddress.
+func (c *BillingAddressClient) QueryCustomer(ba *BillingAddress) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ba.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingaddress.Table, billingaddress.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingaddress.CustomerTable, billingaddress.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(ba.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNotes queries the notes edge of a BillingAddress.
+func (c *BillingAddressClient) QueryNotes(ba *BillingAddress) *NoteQuery {
+	query := (&NoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ba.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingaddress.Table, billingaddress.FieldID, id),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingaddress.NotesTable, billingaddress.NotesColumn),
+		)
+		fromV = sqlgraph.Neighbors(ba.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
-func (c *AddressClient) Hooks() []Hook {
-	return c.hooks.Address
+func (c *BillingAddressClient) Hooks() []Hook {
+	return c.hooks.BillingAddress
 }
 
 // Interceptors returns the client interceptors.
-func (c *AddressClient) Interceptors() []Interceptor {
-	return c.inters.Address
+func (c *BillingAddressClient) Interceptors() []Interceptor {
+	return c.inters.BillingAddress
 }
 
-func (c *AddressClient) mutate(ctx context.Context, m *AddressMutation) (Value, error) {
+func (c *BillingAddressClient) mutate(ctx context.Context, m *BillingAddressMutation) (Value, error) {
 	switch m.Op() {
 	case OpCreate:
-		return (&AddressCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&BillingAddressCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdate:
-		return (&AddressUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&BillingAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdateOne:
-		return (&AddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&BillingAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpDelete, OpDeleteOne:
-		return (&AddressDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+		return (&BillingAddressDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
-		return nil, fmt.Errorf("ent: unknown Address mutation op: %q", m.Op())
+		return nil, fmt.Errorf("ent: unknown BillingAddress mutation op: %q", m.Op())
 	}
 }
 
@@ -518,15 +568,15 @@ func (c *CustomerClient) QueryOrders(cu *Customer) *OrderQuery {
 	return query
 }
 
-// QueryBillingAddress queries the billing_address edge of a Customer.
-func (c *CustomerClient) QueryBillingAddress(cu *Customer) *AddressQuery {
-	query := (&AddressClient{config: c.config}).Query()
+// QueryBillingAddresses queries the billing_addresses edge of a Customer.
+func (c *CustomerClient) QueryBillingAddresses(cu *Customer) *BillingAddressQuery {
+	query := (&BillingAddressClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := cu.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(customer.Table, customer.FieldID, id),
-			sqlgraph.To(address.Table, address.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, customer.BillingAddressTable, customer.BillingAddressColumn),
+			sqlgraph.To(billingaddress.Table, billingaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingAddressesTable, customer.BillingAddressesColumn),
 		)
 		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
 		return fromV, nil
@@ -534,15 +584,15 @@ func (c *CustomerClient) QueryBillingAddress(cu *Customer) *AddressQuery {
 	return query
 }
 
-// QueryAddresses queries the addresses edge of a Customer.
-func (c *CustomerClient) QueryAddresses(cu *Customer) *AddressQuery {
-	query := (&AddressClient{config: c.config}).Query()
+// QueryDeliveryAddresses queries the delivery_addresses edge of a Customer.
+func (c *CustomerClient) QueryDeliveryAddresses(cu *Customer) *DeliveryAddressQuery {
+	query := (&DeliveryAddressClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := cu.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(customer.Table, customer.FieldID, id),
-			sqlgraph.To(address.Table, address.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, customer.AddressesTable, customer.AddressesColumn),
+			sqlgraph.To(deliveryaddress.Table, deliveryaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.DeliveryAddressesTable, customer.DeliveryAddressesColumn),
 		)
 		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
 		return fromV, nil
@@ -550,15 +600,15 @@ func (c *CustomerClient) QueryAddresses(cu *Customer) *AddressQuery {
 	return query
 }
 
-// QueryPhone queries the phone edge of a Customer.
-func (c *CustomerClient) QueryPhone(cu *Customer) *TelQuery {
+// QueryTels queries the tels edge of a Customer.
+func (c *CustomerClient) QueryTels(cu *Customer) *TelQuery {
 	query := (&TelClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := cu.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(customer.Table, customer.FieldID, id),
 			sqlgraph.To(tel.Table, tel.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, customer.PhoneTable, customer.PhoneColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, customer.TelsTable, customer.TelsPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
 		return fromV, nil
@@ -598,6 +648,22 @@ func (c *CustomerClient) QueryNotes(cu *Customer) *NoteQuery {
 	return query
 }
 
+// QueryLogin queries the login edge of a Customer.
+func (c *CustomerClient) QueryLogin(cu *Customer) *LoginQuery {
+	query := (&LoginClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := cu.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(login.Table, login.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, customer.LoginTable, customer.LoginColumn),
+		)
+		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CustomerClient) Hooks() []Hook {
 	return c.hooks.Customer
@@ -620,6 +686,336 @@ func (c *CustomerClient) mutate(ctx context.Context, m *CustomerMutation) (Value
 		return (&CustomerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Customer mutation op: %q", m.Op())
+	}
+}
+
+// DeliveryAddressClient is a client for the DeliveryAddress schema.
+type DeliveryAddressClient struct {
+	config
+}
+
+// NewDeliveryAddressClient returns a client for the DeliveryAddress from the given config.
+func NewDeliveryAddressClient(c config) *DeliveryAddressClient {
+	return &DeliveryAddressClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `deliveryaddress.Hooks(f(g(h())))`.
+func (c *DeliveryAddressClient) Use(hooks ...Hook) {
+	c.hooks.DeliveryAddress = append(c.hooks.DeliveryAddress, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `deliveryaddress.Intercept(f(g(h())))`.
+func (c *DeliveryAddressClient) Intercept(interceptors ...Interceptor) {
+	c.inters.DeliveryAddress = append(c.inters.DeliveryAddress, interceptors...)
+}
+
+// Create returns a builder for creating a DeliveryAddress entity.
+func (c *DeliveryAddressClient) Create() *DeliveryAddressCreate {
+	mutation := newDeliveryAddressMutation(c.config, OpCreate)
+	return &DeliveryAddressCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of DeliveryAddress entities.
+func (c *DeliveryAddressClient) CreateBulk(builders ...*DeliveryAddressCreate) *DeliveryAddressCreateBulk {
+	return &DeliveryAddressCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DeliveryAddressClient) MapCreateBulk(slice any, setFunc func(*DeliveryAddressCreate, int)) *DeliveryAddressCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DeliveryAddressCreateBulk{err: fmt.Errorf("calling to DeliveryAddressClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DeliveryAddressCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DeliveryAddressCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for DeliveryAddress.
+func (c *DeliveryAddressClient) Update() *DeliveryAddressUpdate {
+	mutation := newDeliveryAddressMutation(c.config, OpUpdate)
+	return &DeliveryAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DeliveryAddressClient) UpdateOne(da *DeliveryAddress) *DeliveryAddressUpdateOne {
+	mutation := newDeliveryAddressMutation(c.config, OpUpdateOne, withDeliveryAddress(da))
+	return &DeliveryAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DeliveryAddressClient) UpdateOneID(id int) *DeliveryAddressUpdateOne {
+	mutation := newDeliveryAddressMutation(c.config, OpUpdateOne, withDeliveryAddressID(id))
+	return &DeliveryAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for DeliveryAddress.
+func (c *DeliveryAddressClient) Delete() *DeliveryAddressDelete {
+	mutation := newDeliveryAddressMutation(c.config, OpDelete)
+	return &DeliveryAddressDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DeliveryAddressClient) DeleteOne(da *DeliveryAddress) *DeliveryAddressDeleteOne {
+	return c.DeleteOneID(da.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DeliveryAddressClient) DeleteOneID(id int) *DeliveryAddressDeleteOne {
+	builder := c.Delete().Where(deliveryaddress.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DeliveryAddressDeleteOne{builder}
+}
+
+// Query returns a query builder for DeliveryAddress.
+func (c *DeliveryAddressClient) Query() *DeliveryAddressQuery {
+	return &DeliveryAddressQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDeliveryAddress},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a DeliveryAddress entity by its id.
+func (c *DeliveryAddressClient) Get(ctx context.Context, id int) (*DeliveryAddress, error) {
+	return c.Query().Where(deliveryaddress.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DeliveryAddressClient) GetX(ctx context.Context, id int) *DeliveryAddress {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTelephone queries the telephone edge of a DeliveryAddress.
+func (c *DeliveryAddressClient) QueryTelephone(da *DeliveryAddress) *TelQuery {
+	query := (&TelClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := da.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(deliveryaddress.Table, deliveryaddress.FieldID, id),
+			sqlgraph.To(tel.Table, tel.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, deliveryaddress.TelephoneTable, deliveryaddress.TelephoneColumn),
+		)
+		fromV = sqlgraph.Neighbors(da.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNotes queries the notes edge of a DeliveryAddress.
+func (c *DeliveryAddressClient) QueryNotes(da *DeliveryAddress) *NoteQuery {
+	query := (&NoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := da.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(deliveryaddress.Table, deliveryaddress.FieldID, id),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, deliveryaddress.NotesTable, deliveryaddress.NotesColumn),
+		)
+		fromV = sqlgraph.Neighbors(da.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a DeliveryAddress.
+func (c *DeliveryAddressClient) QueryCustomer(da *DeliveryAddress) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := da.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(deliveryaddress.Table, deliveryaddress.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, deliveryaddress.CustomerTable, deliveryaddress.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(da.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *DeliveryAddressClient) Hooks() []Hook {
+	return c.hooks.DeliveryAddress
+}
+
+// Interceptors returns the client interceptors.
+func (c *DeliveryAddressClient) Interceptors() []Interceptor {
+	return c.inters.DeliveryAddress
+}
+
+func (c *DeliveryAddressClient) mutate(ctx context.Context, m *DeliveryAddressMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DeliveryAddressCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DeliveryAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DeliveryAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DeliveryAddressDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown DeliveryAddress mutation op: %q", m.Op())
+	}
+}
+
+// LoginClient is a client for the Login schema.
+type LoginClient struct {
+	config
+}
+
+// NewLoginClient returns a client for the Login from the given config.
+func NewLoginClient(c config) *LoginClient {
+	return &LoginClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `login.Hooks(f(g(h())))`.
+func (c *LoginClient) Use(hooks ...Hook) {
+	c.hooks.Login = append(c.hooks.Login, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `login.Intercept(f(g(h())))`.
+func (c *LoginClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Login = append(c.inters.Login, interceptors...)
+}
+
+// Create returns a builder for creating a Login entity.
+func (c *LoginClient) Create() *LoginCreate {
+	mutation := newLoginMutation(c.config, OpCreate)
+	return &LoginCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Login entities.
+func (c *LoginClient) CreateBulk(builders ...*LoginCreate) *LoginCreateBulk {
+	return &LoginCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LoginClient) MapCreateBulk(slice any, setFunc func(*LoginCreate, int)) *LoginCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LoginCreateBulk{err: fmt.Errorf("calling to LoginClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LoginCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LoginCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Login.
+func (c *LoginClient) Update() *LoginUpdate {
+	mutation := newLoginMutation(c.config, OpUpdate)
+	return &LoginUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LoginClient) UpdateOne(l *Login) *LoginUpdateOne {
+	mutation := newLoginMutation(c.config, OpUpdateOne, withLogin(l))
+	return &LoginUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LoginClient) UpdateOneID(id int) *LoginUpdateOne {
+	mutation := newLoginMutation(c.config, OpUpdateOne, withLoginID(id))
+	return &LoginUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Login.
+func (c *LoginClient) Delete() *LoginDelete {
+	mutation := newLoginMutation(c.config, OpDelete)
+	return &LoginDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LoginClient) DeleteOne(l *Login) *LoginDeleteOne {
+	return c.DeleteOneID(l.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LoginClient) DeleteOneID(id int) *LoginDeleteOne {
+	builder := c.Delete().Where(login.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LoginDeleteOne{builder}
+}
+
+// Query returns a query builder for Login.
+func (c *LoginClient) Query() *LoginQuery {
+	return &LoginQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLogin},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Login entity by its id.
+func (c *LoginClient) Get(ctx context.Context, id int) (*Login, error) {
+	return c.Query().Where(login.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LoginClient) GetX(ctx context.Context, id int) *Login {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCustomer queries the customer edge of a Login.
+func (c *LoginClient) QueryCustomer(l *Login) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := l.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(login.Table, login.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, login.CustomerTable, login.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(l.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LoginClient) Hooks() []Hook {
+	return c.hooks.Login
+}
+
+// Interceptors returns the client interceptors.
+func (c *LoginClient) Interceptors() []Interceptor {
+	return c.inters.Login
+}
+
+func (c *LoginClient) mutate(ctx context.Context, m *LoginMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LoginCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LoginUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LoginUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LoginDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Login mutation op: %q", m.Op())
 	}
 }
 
@@ -729,6 +1125,86 @@ func (c *NoteClient) GetX(ctx context.Context, id int) *Note {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryCustomer queries the customer edge of a Note.
+func (c *NoteClient) QueryCustomer(n *Note) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := n.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.CustomerTable, note.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrders queries the orders edge of a Note.
+func (c *NoteClient) QueryOrders(n *Note) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := n.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.OrdersTable, note.OrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingAddress queries the billing_address edge of a Note.
+func (c *NoteClient) QueryBillingAddress(n *Note) *BillingAddressQuery {
+	query := (&BillingAddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := n.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, id),
+			sqlgraph.To(billingaddress.Table, billingaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.BillingAddressTable, note.BillingAddressColumn),
+		)
+		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryDeliveryAddress queries the delivery_address edge of a Note.
+func (c *NoteClient) QueryDeliveryAddress(n *Note) *DeliveryAddressQuery {
+	query := (&DeliveryAddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := n.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, id),
+			sqlgraph.To(deliveryaddress.Table, deliveryaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.DeliveryAddressTable, note.DeliveryAddressColumn),
+		)
+		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTel queries the tel edge of a Note.
+func (c *NoteClient) QueryTel(n *Note) *TelQuery {
+	query := (&TelClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := n.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, id),
+			sqlgraph.To(tel.Table, tel.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, note.TelTable, note.TelColumn),
+		)
+		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -862,6 +1338,54 @@ func (c *OrderClient) GetX(ctx context.Context, id int) *Order {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryCustomer queries the customer edge of a Order.
+func (c *OrderClient) QueryCustomer(o *Order) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, order.CustomerTable, order.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAddress queries the address edge of a Order.
+func (c *OrderClient) QueryAddress(o *Order) *BillingAddressQuery {
+	query := (&BillingAddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(billingaddress.Table, billingaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, order.AddressTable, order.AddressColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNotes queries the notes edge of a Order.
+func (c *OrderClient) QueryNotes(o *Order) *NoteQuery {
+	query := (&NoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, order.NotesTable, order.NotesColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -1263,6 +1787,38 @@ func (c *TelClient) GetX(ctx context.Context, id int) *Tel {
 	return obj
 }
 
+// QueryNote queries the note edge of a Tel.
+func (c *TelClient) QueryNote(t *Tel) *NoteQuery {
+	query := (&NoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tel.Table, tel.FieldID, id),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, tel.NoteTable, tel.NoteColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a Tel.
+func (c *TelClient) QueryCustomer(t *Tel) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tel.Table, tel.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, tel.CustomerTable, tel.CustomerPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TelClient) Hooks() []Hook {
 	return c.hooks.Tel
@@ -1424,9 +1980,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Address, Customer, Note, Order, Position, Role, Tel, User []ent.Hook
+		BillingAddress, Customer, DeliveryAddress, Login, Note, Order, Position, Role,
+		Tel, User []ent.Hook
 	}
 	inters struct {
-		Address, Customer, Note, Order, Position, Role, Tel, User []ent.Interceptor
+		BillingAddress, Customer, DeliveryAddress, Login, Note, Order, Position, Role,
+		Tel, User []ent.Interceptor
 	}
 )

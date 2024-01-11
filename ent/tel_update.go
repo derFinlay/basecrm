@@ -6,10 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
@@ -27,13 +30,95 @@ func (tu *TelUpdate) Where(ps ...predicate.Tel) *TelUpdate {
 	return tu
 }
 
+// SetTel sets the "tel" field.
+func (tu *TelUpdate) SetTel(s string) *TelUpdate {
+	tu.mutation.SetTel(s)
+	return tu
+}
+
+// SetNillableTel sets the "tel" field if the given value is not nil.
+func (tu *TelUpdate) SetNillableTel(s *string) *TelUpdate {
+	if s != nil {
+		tu.SetTel(*s)
+	}
+	return tu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (tu *TelUpdate) SetUpdatedAt(t time.Time) *TelUpdate {
+	tu.mutation.SetUpdatedAt(t)
+	return tu
+}
+
+// SetNoteID sets the "note" edge to the Note entity by ID.
+func (tu *TelUpdate) SetNoteID(id int) *TelUpdate {
+	tu.mutation.SetNoteID(id)
+	return tu
+}
+
+// SetNillableNoteID sets the "note" edge to the Note entity by ID if the given value is not nil.
+func (tu *TelUpdate) SetNillableNoteID(id *int) *TelUpdate {
+	if id != nil {
+		tu = tu.SetNoteID(*id)
+	}
+	return tu
+}
+
+// SetNote sets the "note" edge to the Note entity.
+func (tu *TelUpdate) SetNote(n *Note) *TelUpdate {
+	return tu.SetNoteID(n.ID)
+}
+
+// AddCustomerIDs adds the "customer" edge to the Customer entity by IDs.
+func (tu *TelUpdate) AddCustomerIDs(ids ...int) *TelUpdate {
+	tu.mutation.AddCustomerIDs(ids...)
+	return tu
+}
+
+// AddCustomer adds the "customer" edges to the Customer entity.
+func (tu *TelUpdate) AddCustomer(c ...*Customer) *TelUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return tu.AddCustomerIDs(ids...)
+}
+
 // Mutation returns the TelMutation object of the builder.
 func (tu *TelUpdate) Mutation() *TelMutation {
 	return tu.mutation
 }
 
+// ClearNote clears the "note" edge to the Note entity.
+func (tu *TelUpdate) ClearNote() *TelUpdate {
+	tu.mutation.ClearNote()
+	return tu
+}
+
+// ClearCustomer clears all "customer" edges to the Customer entity.
+func (tu *TelUpdate) ClearCustomer() *TelUpdate {
+	tu.mutation.ClearCustomer()
+	return tu
+}
+
+// RemoveCustomerIDs removes the "customer" edge to Customer entities by IDs.
+func (tu *TelUpdate) RemoveCustomerIDs(ids ...int) *TelUpdate {
+	tu.mutation.RemoveCustomerIDs(ids...)
+	return tu
+}
+
+// RemoveCustomer removes "customer" edges to Customer entities.
+func (tu *TelUpdate) RemoveCustomer(c ...*Customer) *TelUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return tu.RemoveCustomerIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (tu *TelUpdate) Save(ctx context.Context) (int, error) {
+	tu.defaults()
 	return withHooks(ctx, tu.sqlSave, tu.mutation, tu.hooks)
 }
 
@@ -59,7 +144,28 @@ func (tu *TelUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (tu *TelUpdate) defaults() {
+	if _, ok := tu.mutation.UpdatedAt(); !ok {
+		v := tel.UpdateDefaultUpdatedAt()
+		tu.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (tu *TelUpdate) check() error {
+	if v, ok := tu.mutation.Tel(); ok {
+		if err := tel.TelValidator(v); err != nil {
+			return &ValidationError{Name: "tel", err: fmt.Errorf(`ent: validator failed for field "Tel.tel": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (tu *TelUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := tu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(tel.Table, tel.Columns, sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt))
 	if ps := tu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -67,6 +173,86 @@ func (tu *TelUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := tu.mutation.Tel(); ok {
+		_spec.SetField(tel.FieldTel, field.TypeString, value)
+	}
+	if value, ok := tu.mutation.UpdatedAt(); ok {
+		_spec.SetField(tel.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if tu.mutation.NoteCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   tel.NoteTable,
+			Columns: []string{tel.NoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.NoteIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   tel.NoteTable,
+			Columns: []string{tel.NoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if tu.mutation.CustomerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tel.CustomerTable,
+			Columns: tel.CustomerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.RemovedCustomerIDs(); len(nodes) > 0 && !tu.mutation.CustomerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tel.CustomerTable,
+			Columns: tel.CustomerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tel.CustomerTable,
+			Columns: tel.CustomerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, tu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -88,9 +274,90 @@ type TelUpdateOne struct {
 	mutation *TelMutation
 }
 
+// SetTel sets the "tel" field.
+func (tuo *TelUpdateOne) SetTel(s string) *TelUpdateOne {
+	tuo.mutation.SetTel(s)
+	return tuo
+}
+
+// SetNillableTel sets the "tel" field if the given value is not nil.
+func (tuo *TelUpdateOne) SetNillableTel(s *string) *TelUpdateOne {
+	if s != nil {
+		tuo.SetTel(*s)
+	}
+	return tuo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (tuo *TelUpdateOne) SetUpdatedAt(t time.Time) *TelUpdateOne {
+	tuo.mutation.SetUpdatedAt(t)
+	return tuo
+}
+
+// SetNoteID sets the "note" edge to the Note entity by ID.
+func (tuo *TelUpdateOne) SetNoteID(id int) *TelUpdateOne {
+	tuo.mutation.SetNoteID(id)
+	return tuo
+}
+
+// SetNillableNoteID sets the "note" edge to the Note entity by ID if the given value is not nil.
+func (tuo *TelUpdateOne) SetNillableNoteID(id *int) *TelUpdateOne {
+	if id != nil {
+		tuo = tuo.SetNoteID(*id)
+	}
+	return tuo
+}
+
+// SetNote sets the "note" edge to the Note entity.
+func (tuo *TelUpdateOne) SetNote(n *Note) *TelUpdateOne {
+	return tuo.SetNoteID(n.ID)
+}
+
+// AddCustomerIDs adds the "customer" edge to the Customer entity by IDs.
+func (tuo *TelUpdateOne) AddCustomerIDs(ids ...int) *TelUpdateOne {
+	tuo.mutation.AddCustomerIDs(ids...)
+	return tuo
+}
+
+// AddCustomer adds the "customer" edges to the Customer entity.
+func (tuo *TelUpdateOne) AddCustomer(c ...*Customer) *TelUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return tuo.AddCustomerIDs(ids...)
+}
+
 // Mutation returns the TelMutation object of the builder.
 func (tuo *TelUpdateOne) Mutation() *TelMutation {
 	return tuo.mutation
+}
+
+// ClearNote clears the "note" edge to the Note entity.
+func (tuo *TelUpdateOne) ClearNote() *TelUpdateOne {
+	tuo.mutation.ClearNote()
+	return tuo
+}
+
+// ClearCustomer clears all "customer" edges to the Customer entity.
+func (tuo *TelUpdateOne) ClearCustomer() *TelUpdateOne {
+	tuo.mutation.ClearCustomer()
+	return tuo
+}
+
+// RemoveCustomerIDs removes the "customer" edge to Customer entities by IDs.
+func (tuo *TelUpdateOne) RemoveCustomerIDs(ids ...int) *TelUpdateOne {
+	tuo.mutation.RemoveCustomerIDs(ids...)
+	return tuo
+}
+
+// RemoveCustomer removes "customer" edges to Customer entities.
+func (tuo *TelUpdateOne) RemoveCustomer(c ...*Customer) *TelUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return tuo.RemoveCustomerIDs(ids...)
 }
 
 // Where appends a list predicates to the TelUpdate builder.
@@ -108,6 +375,7 @@ func (tuo *TelUpdateOne) Select(field string, fields ...string) *TelUpdateOne {
 
 // Save executes the query and returns the updated Tel entity.
 func (tuo *TelUpdateOne) Save(ctx context.Context) (*Tel, error) {
+	tuo.defaults()
 	return withHooks(ctx, tuo.sqlSave, tuo.mutation, tuo.hooks)
 }
 
@@ -133,7 +401,28 @@ func (tuo *TelUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (tuo *TelUpdateOne) defaults() {
+	if _, ok := tuo.mutation.UpdatedAt(); !ok {
+		v := tel.UpdateDefaultUpdatedAt()
+		tuo.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (tuo *TelUpdateOne) check() error {
+	if v, ok := tuo.mutation.Tel(); ok {
+		if err := tel.TelValidator(v); err != nil {
+			return &ValidationError{Name: "tel", err: fmt.Errorf(`ent: validator failed for field "Tel.tel": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (tuo *TelUpdateOne) sqlSave(ctx context.Context) (_node *Tel, err error) {
+	if err := tuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(tel.Table, tel.Columns, sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt))
 	id, ok := tuo.mutation.ID()
 	if !ok {
@@ -158,6 +447,86 @@ func (tuo *TelUpdateOne) sqlSave(ctx context.Context) (_node *Tel, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := tuo.mutation.Tel(); ok {
+		_spec.SetField(tel.FieldTel, field.TypeString, value)
+	}
+	if value, ok := tuo.mutation.UpdatedAt(); ok {
+		_spec.SetField(tel.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if tuo.mutation.NoteCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   tel.NoteTable,
+			Columns: []string{tel.NoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.NoteIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   tel.NoteTable,
+			Columns: []string{tel.NoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if tuo.mutation.CustomerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tel.CustomerTable,
+			Columns: tel.CustomerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.RemovedCustomerIDs(); len(nodes) > 0 && !tuo.mutation.CustomerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tel.CustomerTable,
+			Columns: tel.CustomerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tel.CustomerTable,
+			Columns: tel.CustomerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Tel{config: tuo.config}
 	_spec.Assign = _node.assignValues

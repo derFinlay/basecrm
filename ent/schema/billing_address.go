@@ -25,6 +25,8 @@ func (BillingAddress) Fields() []ent.Field {
 
 func (BillingAddress) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("customer", Customer.Type).Ref("billing_addresses"),
+		edge.From("customer", Customer.Type).Ref("billing_addresses").Unique(),
+
+		edge.To("notes", Note.Type),
 	}
 }

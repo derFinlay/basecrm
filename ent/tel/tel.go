@@ -3,7 +3,10 @@
 package tel
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -11,20 +14,45 @@ const (
 	Label = "tel"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldTel holds the string denoting the tel field in the database.
+	FieldTel = "tel"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
+	// EdgeNote holds the string denoting the note edge name in mutations.
+	EdgeNote = "note"
+	// EdgeCustomer holds the string denoting the customer edge name in mutations.
+	EdgeCustomer = "customer"
 	// Table holds the table name of the tel in the database.
 	Table = "tels"
+	// NoteTable is the table that holds the note relation/edge.
+	NoteTable = "notes"
+	// NoteInverseTable is the table name for the Note entity.
+	// It exists in this package in order to avoid circular dependency with the "note" package.
+	NoteInverseTable = "notes"
+	// NoteColumn is the table column denoting the note relation/edge.
+	NoteColumn = "tel_note"
+	// CustomerTable is the table that holds the customer relation/edge. The primary key declared below.
+	CustomerTable = "customer_tels"
+	// CustomerInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	CustomerInverseTable = "customers"
 )
 
 // Columns holds all SQL columns for tel fields.
 var Columns = []string{
 	FieldID,
+	FieldTel,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "tels"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"customer_phone",
-}
+var (
+	// CustomerPrimaryKey and CustomerColumn2 are the table columns denoting the
+	// primary key for the customer relation (M2M).
+	CustomerPrimaryKey = []string{"customer_id", "tel_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -33,13 +61,19 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
-			return true
-		}
-	}
 	return false
 }
+
+var (
+	// TelValidator is a validator for the "tel" field. It is called by the builders before save.
+	TelValidator func(string) error
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+)
 
 // OrderOption defines the ordering options for the Tel queries.
 type OrderOption func(*sql.Selector)
@@ -47,4 +81,54 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByTel orders the results by the tel field.
+func ByTel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTel, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByNoteField orders the results by note field.
+func ByNoteField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNoteStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCustomerCount orders the results by customer count.
+func ByCustomerCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCustomerStep(), opts...)
+	}
+}
+
+// ByCustomer orders the results by customer terms.
+func ByCustomer(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newNoteStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NoteInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, NoteTable, NoteColumn),
+	)
+}
+func newCustomerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, CustomerTable, CustomerPrimaryKey...),
+	)
 }
