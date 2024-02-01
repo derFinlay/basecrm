@@ -8,22 +8,21 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-type Tel struct {
+type LoginReset struct {
 	ent.Schema
 }
 
-func (Tel) Fields() []ent.Field {
+func (LoginReset) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("tel").NotEmpty().Unique().Immutable(),
+		field.String("token").NotEmpty().Unique().Immutable(),
+		field.Bool("active").Default(true),
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 
-func (Tel) Edges() []ent.Edge {
+func (LoginReset) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("notes", Note.Type).Unique(),
-
-		edge.From("customer", Customer.Type).Ref("tels").Unique(),
+		edge.From("login", Login.Type).Ref("login_resets").Unique(),
 	}
 }

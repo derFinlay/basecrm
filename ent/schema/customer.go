@@ -15,8 +15,7 @@ type Customer struct {
 func (Customer) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name").NotEmpty().Unique().MaxLen(20),
-		field.String("email").NotEmpty().Unique(),
-		field.String("password").NotEmpty(),
+		field.Enum("gender").Values("c", "m", "f", "d").Immutable(),
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}
