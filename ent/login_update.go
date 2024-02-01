@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/login"
+	"github.com/derfinlay/basecrm/ent/loginreset"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
 
@@ -29,20 +30,6 @@ func (lu *LoginUpdate) Where(ps ...predicate.Login) *LoginUpdate {
 	return lu
 }
 
-// SetUsername sets the "username" field.
-func (lu *LoginUpdate) SetUsername(s string) *LoginUpdate {
-	lu.mutation.SetUsername(s)
-	return lu
-}
-
-// SetNillableUsername sets the "username" field if the given value is not nil.
-func (lu *LoginUpdate) SetNillableUsername(s *string) *LoginUpdate {
-	if s != nil {
-		lu.SetUsername(*s)
-	}
-	return lu
-}
-
 // SetPassword sets the "password" field.
 func (lu *LoginUpdate) SetPassword(s string) *LoginUpdate {
 	lu.mutation.SetPassword(s)
@@ -53,6 +40,20 @@ func (lu *LoginUpdate) SetPassword(s string) *LoginUpdate {
 func (lu *LoginUpdate) SetNillablePassword(s *string) *LoginUpdate {
 	if s != nil {
 		lu.SetPassword(*s)
+	}
+	return lu
+}
+
+// SetEmail sets the "email" field.
+func (lu *LoginUpdate) SetEmail(s string) *LoginUpdate {
+	lu.mutation.SetEmail(s)
+	return lu
+}
+
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (lu *LoginUpdate) SetNillableEmail(s *string) *LoginUpdate {
+	if s != nil {
+		lu.SetEmail(*s)
 	}
 	return lu
 }
@@ -77,19 +78,38 @@ func (lu *LoginUpdate) SetUpdatedAt(t time.Time) *LoginUpdate {
 	return lu
 }
 
-// AddCustomerIDs adds the "customer" edge to the Customer entity by IDs.
-func (lu *LoginUpdate) AddCustomerIDs(ids ...int) *LoginUpdate {
-	lu.mutation.AddCustomerIDs(ids...)
+// SetCustomerID sets the "customer" edge to the Customer entity by ID.
+func (lu *LoginUpdate) SetCustomerID(id int) *LoginUpdate {
+	lu.mutation.SetCustomerID(id)
 	return lu
 }
 
-// AddCustomer adds the "customer" edges to the Customer entity.
-func (lu *LoginUpdate) AddCustomer(c ...*Customer) *LoginUpdate {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
+// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
+func (lu *LoginUpdate) SetNillableCustomerID(id *int) *LoginUpdate {
+	if id != nil {
+		lu = lu.SetCustomerID(*id)
 	}
-	return lu.AddCustomerIDs(ids...)
+	return lu
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (lu *LoginUpdate) SetCustomer(c *Customer) *LoginUpdate {
+	return lu.SetCustomerID(c.ID)
+}
+
+// AddLoginResetIDs adds the "login_resets" edge to the LoginReset entity by IDs.
+func (lu *LoginUpdate) AddLoginResetIDs(ids ...int) *LoginUpdate {
+	lu.mutation.AddLoginResetIDs(ids...)
+	return lu
+}
+
+// AddLoginResets adds the "login_resets" edges to the LoginReset entity.
+func (lu *LoginUpdate) AddLoginResets(l ...*LoginReset) *LoginUpdate {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return lu.AddLoginResetIDs(ids...)
 }
 
 // Mutation returns the LoginMutation object of the builder.
@@ -97,25 +117,31 @@ func (lu *LoginUpdate) Mutation() *LoginMutation {
 	return lu.mutation
 }
 
-// ClearCustomer clears all "customer" edges to the Customer entity.
+// ClearCustomer clears the "customer" edge to the Customer entity.
 func (lu *LoginUpdate) ClearCustomer() *LoginUpdate {
 	lu.mutation.ClearCustomer()
 	return lu
 }
 
-// RemoveCustomerIDs removes the "customer" edge to Customer entities by IDs.
-func (lu *LoginUpdate) RemoveCustomerIDs(ids ...int) *LoginUpdate {
-	lu.mutation.RemoveCustomerIDs(ids...)
+// ClearLoginResets clears all "login_resets" edges to the LoginReset entity.
+func (lu *LoginUpdate) ClearLoginResets() *LoginUpdate {
+	lu.mutation.ClearLoginResets()
 	return lu
 }
 
-// RemoveCustomer removes "customer" edges to Customer entities.
-func (lu *LoginUpdate) RemoveCustomer(c ...*Customer) *LoginUpdate {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
+// RemoveLoginResetIDs removes the "login_resets" edge to LoginReset entities by IDs.
+func (lu *LoginUpdate) RemoveLoginResetIDs(ids ...int) *LoginUpdate {
+	lu.mutation.RemoveLoginResetIDs(ids...)
+	return lu
+}
+
+// RemoveLoginResets removes "login_resets" edges to LoginReset entities.
+func (lu *LoginUpdate) RemoveLoginResets(l ...*LoginReset) *LoginUpdate {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
 	}
-	return lu.RemoveCustomerIDs(ids...)
+	return lu.RemoveLoginResetIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -156,14 +182,14 @@ func (lu *LoginUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (lu *LoginUpdate) check() error {
-	if v, ok := lu.mutation.Username(); ok {
-		if err := login.UsernameValidator(v); err != nil {
-			return &ValidationError{Name: "username", err: fmt.Errorf(`ent: validator failed for field "Login.username": %w`, err)}
-		}
-	}
 	if v, ok := lu.mutation.Password(); ok {
 		if err := login.PasswordValidator(v); err != nil {
 			return &ValidationError{Name: "password", err: fmt.Errorf(`ent: validator failed for field "Login.password": %w`, err)}
+		}
+	}
+	if v, ok := lu.mutation.Email(); ok {
+		if err := login.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Login.email": %w`, err)}
 		}
 	}
 	return nil
@@ -181,11 +207,11 @@ func (lu *LoginUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := lu.mutation.Username(); ok {
-		_spec.SetField(login.FieldUsername, field.TypeString, value)
-	}
 	if value, ok := lu.mutation.Password(); ok {
 		_spec.SetField(login.FieldPassword, field.TypeString, value)
+	}
+	if value, ok := lu.mutation.Email(); ok {
+		_spec.SetField(login.FieldEmail, field.TypeString, value)
 	}
 	if value, ok := lu.mutation.LastLogin(); ok {
 		_spec.SetField(login.FieldLastLogin, field.TypeTime, value)
@@ -195,7 +221,7 @@ func (lu *LoginUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if lu.mutation.CustomerCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   login.CustomerTable,
 			Columns: []string{login.CustomerColumn},
@@ -206,9 +232,9 @@ func (lu *LoginUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := lu.mutation.RemovedCustomerIDs(); len(nodes) > 0 && !lu.mutation.CustomerCleared() {
+	if nodes := lu.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   login.CustomerTable,
 			Columns: []string{login.CustomerColumn},
@@ -220,17 +246,46 @@ func (lu *LoginUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nodes := lu.mutation.CustomerIDs(); len(nodes) > 0 {
+	if lu.mutation.LoginResetsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   login.CustomerTable,
-			Columns: []string{login.CustomerColumn},
+			Inverse: false,
+			Table:   login.LoginResetsTable,
+			Columns: []string{login.LoginResetsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.RemovedLoginResetsIDs(); len(nodes) > 0 && !lu.mutation.LoginResetsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.LoginResetsTable,
+			Columns: []string{login.LoginResetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.LoginResetsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.LoginResetsTable,
+			Columns: []string{login.LoginResetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -258,20 +313,6 @@ type LoginUpdateOne struct {
 	mutation *LoginMutation
 }
 
-// SetUsername sets the "username" field.
-func (luo *LoginUpdateOne) SetUsername(s string) *LoginUpdateOne {
-	luo.mutation.SetUsername(s)
-	return luo
-}
-
-// SetNillableUsername sets the "username" field if the given value is not nil.
-func (luo *LoginUpdateOne) SetNillableUsername(s *string) *LoginUpdateOne {
-	if s != nil {
-		luo.SetUsername(*s)
-	}
-	return luo
-}
-
 // SetPassword sets the "password" field.
 func (luo *LoginUpdateOne) SetPassword(s string) *LoginUpdateOne {
 	luo.mutation.SetPassword(s)
@@ -282,6 +323,20 @@ func (luo *LoginUpdateOne) SetPassword(s string) *LoginUpdateOne {
 func (luo *LoginUpdateOne) SetNillablePassword(s *string) *LoginUpdateOne {
 	if s != nil {
 		luo.SetPassword(*s)
+	}
+	return luo
+}
+
+// SetEmail sets the "email" field.
+func (luo *LoginUpdateOne) SetEmail(s string) *LoginUpdateOne {
+	luo.mutation.SetEmail(s)
+	return luo
+}
+
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (luo *LoginUpdateOne) SetNillableEmail(s *string) *LoginUpdateOne {
+	if s != nil {
+		luo.SetEmail(*s)
 	}
 	return luo
 }
@@ -306,19 +361,38 @@ func (luo *LoginUpdateOne) SetUpdatedAt(t time.Time) *LoginUpdateOne {
 	return luo
 }
 
-// AddCustomerIDs adds the "customer" edge to the Customer entity by IDs.
-func (luo *LoginUpdateOne) AddCustomerIDs(ids ...int) *LoginUpdateOne {
-	luo.mutation.AddCustomerIDs(ids...)
+// SetCustomerID sets the "customer" edge to the Customer entity by ID.
+func (luo *LoginUpdateOne) SetCustomerID(id int) *LoginUpdateOne {
+	luo.mutation.SetCustomerID(id)
 	return luo
 }
 
-// AddCustomer adds the "customer" edges to the Customer entity.
-func (luo *LoginUpdateOne) AddCustomer(c ...*Customer) *LoginUpdateOne {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
+// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
+func (luo *LoginUpdateOne) SetNillableCustomerID(id *int) *LoginUpdateOne {
+	if id != nil {
+		luo = luo.SetCustomerID(*id)
 	}
-	return luo.AddCustomerIDs(ids...)
+	return luo
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (luo *LoginUpdateOne) SetCustomer(c *Customer) *LoginUpdateOne {
+	return luo.SetCustomerID(c.ID)
+}
+
+// AddLoginResetIDs adds the "login_resets" edge to the LoginReset entity by IDs.
+func (luo *LoginUpdateOne) AddLoginResetIDs(ids ...int) *LoginUpdateOne {
+	luo.mutation.AddLoginResetIDs(ids...)
+	return luo
+}
+
+// AddLoginResets adds the "login_resets" edges to the LoginReset entity.
+func (luo *LoginUpdateOne) AddLoginResets(l ...*LoginReset) *LoginUpdateOne {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return luo.AddLoginResetIDs(ids...)
 }
 
 // Mutation returns the LoginMutation object of the builder.
@@ -326,25 +400,31 @@ func (luo *LoginUpdateOne) Mutation() *LoginMutation {
 	return luo.mutation
 }
 
-// ClearCustomer clears all "customer" edges to the Customer entity.
+// ClearCustomer clears the "customer" edge to the Customer entity.
 func (luo *LoginUpdateOne) ClearCustomer() *LoginUpdateOne {
 	luo.mutation.ClearCustomer()
 	return luo
 }
 
-// RemoveCustomerIDs removes the "customer" edge to Customer entities by IDs.
-func (luo *LoginUpdateOne) RemoveCustomerIDs(ids ...int) *LoginUpdateOne {
-	luo.mutation.RemoveCustomerIDs(ids...)
+// ClearLoginResets clears all "login_resets" edges to the LoginReset entity.
+func (luo *LoginUpdateOne) ClearLoginResets() *LoginUpdateOne {
+	luo.mutation.ClearLoginResets()
 	return luo
 }
 
-// RemoveCustomer removes "customer" edges to Customer entities.
-func (luo *LoginUpdateOne) RemoveCustomer(c ...*Customer) *LoginUpdateOne {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
+// RemoveLoginResetIDs removes the "login_resets" edge to LoginReset entities by IDs.
+func (luo *LoginUpdateOne) RemoveLoginResetIDs(ids ...int) *LoginUpdateOne {
+	luo.mutation.RemoveLoginResetIDs(ids...)
+	return luo
+}
+
+// RemoveLoginResets removes "login_resets" edges to LoginReset entities.
+func (luo *LoginUpdateOne) RemoveLoginResets(l ...*LoginReset) *LoginUpdateOne {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
 	}
-	return luo.RemoveCustomerIDs(ids...)
+	return luo.RemoveLoginResetIDs(ids...)
 }
 
 // Where appends a list predicates to the LoginUpdate builder.
@@ -398,14 +478,14 @@ func (luo *LoginUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (luo *LoginUpdateOne) check() error {
-	if v, ok := luo.mutation.Username(); ok {
-		if err := login.UsernameValidator(v); err != nil {
-			return &ValidationError{Name: "username", err: fmt.Errorf(`ent: validator failed for field "Login.username": %w`, err)}
-		}
-	}
 	if v, ok := luo.mutation.Password(); ok {
 		if err := login.PasswordValidator(v); err != nil {
 			return &ValidationError{Name: "password", err: fmt.Errorf(`ent: validator failed for field "Login.password": %w`, err)}
+		}
+	}
+	if v, ok := luo.mutation.Email(); ok {
+		if err := login.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Login.email": %w`, err)}
 		}
 	}
 	return nil
@@ -440,11 +520,11 @@ func (luo *LoginUpdateOne) sqlSave(ctx context.Context) (_node *Login, err error
 			}
 		}
 	}
-	if value, ok := luo.mutation.Username(); ok {
-		_spec.SetField(login.FieldUsername, field.TypeString, value)
-	}
 	if value, ok := luo.mutation.Password(); ok {
 		_spec.SetField(login.FieldPassword, field.TypeString, value)
+	}
+	if value, ok := luo.mutation.Email(); ok {
+		_spec.SetField(login.FieldEmail, field.TypeString, value)
 	}
 	if value, ok := luo.mutation.LastLogin(); ok {
 		_spec.SetField(login.FieldLastLogin, field.TypeTime, value)
@@ -454,7 +534,7 @@ func (luo *LoginUpdateOne) sqlSave(ctx context.Context) (_node *Login, err error
 	}
 	if luo.mutation.CustomerCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   login.CustomerTable,
 			Columns: []string{login.CustomerColumn},
@@ -465,9 +545,9 @@ func (luo *LoginUpdateOne) sqlSave(ctx context.Context) (_node *Login, err error
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := luo.mutation.RemovedCustomerIDs(); len(nodes) > 0 && !luo.mutation.CustomerCleared() {
+	if nodes := luo.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   login.CustomerTable,
 			Columns: []string{login.CustomerColumn},
@@ -479,17 +559,46 @@ func (luo *LoginUpdateOne) sqlSave(ctx context.Context) (_node *Login, err error
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nodes := luo.mutation.CustomerIDs(); len(nodes) > 0 {
+	if luo.mutation.LoginResetsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   login.CustomerTable,
-			Columns: []string{login.CustomerColumn},
+			Inverse: false,
+			Table:   login.LoginResetsTable,
+			Columns: []string{login.LoginResetsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.RemovedLoginResetsIDs(); len(nodes) > 0 && !luo.mutation.LoginResetsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.LoginResetsTable,
+			Columns: []string{login.LoginResetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.LoginResetsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.LoginResetsTable,
+			Columns: []string{login.LoginResetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

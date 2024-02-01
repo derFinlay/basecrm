@@ -14,9 +14,11 @@ var (
 		{Name: "city", Type: field.TypeString},
 		{Name: "street", Type: field.TypeString},
 		{Name: "zip", Type: field.TypeString},
+		{Name: "housenumber", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "customer_billing_addresses", Type: field.TypeInt, Nullable: true},
+		{Name: "order_billing_address", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// BillingAddressesTable holds the schema information for the "billing_addresses" table.
 	BillingAddressesTable = &schema.Table{
@@ -26,8 +28,14 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_addresses_customers_billing_addresses",
-				Columns:    []*schema.Column{BillingAddressesColumns[6]},
+				Columns:    []*schema.Column{BillingAddressesColumns[7]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_addresses_orders_billing_address",
+				Columns:    []*schema.Column{BillingAddressesColumns[8]},
+				RefColumns: []*schema.Column{OrdersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -36,12 +44,10 @@ var (
 	CustomersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "name", Type: field.TypeString, Unique: true, Size: 20},
-		{Name: "email", Type: field.TypeString, Unique: true},
-		{Name: "password", Type: field.TypeString},
+		{Name: "gender", Type: field.TypeEnum, Enums: []string{"c", "m", "f", "d"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "customer_created_by", Type: field.TypeInt, Nullable: true},
-		{Name: "customer_login", Type: field.TypeInt, Nullable: true},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{
@@ -51,14 +57,8 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "customers_users_created_by",
-				Columns:    []*schema.Column{CustomersColumns[6]},
+				Columns:    []*schema.Column{CustomersColumns[5]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "customers_logins_login",
-				Columns:    []*schema.Column{CustomersColumns[7]},
-				RefColumns: []*schema.Column{LoginsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -69,11 +69,12 @@ var (
 		{Name: "city", Type: field.TypeString},
 		{Name: "street", Type: field.TypeString},
 		{Name: "zip", Type: field.TypeString},
-		{Name: "number", Type: field.TypeString},
+		{Name: "housenumber", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "customer_delivery_addresses", Type: field.TypeInt, Nullable: true},
 		{Name: "delivery_address_telephone", Type: field.TypeInt, Nullable: true},
+		{Name: "order_delivery_address", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// DeliveryAddressesTable holds the schema information for the "delivery_addresses" table.
 	DeliveryAddressesTable = &schema.Table{
@@ -93,34 +94,73 @@ var (
 				RefColumns: []*schema.Column{TelsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
+			{
+				Symbol:     "delivery_addresses_orders_delivery_address",
+				Columns:    []*schema.Column{DeliveryAddressesColumns[9]},
+				RefColumns: []*schema.Column{OrdersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
 		},
 	}
 	// LoginsColumns holds the columns for the "logins" table.
 	LoginsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "username", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString},
 		{Name: "last_login", Type: field.TypeTime},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "customer_login", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// LoginsTable holds the schema information for the "logins" table.
 	LoginsTable = &schema.Table{
 		Name:       "logins",
 		Columns:    LoginsColumns,
 		PrimaryKey: []*schema.Column{LoginsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "logins_customers_login",
+				Columns:    []*schema.Column{LoginsColumns[6]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// LoginResetsColumns holds the columns for the "login_resets" table.
+	LoginResetsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "token", Type: field.TypeString, Unique: true},
+		{Name: "active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "login_login_resets", Type: field.TypeInt, Nullable: true},
+	}
+	// LoginResetsTable holds the schema information for the "login_resets" table.
+	LoginResetsTable = &schema.Table{
+		Name:       "login_resets",
+		Columns:    LoginResetsColumns,
+		PrimaryKey: []*schema.Column{LoginResetsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "login_resets_logins_login_resets",
+				Columns:    []*schema.Column{LoginResetsColumns[5]},
+				RefColumns: []*schema.Column{LoginsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// NotesColumns holds the columns for the "notes" table.
 	NotesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "content", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
+		{Name: "content", Type: field.TypeString, Size: 1000},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
 		{Name: "billing_address_notes", Type: field.TypeInt, Nullable: true},
 		{Name: "customer_notes", Type: field.TypeInt, Nullable: true},
 		{Name: "delivery_address_notes", Type: field.TypeInt, Nullable: true},
+		{Name: "note_created_by", Type: field.TypeInt, Nullable: true},
 		{Name: "order_notes", Type: field.TypeInt, Nullable: true},
-		{Name: "tel_note", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "tel_notes", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// NotesTable holds the schema information for the "notes" table.
 	NotesTable = &schema.Table{
@@ -147,14 +187,20 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "notes_orders_notes",
+				Symbol:     "notes_users_created_by",
 				Columns:    []*schema.Column{NotesColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notes_orders_notes",
+				Columns:    []*schema.Column{NotesColumns[8]},
 				RefColumns: []*schema.Column{OrdersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "notes_tels_note",
-				Columns:    []*schema.Column{NotesColumns[8]},
+				Symbol:     "notes_tels_notes",
+				Columns:    []*schema.Column{NotesColumns[9]},
 				RefColumns: []*schema.Column{TelsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -163,12 +209,16 @@ var (
 	// OrdersColumns holds the columns for the "orders" table.
 	OrdersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "tax", Type: field.TypeFloat64},
+		{Name: "due", Type: field.TypeTime},
+		{Name: "printed_at", Type: field.TypeTime},
+		{Name: "payed_at", Type: field.TypeTime},
+		{Name: "done_at", Type: field.TypeTime},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "customer_orders", Type: field.TypeInt, Nullable: true},
 		{Name: "order_customer", Type: field.TypeInt, Nullable: true},
-		{Name: "order_address", Type: field.TypeInt, Nullable: true},
+		{Name: "order_created_by", Type: field.TypeInt, Nullable: true},
 	}
 	// OrdersTable holds the schema information for the "orders" table.
 	OrdersTable = &schema.Table{
@@ -178,20 +228,20 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "orders_customers_orders",
-				Columns:    []*schema.Column{OrdersColumns[4]},
+				Columns:    []*schema.Column{OrdersColumns[8]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "orders_customers_customer",
-				Columns:    []*schema.Column{OrdersColumns[5]},
+				Columns:    []*schema.Column{OrdersColumns[9]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "orders_billing_addresses_address",
-				Columns:    []*schema.Column{OrdersColumns[6]},
-				RefColumns: []*schema.Column{BillingAddressesColumns[0]},
+				Symbol:     "orders_users_created_by",
+				Columns:    []*schema.Column{OrdersColumns[10]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -199,12 +249,39 @@ var (
 	// PositionsColumns holds the columns for the "positions" table.
 	PositionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 40},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 20},
+		{Name: "unit_price", Type: field.TypeFloat64},
+		{Name: "amount", Type: field.TypeInt, Default: 1},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "order_positions", Type: field.TypeInt, Nullable: true},
 	}
 	// PositionsTable holds the schema information for the "positions" table.
 	PositionsTable = &schema.Table{
 		Name:       "positions",
 		Columns:    PositionsColumns,
 		PrimaryKey: []*schema.Column{PositionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "positions_orders_positions",
+				Columns:    []*schema.Column{PositionsColumns[6]},
+				RefColumns: []*schema.Column{OrdersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ProductsColumns holds the columns for the "products" table.
+	ProductsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString, Unique: true},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "price", Type: field.TypeFloat64},
+	}
+	// ProductsTable holds the schema information for the "products" table.
+	ProductsTable = &schema.Table{
+		Name:       "products",
+		Columns:    ProductsColumns,
+		PrimaryKey: []*schema.Column{ProductsColumns[0]},
 	}
 	// RolesColumns holds the columns for the "roles" table.
 	RolesColumns = []*schema.Column{
@@ -222,12 +299,21 @@ var (
 		{Name: "tel", Type: field.TypeString, Unique: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "customer_tels", Type: field.TypeInt, Nullable: true},
 	}
 	// TelsTable holds the schema information for the "tels" table.
 	TelsTable = &schema.Table{
 		Name:       "tels",
 		Columns:    TelsColumns,
 		PrimaryKey: []*schema.Column{TelsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "tels_customers_tels",
+				Columns:    []*schema.Column{TelsColumns[4]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
@@ -235,7 +321,7 @@ var (
 		{Name: "name", Type: field.TypeString, Unique: true, Size: 20},
 		{Name: "username", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
-		{Name: "last_login", Type: field.TypeTime},
+		{Name: "last_login", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -245,61 +331,41 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
-	// CustomerTelsColumns holds the columns for the "customer_tels" table.
-	CustomerTelsColumns = []*schema.Column{
-		{Name: "customer_id", Type: field.TypeInt},
-		{Name: "tel_id", Type: field.TypeInt},
-	}
-	// CustomerTelsTable holds the schema information for the "customer_tels" table.
-	CustomerTelsTable = &schema.Table{
-		Name:       "customer_tels",
-		Columns:    CustomerTelsColumns,
-		PrimaryKey: []*schema.Column{CustomerTelsColumns[0], CustomerTelsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "customer_tels_customer_id",
-				Columns:    []*schema.Column{CustomerTelsColumns[0]},
-				RefColumns: []*schema.Column{CustomersColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "customer_tels_tel_id",
-				Columns:    []*schema.Column{CustomerTelsColumns[1]},
-				RefColumns: []*schema.Column{TelsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BillingAddressesTable,
 		CustomersTable,
 		DeliveryAddressesTable,
 		LoginsTable,
+		LoginResetsTable,
 		NotesTable,
 		OrdersTable,
 		PositionsTable,
+		ProductsTable,
 		RolesTable,
 		TelsTable,
 		UsersTable,
-		CustomerTelsTable,
 	}
 )
 
 func init() {
 	BillingAddressesTable.ForeignKeys[0].RefTable = CustomersTable
+	BillingAddressesTable.ForeignKeys[1].RefTable = OrdersTable
 	CustomersTable.ForeignKeys[0].RefTable = UsersTable
-	CustomersTable.ForeignKeys[1].RefTable = LoginsTable
 	DeliveryAddressesTable.ForeignKeys[0].RefTable = CustomersTable
 	DeliveryAddressesTable.ForeignKeys[1].RefTable = TelsTable
+	DeliveryAddressesTable.ForeignKeys[2].RefTable = OrdersTable
+	LoginsTable.ForeignKeys[0].RefTable = CustomersTable
+	LoginResetsTable.ForeignKeys[0].RefTable = LoginsTable
 	NotesTable.ForeignKeys[0].RefTable = BillingAddressesTable
 	NotesTable.ForeignKeys[1].RefTable = CustomersTable
 	NotesTable.ForeignKeys[2].RefTable = DeliveryAddressesTable
-	NotesTable.ForeignKeys[3].RefTable = OrdersTable
-	NotesTable.ForeignKeys[4].RefTable = TelsTable
+	NotesTable.ForeignKeys[3].RefTable = UsersTable
+	NotesTable.ForeignKeys[4].RefTable = OrdersTable
+	NotesTable.ForeignKeys[5].RefTable = TelsTable
 	OrdersTable.ForeignKeys[0].RefTable = CustomersTable
 	OrdersTable.ForeignKeys[1].RefTable = CustomersTable
-	OrdersTable.ForeignKeys[2].RefTable = BillingAddressesTable
-	CustomerTelsTable.ForeignKeys[0].RefTable = CustomersTable
-	CustomerTelsTable.ForeignKeys[1].RefTable = TelsTable
+	OrdersTable.ForeignKeys[2].RefTable = UsersTable
+	PositionsTable.ForeignKeys[0].RefTable = OrdersTable
+	TelsTable.ForeignKeys[0].RefTable = CustomersTable
 }

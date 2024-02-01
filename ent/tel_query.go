@@ -24,8 +24,9 @@ type TelQuery struct {
 	order        []tel.OrderOption
 	inters       []Interceptor
 	predicates   []predicate.Tel
-	withNote     *NoteQuery
+	withNotes    *NoteQuery
 	withCustomer *CustomerQuery
+	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -62,8 +63,8 @@ func (tq *TelQuery) Order(o ...tel.OrderOption) *TelQuery {
 	return tq
 }
 
-// QueryNote chains the current query on the "note" edge.
-func (tq *TelQuery) QueryNote() *NoteQuery {
+// QueryNotes chains the current query on the "notes" edge.
+func (tq *TelQuery) QueryNotes() *NoteQuery {
 	query := (&NoteClient{config: tq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := tq.prepareQuery(ctx); err != nil {
@@ -76,7 +77,7 @@ func (tq *TelQuery) QueryNote() *NoteQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(tel.Table, tel.FieldID, selector),
 			sqlgraph.To(note.Table, note.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, tel.NoteTable, tel.NoteColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, tel.NotesTable, tel.NotesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -98,7 +99,7 @@ func (tq *TelQuery) QueryCustomer() *CustomerQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(tel.Table, tel.FieldID, selector),
 			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, tel.CustomerTable, tel.CustomerPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, tel.CustomerTable, tel.CustomerColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -298,7 +299,7 @@ func (tq *TelQuery) Clone() *TelQuery {
 		order:        append([]tel.OrderOption{}, tq.order...),
 		inters:       append([]Interceptor{}, tq.inters...),
 		predicates:   append([]predicate.Tel{}, tq.predicates...),
-		withNote:     tq.withNote.Clone(),
+		withNotes:    tq.withNotes.Clone(),
 		withCustomer: tq.withCustomer.Clone(),
 		// clone intermediate query.
 		sql:  tq.sql.Clone(),
@@ -306,14 +307,14 @@ func (tq *TelQuery) Clone() *TelQuery {
 	}
 }
 
-// WithNote tells the query-builder to eager-load the nodes that are connected to
-// the "note" edge. The optional arguments are used to configure the query builder of the edge.
-func (tq *TelQuery) WithNote(opts ...func(*NoteQuery)) *TelQuery {
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (tq *TelQuery) WithNotes(opts ...func(*NoteQuery)) *TelQuery {
 	query := (&NoteClient{config: tq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	tq.withNote = query
+	tq.withNotes = query
 	return tq
 }
 
@@ -405,12 +406,19 @@ func (tq *TelQuery) prepareQuery(ctx context.Context) error {
 func (tq *TelQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Tel, error) {
 	var (
 		nodes       = []*Tel{}
+		withFKs     = tq.withFKs
 		_spec       = tq.querySpec()
 		loadedTypes = [2]bool{
-			tq.withNote != nil,
+			tq.withNotes != nil,
 			tq.withCustomer != nil,
 		}
 	)
+	if tq.withCustomer != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, tel.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Tel).scanValues(nil, columns)
 	}
@@ -429,23 +437,22 @@ func (tq *TelQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Tel, err
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := tq.withNote; query != nil {
-		if err := tq.loadNote(ctx, query, nodes, nil,
-			func(n *Tel, e *Note) { n.Edges.Note = e }); err != nil {
+	if query := tq.withNotes; query != nil {
+		if err := tq.loadNotes(ctx, query, nodes, nil,
+			func(n *Tel, e *Note) { n.Edges.Notes = e }); err != nil {
 			return nil, err
 		}
 	}
 	if query := tq.withCustomer; query != nil {
-		if err := tq.loadCustomer(ctx, query, nodes,
-			func(n *Tel) { n.Edges.Customer = []*Customer{} },
-			func(n *Tel, e *Customer) { n.Edges.Customer = append(n.Edges.Customer, e) }); err != nil {
+		if err := tq.loadCustomer(ctx, query, nodes, nil,
+			func(n *Tel, e *Customer) { n.Edges.Customer = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (tq *TelQuery) loadNote(ctx context.Context, query *NoteQuery, nodes []*Tel, init func(*Tel), assign func(*Tel, *Note)) error {
+func (tq *TelQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*Tel, init func(*Tel), assign func(*Tel, *Note)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*Tel)
 	for i := range nodes {
@@ -454,82 +461,53 @@ func (tq *TelQuery) loadNote(ctx context.Context, query *NoteQuery, nodes []*Tel
 	}
 	query.withFKs = true
 	query.Where(predicate.Note(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(tel.NoteColumn), fks...))
+		s.Where(sql.InValues(s.C(tel.NotesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.tel_note
+		fk := n.tel_notes
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "tel_note" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "tel_notes" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "tel_note" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "tel_notes" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
 	return nil
 }
 func (tq *TelQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*Tel, init func(*Tel), assign func(*Tel, *Customer)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[int]*Tel)
-	nids := make(map[int]map[*Tel]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
-		if init != nil {
-			init(node)
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Tel)
+	for i := range nodes {
+		if nodes[i].customer_tels == nil {
+			continue
 		}
+		fk := *nodes[i].customer_tels
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(tel.CustomerTable)
-		s.Join(joinT).On(s.C(customer.FieldID), joinT.C(tel.CustomerPrimaryKey[0]))
-		s.Where(sql.InValues(joinT.C(tel.CustomerPrimaryKey[1]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(tel.CustomerPrimaryKey[1]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
+	if len(ids) == 0 {
+		return nil
 	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := int(values[0].(*sql.NullInt64).Int64)
-				inValue := int(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Tel]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Customer](ctx, query, qr, query.inters)
+	query.Where(customer.IDIn(ids...))
+	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected "customer" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "customer_tels" returned %v`, n.ID)
 		}
-		for kn := range nodes {
-			assign(kn, n)
+		for i := range nodes {
+			assign(nodes[i], n)
 		}
 	}
 	return nil

@@ -215,21 +215,21 @@ func UpdatedAtLTE(v time.Time) predicate.Tel {
 	return predicate.Tel(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// HasNote applies the HasEdge predicate on the "note" edge.
-func HasNote() predicate.Tel {
+// HasNotes applies the HasEdge predicate on the "notes" edge.
+func HasNotes() predicate.Tel {
 	return predicate.Tel(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, NoteTable, NoteColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, NotesTable, NotesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasNoteWith applies the HasEdge predicate on the "note" edge with a given conditions (other predicates).
-func HasNoteWith(preds ...predicate.Note) predicate.Tel {
+// HasNotesWith applies the HasEdge predicate on the "notes" edge with a given conditions (other predicates).
+func HasNotesWith(preds ...predicate.Note) predicate.Tel {
 	return predicate.Tel(func(s *sql.Selector) {
-		step := newNoteStep()
+		step := newNotesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -243,7 +243,7 @@ func HasCustomer() predicate.Tel {
 	return predicate.Tel(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, CustomerTable, CustomerPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

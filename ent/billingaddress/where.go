@@ -70,6 +70,11 @@ func Zip(v string) predicate.BillingAddress {
 	return predicate.BillingAddress(sql.FieldEQ(FieldZip, v))
 }
 
+// Housenumber applies equality check predicate on the "housenumber" field. It's identical to HousenumberEQ.
+func Housenumber(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldEQ(FieldHousenumber, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.BillingAddress {
 	return predicate.BillingAddress(sql.FieldEQ(FieldCreatedAt, v))
@@ -275,6 +280,71 @@ func ZipContainsFold(v string) predicate.BillingAddress {
 	return predicate.BillingAddress(sql.FieldContainsFold(FieldZip, v))
 }
 
+// HousenumberEQ applies the EQ predicate on the "housenumber" field.
+func HousenumberEQ(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldEQ(FieldHousenumber, v))
+}
+
+// HousenumberNEQ applies the NEQ predicate on the "housenumber" field.
+func HousenumberNEQ(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldNEQ(FieldHousenumber, v))
+}
+
+// HousenumberIn applies the In predicate on the "housenumber" field.
+func HousenumberIn(vs ...string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldIn(FieldHousenumber, vs...))
+}
+
+// HousenumberNotIn applies the NotIn predicate on the "housenumber" field.
+func HousenumberNotIn(vs ...string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldNotIn(FieldHousenumber, vs...))
+}
+
+// HousenumberGT applies the GT predicate on the "housenumber" field.
+func HousenumberGT(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldGT(FieldHousenumber, v))
+}
+
+// HousenumberGTE applies the GTE predicate on the "housenumber" field.
+func HousenumberGTE(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldGTE(FieldHousenumber, v))
+}
+
+// HousenumberLT applies the LT predicate on the "housenumber" field.
+func HousenumberLT(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldLT(FieldHousenumber, v))
+}
+
+// HousenumberLTE applies the LTE predicate on the "housenumber" field.
+func HousenumberLTE(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldLTE(FieldHousenumber, v))
+}
+
+// HousenumberContains applies the Contains predicate on the "housenumber" field.
+func HousenumberContains(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldContains(FieldHousenumber, v))
+}
+
+// HousenumberHasPrefix applies the HasPrefix predicate on the "housenumber" field.
+func HousenumberHasPrefix(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldHasPrefix(FieldHousenumber, v))
+}
+
+// HousenumberHasSuffix applies the HasSuffix predicate on the "housenumber" field.
+func HousenumberHasSuffix(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldHasSuffix(FieldHousenumber, v))
+}
+
+// HousenumberEqualFold applies the EqualFold predicate on the "housenumber" field.
+func HousenumberEqualFold(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldEqualFold(FieldHousenumber, v))
+}
+
+// HousenumberContainsFold applies the ContainsFold predicate on the "housenumber" field.
+func HousenumberContainsFold(v string) predicate.BillingAddress {
+	return predicate.BillingAddress(sql.FieldContainsFold(FieldHousenumber, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.BillingAddress {
 	return predicate.BillingAddress(sql.FieldEQ(FieldCreatedAt, v))
@@ -355,6 +425,29 @@ func UpdatedAtLTE(v time.Time) predicate.BillingAddress {
 	return predicate.BillingAddress(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
+// HasNotes applies the HasEdge predicate on the "notes" edge.
+func HasNotes() predicate.BillingAddress {
+	return predicate.BillingAddress(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNotesWith applies the HasEdge predicate on the "notes" edge with a given conditions (other predicates).
+func HasNotesWith(preds ...predicate.Note) predicate.BillingAddress {
+	return predicate.BillingAddress(func(s *sql.Selector) {
+		step := newNotesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasCustomer applies the HasEdge predicate on the "customer" edge.
 func HasCustomer() predicate.BillingAddress {
 	return predicate.BillingAddress(func(s *sql.Selector) {
@@ -378,21 +471,21 @@ func HasCustomerWith(preds ...predicate.Customer) predicate.BillingAddress {
 	})
 }
 
-// HasNotes applies the HasEdge predicate on the "notes" edge.
-func HasNotes() predicate.BillingAddress {
+// HasOrder applies the HasEdge predicate on the "order" edge.
+func HasOrder() predicate.BillingAddress {
 	return predicate.BillingAddress(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, OrderTable, OrderColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasNotesWith applies the HasEdge predicate on the "notes" edge with a given conditions (other predicates).
-func HasNotesWith(preds ...predicate.Note) predicate.BillingAddress {
+// HasOrderWith applies the HasEdge predicate on the "order" edge with a given conditions (other predicates).
+func HasOrderWith(preds ...predicate.Order) predicate.BillingAddress {
 	return predicate.BillingAddress(func(s *sql.Selector) {
-		step := newNotesStep()
+		step := newOrderStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

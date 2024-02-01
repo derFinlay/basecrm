@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
 
@@ -25,8 +26,8 @@ type DeliveryAddress struct {
 	Street string `json:"street,omitempty"`
 	// Zip holds the value of the "zip" field.
 	Zip string `json:"zip,omitempty"`
-	// Number holds the value of the "number" field.
-	Number string `json:"number,omitempty"`
+	// Housenumber holds the value of the "housenumber" field.
+	Housenumber string `json:"housenumber,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -36,6 +37,7 @@ type DeliveryAddress struct {
 	Edges                       DeliveryAddressEdges `json:"edges"`
 	customer_delivery_addresses *int
 	delivery_address_telephone  *int
+	order_delivery_address      *int
 	selectValues                sql.SelectValues
 }
 
@@ -47,9 +49,11 @@ type DeliveryAddressEdges struct {
 	Notes []*Note `json:"notes,omitempty"`
 	// Customer holds the value of the customer edge.
 	Customer *Customer `json:"customer,omitempty"`
+	// Orders holds the value of the orders edge.
+	Orders *Order `json:"orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // TelephoneOrErr returns the Telephone value or an error if the edge
@@ -87,6 +91,19 @@ func (e DeliveryAddressEdges) CustomerOrErr() (*Customer, error) {
 	return nil, &NotLoadedError{edge: "customer"}
 }
 
+// OrdersOrErr returns the Orders value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e DeliveryAddressEdges) OrdersOrErr() (*Order, error) {
+	if e.loadedTypes[3] {
+		if e.Orders == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: order.Label}
+		}
+		return e.Orders, nil
+	}
+	return nil, &NotLoadedError{edge: "orders"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*DeliveryAddress) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -94,13 +111,15 @@ func (*DeliveryAddress) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case deliveryaddress.FieldID:
 			values[i] = new(sql.NullInt64)
-		case deliveryaddress.FieldCity, deliveryaddress.FieldStreet, deliveryaddress.FieldZip, deliveryaddress.FieldNumber:
+		case deliveryaddress.FieldCity, deliveryaddress.FieldStreet, deliveryaddress.FieldZip, deliveryaddress.FieldHousenumber:
 			values[i] = new(sql.NullString)
 		case deliveryaddress.FieldCreatedAt, deliveryaddress.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case deliveryaddress.ForeignKeys[0]: // customer_delivery_addresses
 			values[i] = new(sql.NullInt64)
 		case deliveryaddress.ForeignKeys[1]: // delivery_address_telephone
+			values[i] = new(sql.NullInt64)
+		case deliveryaddress.ForeignKeys[2]: // order_delivery_address
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -141,11 +160,11 @@ func (da *DeliveryAddress) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				da.Zip = value.String
 			}
-		case deliveryaddress.FieldNumber:
+		case deliveryaddress.FieldHousenumber:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field number", values[i])
+				return fmt.Errorf("unexpected type %T for field housenumber", values[i])
 			} else if value.Valid {
-				da.Number = value.String
+				da.Housenumber = value.String
 			}
 		case deliveryaddress.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -173,6 +192,13 @@ func (da *DeliveryAddress) assignValues(columns []string, values []any) error {
 				da.delivery_address_telephone = new(int)
 				*da.delivery_address_telephone = int(value.Int64)
 			}
+		case deliveryaddress.ForeignKeys[2]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field order_delivery_address", value)
+			} else if value.Valid {
+				da.order_delivery_address = new(int)
+				*da.order_delivery_address = int(value.Int64)
+			}
 		default:
 			da.selectValues.Set(columns[i], values[i])
 		}
@@ -199,6 +225,11 @@ func (da *DeliveryAddress) QueryNotes() *NoteQuery {
 // QueryCustomer queries the "customer" edge of the DeliveryAddress entity.
 func (da *DeliveryAddress) QueryCustomer() *CustomerQuery {
 	return NewDeliveryAddressClient(da.config).QueryCustomer(da)
+}
+
+// QueryOrders queries the "orders" edge of the DeliveryAddress entity.
+func (da *DeliveryAddress) QueryOrders() *OrderQuery {
+	return NewDeliveryAddressClient(da.config).QueryOrders(da)
 }
 
 // Update returns a builder for updating this DeliveryAddress.
@@ -233,8 +264,8 @@ func (da *DeliveryAddress) String() string {
 	builder.WriteString("zip=")
 	builder.WriteString(da.Zip)
 	builder.WriteString(", ")
-	builder.WriteString("number=")
-	builder.WriteString(da.Number)
+	builder.WriteString("housenumber=")
+	builder.WriteString(da.Housenumber)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(da.CreatedAt.Format(time.ANSIC))

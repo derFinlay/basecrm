@@ -21,10 +21,8 @@ type Customer struct {
 	ID int `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
-	// Email holds the value of the "email" field.
-	Email string `json:"email,omitempty"`
-	// Password holds the value of the "password" field.
-	Password string `json:"password,omitempty"`
+	// Gender holds the value of the "gender" field.
+	Gender customer.Gender `json:"gender,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -33,7 +31,6 @@ type Customer struct {
 	// The values are being populated by the CustomerQuery when eager-loading is set.
 	Edges               CustomerEdges `json:"edges"`
 	customer_created_by *int
-	customer_login      *int
 	selectValues        sql.SelectValues
 }
 
@@ -136,13 +133,11 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldID:
 			values[i] = new(sql.NullInt64)
-		case customer.FieldName, customer.FieldEmail, customer.FieldPassword:
+		case customer.FieldName, customer.FieldGender:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case customer.ForeignKeys[0]: // customer_created_by
-			values[i] = new(sql.NullInt64)
-		case customer.ForeignKeys[1]: // customer_login
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -171,17 +166,11 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				c.Name = value.String
 			}
-		case customer.FieldEmail:
+		case customer.FieldGender:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field email", values[i])
+				return fmt.Errorf("unexpected type %T for field gender", values[i])
 			} else if value.Valid {
-				c.Email = value.String
-			}
-		case customer.FieldPassword:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field password", values[i])
-			} else if value.Valid {
-				c.Password = value.String
+				c.Gender = customer.Gender(value.String)
 			}
 		case customer.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -201,13 +190,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				c.customer_created_by = new(int)
 				*c.customer_created_by = int(value.Int64)
-			}
-		case customer.ForeignKeys[1]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field customer_login", value)
-			} else if value.Valid {
-				c.customer_login = new(int)
-				*c.customer_login = int(value.Int64)
 			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
@@ -283,11 +265,8 @@ func (c *Customer) String() string {
 	builder.WriteString("name=")
 	builder.WriteString(c.Name)
 	builder.WriteString(", ")
-	builder.WriteString("email=")
-	builder.WriteString(c.Email)
-	builder.WriteString(", ")
-	builder.WriteString("password=")
-	builder.WriteString(c.Password)
+	builder.WriteString("gender=")
+	builder.WriteString(fmt.Sprintf("%v", c.Gender))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(c.CreatedAt.Format(time.ANSIC))

@@ -14,6 +14,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
@@ -28,6 +29,7 @@ type DeliveryAddressQuery struct {
 	withTelephone *TelQuery
 	withNotes     *NoteQuery
 	withCustomer  *CustomerQuery
+	withOrders    *OrderQuery
 	withFKs       bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -124,6 +126,28 @@ func (daq *DeliveryAddressQuery) QueryCustomer() *CustomerQuery {
 			sqlgraph.From(deliveryaddress.Table, deliveryaddress.FieldID, selector),
 			sqlgraph.To(customer.Table, customer.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, deliveryaddress.CustomerTable, deliveryaddress.CustomerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(daq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrders chains the current query on the "orders" edge.
+func (daq *DeliveryAddressQuery) QueryOrders() *OrderQuery {
+	query := (&OrderClient{config: daq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := daq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := daq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(deliveryaddress.Table, deliveryaddress.FieldID, selector),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, deliveryaddress.OrdersTable, deliveryaddress.OrdersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(daq.driver.Dialect(), step)
 		return fromU, nil
@@ -326,6 +350,7 @@ func (daq *DeliveryAddressQuery) Clone() *DeliveryAddressQuery {
 		withTelephone: daq.withTelephone.Clone(),
 		withNotes:     daq.withNotes.Clone(),
 		withCustomer:  daq.withCustomer.Clone(),
+		withOrders:    daq.withOrders.Clone(),
 		// clone intermediate query.
 		sql:  daq.sql.Clone(),
 		path: daq.path,
@@ -362,6 +387,17 @@ func (daq *DeliveryAddressQuery) WithCustomer(opts ...func(*CustomerQuery)) *Del
 		opt(query)
 	}
 	daq.withCustomer = query
+	return daq
+}
+
+// WithOrders tells the query-builder to eager-load the nodes that are connected to
+// the "orders" edge. The optional arguments are used to configure the query builder of the edge.
+func (daq *DeliveryAddressQuery) WithOrders(opts ...func(*OrderQuery)) *DeliveryAddressQuery {
+	query := (&OrderClient{config: daq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	daq.withOrders = query
 	return daq
 }
 
@@ -444,13 +480,14 @@ func (daq *DeliveryAddressQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		nodes       = []*DeliveryAddress{}
 		withFKs     = daq.withFKs
 		_spec       = daq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			daq.withTelephone != nil,
 			daq.withNotes != nil,
 			daq.withCustomer != nil,
+			daq.withOrders != nil,
 		}
 	)
-	if daq.withTelephone != nil || daq.withCustomer != nil {
+	if daq.withTelephone != nil || daq.withCustomer != nil || daq.withOrders != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -490,6 +527,12 @@ func (daq *DeliveryAddressQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := daq.withCustomer; query != nil {
 		if err := daq.loadCustomer(ctx, query, nodes, nil,
 			func(n *DeliveryAddress, e *Customer) { n.Edges.Customer = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := daq.withOrders; query != nil {
+		if err := daq.loadOrders(ctx, query, nodes, nil,
+			func(n *DeliveryAddress, e *Order) { n.Edges.Orders = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -584,6 +627,38 @@ func (daq *DeliveryAddressQuery) loadCustomer(ctx context.Context, query *Custom
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "customer_delivery_addresses" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (daq *DeliveryAddressQuery) loadOrders(ctx context.Context, query *OrderQuery, nodes []*DeliveryAddress, init func(*DeliveryAddress), assign func(*DeliveryAddress, *Order)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*DeliveryAddress)
+	for i := range nodes {
+		if nodes[i].order_delivery_address == nil {
+			continue
+		}
+		fk := *nodes[i].order_delivery_address
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(order.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "order_delivery_address" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

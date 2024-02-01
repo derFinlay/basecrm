@@ -19,9 +19,11 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/login"
+	"github.com/derfinlay/basecrm/ent/loginreset"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
+	"github.com/derfinlay/basecrm/ent/product"
 	"github.com/derfinlay/basecrm/ent/role"
 	"github.com/derfinlay/basecrm/ent/tel"
 	"github.com/derfinlay/basecrm/ent/user"
@@ -40,12 +42,16 @@ type Client struct {
 	DeliveryAddress *DeliveryAddressClient
 	// Login is the client for interacting with the Login builders.
 	Login *LoginClient
+	// LoginReset is the client for interacting with the LoginReset builders.
+	LoginReset *LoginResetClient
 	// Note is the client for interacting with the Note builders.
 	Note *NoteClient
 	// Order is the client for interacting with the Order builders.
 	Order *OrderClient
 	// Position is the client for interacting with the Position builders.
 	Position *PositionClient
+	// Product is the client for interacting with the Product builders.
+	Product *ProductClient
 	// Role is the client for interacting with the Role builders.
 	Role *RoleClient
 	// Tel is the client for interacting with the Tel builders.
@@ -67,9 +73,11 @@ func (c *Client) init() {
 	c.Customer = NewCustomerClient(c.config)
 	c.DeliveryAddress = NewDeliveryAddressClient(c.config)
 	c.Login = NewLoginClient(c.config)
+	c.LoginReset = NewLoginResetClient(c.config)
 	c.Note = NewNoteClient(c.config)
 	c.Order = NewOrderClient(c.config)
 	c.Position = NewPositionClient(c.config)
+	c.Product = NewProductClient(c.config)
 	c.Role = NewRoleClient(c.config)
 	c.Tel = NewTelClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -169,9 +177,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Customer:        NewCustomerClient(cfg),
 		DeliveryAddress: NewDeliveryAddressClient(cfg),
 		Login:           NewLoginClient(cfg),
+		LoginReset:      NewLoginResetClient(cfg),
 		Note:            NewNoteClient(cfg),
 		Order:           NewOrderClient(cfg),
 		Position:        NewPositionClient(cfg),
+		Product:         NewProductClient(cfg),
 		Role:            NewRoleClient(cfg),
 		Tel:             NewTelClient(cfg),
 		User:            NewUserClient(cfg),
@@ -198,9 +208,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Customer:        NewCustomerClient(cfg),
 		DeliveryAddress: NewDeliveryAddressClient(cfg),
 		Login:           NewLoginClient(cfg),
+		LoginReset:      NewLoginResetClient(cfg),
 		Note:            NewNoteClient(cfg),
 		Order:           NewOrderClient(cfg),
 		Position:        NewPositionClient(cfg),
+		Product:         NewProductClient(cfg),
 		Role:            NewRoleClient(cfg),
 		Tel:             NewTelClient(cfg),
 		User:            NewUserClient(cfg),
@@ -233,8 +245,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.BillingAddress, c.Customer, c.DeliveryAddress, c.Login, c.Note, c.Order,
-		c.Position, c.Role, c.Tel, c.User,
+		c.BillingAddress, c.Customer, c.DeliveryAddress, c.Login, c.LoginReset, c.Note,
+		c.Order, c.Position, c.Product, c.Role, c.Tel, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -244,8 +256,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.BillingAddress, c.Customer, c.DeliveryAddress, c.Login, c.Note, c.Order,
-		c.Position, c.Role, c.Tel, c.User,
+		c.BillingAddress, c.Customer, c.DeliveryAddress, c.Login, c.LoginReset, c.Note,
+		c.Order, c.Position, c.Product, c.Role, c.Tel, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -262,12 +274,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.DeliveryAddress.mutate(ctx, m)
 	case *LoginMutation:
 		return c.Login.mutate(ctx, m)
+	case *LoginResetMutation:
+		return c.LoginReset.mutate(ctx, m)
 	case *NoteMutation:
 		return c.Note.mutate(ctx, m)
 	case *OrderMutation:
 		return c.Order.mutate(ctx, m)
 	case *PositionMutation:
 		return c.Position.mutate(ctx, m)
+	case *ProductMutation:
+		return c.Product.mutate(ctx, m)
 	case *RoleMutation:
 		return c.Role.mutate(ctx, m)
 	case *TelMutation:
@@ -387,6 +403,22 @@ func (c *BillingAddressClient) GetX(ctx context.Context, id int) *BillingAddress
 	return obj
 }
 
+// QueryNotes queries the notes edge of a BillingAddress.
+func (c *BillingAddressClient) QueryNotes(ba *BillingAddress) *NoteQuery {
+	query := (&NoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ba.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingaddress.Table, billingaddress.FieldID, id),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingaddress.NotesTable, billingaddress.NotesColumn),
+		)
+		fromV = sqlgraph.Neighbors(ba.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCustomer queries the customer edge of a BillingAddress.
 func (c *BillingAddressClient) QueryCustomer(ba *BillingAddress) *CustomerQuery {
 	query := (&CustomerClient{config: c.config}).Query()
@@ -403,15 +435,15 @@ func (c *BillingAddressClient) QueryCustomer(ba *BillingAddress) *CustomerQuery 
 	return query
 }
 
-// QueryNotes queries the notes edge of a BillingAddress.
-func (c *BillingAddressClient) QueryNotes(ba *BillingAddress) *NoteQuery {
-	query := (&NoteClient{config: c.config}).Query()
+// QueryOrder queries the order edge of a BillingAddress.
+func (c *BillingAddressClient) QueryOrder(ba *BillingAddress) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ba.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingaddress.Table, billingaddress.FieldID, id),
-			sqlgraph.To(note.Table, note.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billingaddress.NotesTable, billingaddress.NotesColumn),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, billingaddress.OrderTable, billingaddress.OrderColumn),
 		)
 		fromV = sqlgraph.Neighbors(ba.driver.Dialect(), step)
 		return fromV, nil
@@ -608,7 +640,7 @@ func (c *CustomerClient) QueryTels(cu *Customer) *TelQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(customer.Table, customer.FieldID, id),
 			sqlgraph.To(tel.Table, tel.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, customer.TelsTable, customer.TelsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.TelsTable, customer.TelsColumn),
 		)
 		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
 		return fromV, nil
@@ -656,7 +688,7 @@ func (c *CustomerClient) QueryLogin(cu *Customer) *LoginQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(customer.Table, customer.FieldID, id),
 			sqlgraph.To(login.Table, login.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, customer.LoginTable, customer.LoginColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, customer.LoginTable, customer.LoginColumn),
 		)
 		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
 		return fromV, nil
@@ -845,6 +877,22 @@ func (c *DeliveryAddressClient) QueryCustomer(da *DeliveryAddress) *CustomerQuer
 	return query
 }
 
+// QueryOrders queries the orders edge of a DeliveryAddress.
+func (c *DeliveryAddressClient) QueryOrders(da *DeliveryAddress) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := da.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(deliveryaddress.Table, deliveryaddress.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, deliveryaddress.OrdersTable, deliveryaddress.OrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(da.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *DeliveryAddressClient) Hooks() []Hook {
 	return c.hooks.DeliveryAddress
@@ -986,7 +1034,23 @@ func (c *LoginClient) QueryCustomer(l *Login) *CustomerQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(login.Table, login.FieldID, id),
 			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, login.CustomerTable, login.CustomerColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, login.CustomerTable, login.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(l.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLoginResets queries the login_resets edge of a Login.
+func (c *LoginClient) QueryLoginResets(l *Login) *LoginResetQuery {
+	query := (&LoginResetClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := l.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(login.Table, login.FieldID, id),
+			sqlgraph.To(loginreset.Table, loginreset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, login.LoginResetsTable, login.LoginResetsColumn),
 		)
 		fromV = sqlgraph.Neighbors(l.driver.Dialect(), step)
 		return fromV, nil
@@ -1016,6 +1080,155 @@ func (c *LoginClient) mutate(ctx context.Context, m *LoginMutation) (Value, erro
 		return (&LoginDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Login mutation op: %q", m.Op())
+	}
+}
+
+// LoginResetClient is a client for the LoginReset schema.
+type LoginResetClient struct {
+	config
+}
+
+// NewLoginResetClient returns a client for the LoginReset from the given config.
+func NewLoginResetClient(c config) *LoginResetClient {
+	return &LoginResetClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `loginreset.Hooks(f(g(h())))`.
+func (c *LoginResetClient) Use(hooks ...Hook) {
+	c.hooks.LoginReset = append(c.hooks.LoginReset, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `loginreset.Intercept(f(g(h())))`.
+func (c *LoginResetClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LoginReset = append(c.inters.LoginReset, interceptors...)
+}
+
+// Create returns a builder for creating a LoginReset entity.
+func (c *LoginResetClient) Create() *LoginResetCreate {
+	mutation := newLoginResetMutation(c.config, OpCreate)
+	return &LoginResetCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LoginReset entities.
+func (c *LoginResetClient) CreateBulk(builders ...*LoginResetCreate) *LoginResetCreateBulk {
+	return &LoginResetCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LoginResetClient) MapCreateBulk(slice any, setFunc func(*LoginResetCreate, int)) *LoginResetCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LoginResetCreateBulk{err: fmt.Errorf("calling to LoginResetClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LoginResetCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LoginResetCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LoginReset.
+func (c *LoginResetClient) Update() *LoginResetUpdate {
+	mutation := newLoginResetMutation(c.config, OpUpdate)
+	return &LoginResetUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LoginResetClient) UpdateOne(lr *LoginReset) *LoginResetUpdateOne {
+	mutation := newLoginResetMutation(c.config, OpUpdateOne, withLoginReset(lr))
+	return &LoginResetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LoginResetClient) UpdateOneID(id int) *LoginResetUpdateOne {
+	mutation := newLoginResetMutation(c.config, OpUpdateOne, withLoginResetID(id))
+	return &LoginResetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LoginReset.
+func (c *LoginResetClient) Delete() *LoginResetDelete {
+	mutation := newLoginResetMutation(c.config, OpDelete)
+	return &LoginResetDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LoginResetClient) DeleteOne(lr *LoginReset) *LoginResetDeleteOne {
+	return c.DeleteOneID(lr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LoginResetClient) DeleteOneID(id int) *LoginResetDeleteOne {
+	builder := c.Delete().Where(loginreset.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LoginResetDeleteOne{builder}
+}
+
+// Query returns a query builder for LoginReset.
+func (c *LoginResetClient) Query() *LoginResetQuery {
+	return &LoginResetQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLoginReset},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LoginReset entity by its id.
+func (c *LoginResetClient) Get(ctx context.Context, id int) (*LoginReset, error) {
+	return c.Query().Where(loginreset.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LoginResetClient) GetX(ctx context.Context, id int) *LoginReset {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLogin queries the login edge of a LoginReset.
+func (c *LoginResetClient) QueryLogin(lr *LoginReset) *LoginQuery {
+	query := (&LoginClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := lr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(loginreset.Table, loginreset.FieldID, id),
+			sqlgraph.To(login.Table, login.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, loginreset.LoginTable, loginreset.LoginColumn),
+		)
+		fromV = sqlgraph.Neighbors(lr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LoginResetClient) Hooks() []Hook {
+	return c.hooks.LoginReset
+}
+
+// Interceptors returns the client interceptors.
+func (c *LoginResetClient) Interceptors() []Interceptor {
+	return c.inters.LoginReset
+}
+
+func (c *LoginResetClient) mutate(ctx context.Context, m *LoginResetMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LoginResetCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LoginResetUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LoginResetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LoginResetDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LoginReset mutation op: %q", m.Op())
 	}
 }
 
@@ -1143,15 +1356,15 @@ func (c *NoteClient) QueryCustomer(n *Note) *CustomerQuery {
 	return query
 }
 
-// QueryOrders queries the orders edge of a Note.
-func (c *NoteClient) QueryOrders(n *Note) *OrderQuery {
+// QueryOrder queries the order edge of a Note.
+func (c *NoteClient) QueryOrder(n *Note) *OrderQuery {
 	query := (&OrderClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := n.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(note.Table, note.FieldID, id),
 			sqlgraph.To(order.Table, order.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, note.OrdersTable, note.OrdersColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.OrderTable, note.OrderColumn),
 		)
 		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
 		return fromV, nil
@@ -1200,6 +1413,22 @@ func (c *NoteClient) QueryTel(n *Note) *TelQuery {
 			sqlgraph.From(note.Table, note.FieldID, id),
 			sqlgraph.To(tel.Table, tel.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, note.TelTable, note.TelColumn),
+		)
+		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreatedBy queries the created_by edge of a Note.
+func (c *NoteClient) QueryCreatedBy(n *Note) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := n.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, note.CreatedByTable, note.CreatedByColumn),
 		)
 		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
 		return fromV, nil
@@ -1356,15 +1585,31 @@ func (c *OrderClient) QueryCustomer(o *Order) *CustomerQuery {
 	return query
 }
 
-// QueryAddress queries the address edge of a Order.
-func (c *OrderClient) QueryAddress(o *Order) *BillingAddressQuery {
+// QueryBillingAddress queries the billing_address edge of a Order.
+func (c *OrderClient) QueryBillingAddress(o *Order) *BillingAddressQuery {
 	query := (&BillingAddressClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := o.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(order.Table, order.FieldID, id),
 			sqlgraph.To(billingaddress.Table, billingaddress.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, order.AddressTable, order.AddressColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, order.BillingAddressTable, order.BillingAddressColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryDeliveryAddress queries the delivery_address edge of a Order.
+func (c *OrderClient) QueryDeliveryAddress(o *Order) *DeliveryAddressQuery {
+	query := (&DeliveryAddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(deliveryaddress.Table, deliveryaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, order.DeliveryAddressTable, order.DeliveryAddressColumn),
 		)
 		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
 		return fromV, nil
@@ -1381,6 +1626,38 @@ func (c *OrderClient) QueryNotes(o *Order) *NoteQuery {
 			sqlgraph.From(order.Table, order.FieldID, id),
 			sqlgraph.To(note.Table, note.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, order.NotesTable, order.NotesColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreatedBy queries the created_by edge of a Order.
+func (c *OrderClient) QueryCreatedBy(o *Order) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, order.CreatedByTable, order.CreatedByColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPositions queries the positions edge of a Order.
+func (c *OrderClient) QueryPositions(o *Order) *PositionQuery {
+	query := (&PositionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(position.Table, position.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, order.PositionsTable, order.PositionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
 		return fromV, nil
@@ -1521,6 +1798,22 @@ func (c *PositionClient) GetX(ctx context.Context, id int) *Position {
 	return obj
 }
 
+// QueryOrder queries the order edge of a Position.
+func (c *PositionClient) QueryOrder(po *Position) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, position.OrderTable, position.OrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PositionClient) Hooks() []Hook {
 	return c.hooks.Position
@@ -1543,6 +1836,139 @@ func (c *PositionClient) mutate(ctx context.Context, m *PositionMutation) (Value
 		return (&PositionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Position mutation op: %q", m.Op())
+	}
+}
+
+// ProductClient is a client for the Product schema.
+type ProductClient struct {
+	config
+}
+
+// NewProductClient returns a client for the Product from the given config.
+func NewProductClient(c config) *ProductClient {
+	return &ProductClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `product.Hooks(f(g(h())))`.
+func (c *ProductClient) Use(hooks ...Hook) {
+	c.hooks.Product = append(c.hooks.Product, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `product.Intercept(f(g(h())))`.
+func (c *ProductClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Product = append(c.inters.Product, interceptors...)
+}
+
+// Create returns a builder for creating a Product entity.
+func (c *ProductClient) Create() *ProductCreate {
+	mutation := newProductMutation(c.config, OpCreate)
+	return &ProductCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Product entities.
+func (c *ProductClient) CreateBulk(builders ...*ProductCreate) *ProductCreateBulk {
+	return &ProductCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProductClient) MapCreateBulk(slice any, setFunc func(*ProductCreate, int)) *ProductCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProductCreateBulk{err: fmt.Errorf("calling to ProductClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProductCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProductCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Product.
+func (c *ProductClient) Update() *ProductUpdate {
+	mutation := newProductMutation(c.config, OpUpdate)
+	return &ProductUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProductClient) UpdateOne(pr *Product) *ProductUpdateOne {
+	mutation := newProductMutation(c.config, OpUpdateOne, withProduct(pr))
+	return &ProductUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProductClient) UpdateOneID(id int) *ProductUpdateOne {
+	mutation := newProductMutation(c.config, OpUpdateOne, withProductID(id))
+	return &ProductUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Product.
+func (c *ProductClient) Delete() *ProductDelete {
+	mutation := newProductMutation(c.config, OpDelete)
+	return &ProductDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProductClient) DeleteOne(pr *Product) *ProductDeleteOne {
+	return c.DeleteOneID(pr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProductClient) DeleteOneID(id int) *ProductDeleteOne {
+	builder := c.Delete().Where(product.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProductDeleteOne{builder}
+}
+
+// Query returns a query builder for Product.
+func (c *ProductClient) Query() *ProductQuery {
+	return &ProductQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProduct},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Product entity by its id.
+func (c *ProductClient) Get(ctx context.Context, id int) (*Product, error) {
+	return c.Query().Where(product.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProductClient) GetX(ctx context.Context, id int) *Product {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProductClient) Hooks() []Hook {
+	return c.hooks.Product
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProductClient) Interceptors() []Interceptor {
+	return c.inters.Product
+}
+
+func (c *ProductClient) mutate(ctx context.Context, m *ProductMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProductCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProductUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProductUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProductDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Product mutation op: %q", m.Op())
 	}
 }
 
@@ -1787,15 +2213,15 @@ func (c *TelClient) GetX(ctx context.Context, id int) *Tel {
 	return obj
 }
 
-// QueryNote queries the note edge of a Tel.
-func (c *TelClient) QueryNote(t *Tel) *NoteQuery {
+// QueryNotes queries the notes edge of a Tel.
+func (c *TelClient) QueryNotes(t *Tel) *NoteQuery {
 	query := (&NoteClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := t.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(tel.Table, tel.FieldID, id),
 			sqlgraph.To(note.Table, note.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, tel.NoteTable, tel.NoteColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, tel.NotesTable, tel.NotesColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil
@@ -1811,7 +2237,7 @@ func (c *TelClient) QueryCustomer(t *Tel) *CustomerQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(tel.Table, tel.FieldID, id),
 			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, tel.CustomerTable, tel.CustomerPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, tel.CustomerTable, tel.CustomerColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil
@@ -1952,6 +2378,54 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 	return obj
 }
 
+// QueryCustomers queries the customers edge of a User.
+func (c *UserClient) QueryCustomers(u *User) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.CustomersTable, user.CustomersColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNotes queries the notes edge of a User.
+func (c *UserClient) QueryNotes(u *User) *NoteQuery {
+	query := (&NoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.NotesTable, user.NotesColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrders queries the orders edge of a User.
+func (c *UserClient) QueryOrders(u *User) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.OrdersTable, user.OrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1980,11 +2454,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		BillingAddress, Customer, DeliveryAddress, Login, Note, Order, Position, Role,
-		Tel, User []ent.Hook
+		BillingAddress, Customer, DeliveryAddress, Login, LoginReset, Note, Order,
+		Position, Product, Role, Tel, User []ent.Hook
 	}
 	inters struct {
-		BillingAddress, Customer, DeliveryAddress, Login, Note, Order, Position, Role,
-		Tel, User []ent.Interceptor
+		BillingAddress, Customer, DeliveryAddress, Login, LoginReset, Note, Order,
+		Position, Product, Role, Tel, User []ent.Interceptor
 	}
 )

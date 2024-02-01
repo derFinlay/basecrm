@@ -70,9 +70,9 @@ func Zip(v string) predicate.DeliveryAddress {
 	return predicate.DeliveryAddress(sql.FieldEQ(FieldZip, v))
 }
 
-// Number applies equality check predicate on the "number" field. It's identical to NumberEQ.
-func Number(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldEQ(FieldNumber, v))
+// Housenumber applies equality check predicate on the "housenumber" field. It's identical to HousenumberEQ.
+func Housenumber(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldEQ(FieldHousenumber, v))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
@@ -280,69 +280,69 @@ func ZipContainsFold(v string) predicate.DeliveryAddress {
 	return predicate.DeliveryAddress(sql.FieldContainsFold(FieldZip, v))
 }
 
-// NumberEQ applies the EQ predicate on the "number" field.
-func NumberEQ(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldEQ(FieldNumber, v))
+// HousenumberEQ applies the EQ predicate on the "housenumber" field.
+func HousenumberEQ(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldEQ(FieldHousenumber, v))
 }
 
-// NumberNEQ applies the NEQ predicate on the "number" field.
-func NumberNEQ(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldNEQ(FieldNumber, v))
+// HousenumberNEQ applies the NEQ predicate on the "housenumber" field.
+func HousenumberNEQ(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldNEQ(FieldHousenumber, v))
 }
 
-// NumberIn applies the In predicate on the "number" field.
-func NumberIn(vs ...string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldIn(FieldNumber, vs...))
+// HousenumberIn applies the In predicate on the "housenumber" field.
+func HousenumberIn(vs ...string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldIn(FieldHousenumber, vs...))
 }
 
-// NumberNotIn applies the NotIn predicate on the "number" field.
-func NumberNotIn(vs ...string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldNotIn(FieldNumber, vs...))
+// HousenumberNotIn applies the NotIn predicate on the "housenumber" field.
+func HousenumberNotIn(vs ...string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldNotIn(FieldHousenumber, vs...))
 }
 
-// NumberGT applies the GT predicate on the "number" field.
-func NumberGT(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldGT(FieldNumber, v))
+// HousenumberGT applies the GT predicate on the "housenumber" field.
+func HousenumberGT(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldGT(FieldHousenumber, v))
 }
 
-// NumberGTE applies the GTE predicate on the "number" field.
-func NumberGTE(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldGTE(FieldNumber, v))
+// HousenumberGTE applies the GTE predicate on the "housenumber" field.
+func HousenumberGTE(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldGTE(FieldHousenumber, v))
 }
 
-// NumberLT applies the LT predicate on the "number" field.
-func NumberLT(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldLT(FieldNumber, v))
+// HousenumberLT applies the LT predicate on the "housenumber" field.
+func HousenumberLT(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldLT(FieldHousenumber, v))
 }
 
-// NumberLTE applies the LTE predicate on the "number" field.
-func NumberLTE(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldLTE(FieldNumber, v))
+// HousenumberLTE applies the LTE predicate on the "housenumber" field.
+func HousenumberLTE(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldLTE(FieldHousenumber, v))
 }
 
-// NumberContains applies the Contains predicate on the "number" field.
-func NumberContains(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldContains(FieldNumber, v))
+// HousenumberContains applies the Contains predicate on the "housenumber" field.
+func HousenumberContains(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldContains(FieldHousenumber, v))
 }
 
-// NumberHasPrefix applies the HasPrefix predicate on the "number" field.
-func NumberHasPrefix(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldHasPrefix(FieldNumber, v))
+// HousenumberHasPrefix applies the HasPrefix predicate on the "housenumber" field.
+func HousenumberHasPrefix(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldHasPrefix(FieldHousenumber, v))
 }
 
-// NumberHasSuffix applies the HasSuffix predicate on the "number" field.
-func NumberHasSuffix(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldHasSuffix(FieldNumber, v))
+// HousenumberHasSuffix applies the HasSuffix predicate on the "housenumber" field.
+func HousenumberHasSuffix(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldHasSuffix(FieldHousenumber, v))
 }
 
-// NumberEqualFold applies the EqualFold predicate on the "number" field.
-func NumberEqualFold(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldEqualFold(FieldNumber, v))
+// HousenumberEqualFold applies the EqualFold predicate on the "housenumber" field.
+func HousenumberEqualFold(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldEqualFold(FieldHousenumber, v))
 }
 
-// NumberContainsFold applies the ContainsFold predicate on the "number" field.
-func NumberContainsFold(v string) predicate.DeliveryAddress {
-	return predicate.DeliveryAddress(sql.FieldContainsFold(FieldNumber, v))
+// HousenumberContainsFold applies the ContainsFold predicate on the "housenumber" field.
+func HousenumberContainsFold(v string) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(sql.FieldContainsFold(FieldHousenumber, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -486,6 +486,29 @@ func HasCustomer() predicate.DeliveryAddress {
 func HasCustomerWith(preds ...predicate.Customer) predicate.DeliveryAddress {
 	return predicate.DeliveryAddress(func(s *sql.Selector) {
 		step := newCustomerStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrders applies the HasEdge predicate on the "orders" edge.
+func HasOrders() predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, OrdersTable, OrdersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrdersWith applies the HasEdge predicate on the "orders" edge with a given conditions (other predicates).
+func HasOrdersWith(preds ...predicate.Order) predicate.DeliveryAddress {
+	return predicate.DeliveryAddress(func(s *sql.Selector) {
+		step := newOrdersStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

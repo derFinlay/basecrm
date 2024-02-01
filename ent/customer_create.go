@@ -33,15 +33,9 @@ func (cc *CustomerCreate) SetName(s string) *CustomerCreate {
 	return cc
 }
 
-// SetEmail sets the "email" field.
-func (cc *CustomerCreate) SetEmail(s string) *CustomerCreate {
-	cc.mutation.SetEmail(s)
-	return cc
-}
-
-// SetPassword sets the "password" field.
-func (cc *CustomerCreate) SetPassword(s string) *CustomerCreate {
-	cc.mutation.SetPassword(s)
+// SetGender sets the "gender" field.
+func (cc *CustomerCreate) SetGender(c customer.Gender) *CustomerCreate {
+	cc.mutation.SetGender(c)
 	return cc
 }
 
@@ -241,20 +235,12 @@ func (cc *CustomerCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Customer.name": %w`, err)}
 		}
 	}
-	if _, ok := cc.mutation.Email(); !ok {
-		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "Customer.email"`)}
+	if _, ok := cc.mutation.Gender(); !ok {
+		return &ValidationError{Name: "gender", err: errors.New(`ent: missing required field "Customer.gender"`)}
 	}
-	if v, ok := cc.mutation.Email(); ok {
-		if err := customer.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Customer.email": %w`, err)}
-		}
-	}
-	if _, ok := cc.mutation.Password(); !ok {
-		return &ValidationError{Name: "password", err: errors.New(`ent: missing required field "Customer.password"`)}
-	}
-	if v, ok := cc.mutation.Password(); ok {
-		if err := customer.PasswordValidator(v); err != nil {
-			return &ValidationError{Name: "password", err: fmt.Errorf(`ent: validator failed for field "Customer.password": %w`, err)}
+	if v, ok := cc.mutation.Gender(); ok {
+		if err := customer.GenderValidator(v); err != nil {
+			return &ValidationError{Name: "gender", err: fmt.Errorf(`ent: validator failed for field "Customer.gender": %w`, err)}
 		}
 	}
 	if _, ok := cc.mutation.CreatedAt(); !ok {
@@ -293,13 +279,9 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		_spec.SetField(customer.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := cc.mutation.Email(); ok {
-		_spec.SetField(customer.FieldEmail, field.TypeString, value)
-		_node.Email = value
-	}
-	if value, ok := cc.mutation.Password(); ok {
-		_spec.SetField(customer.FieldPassword, field.TypeString, value)
-		_node.Password = value
+	if value, ok := cc.mutation.Gender(); ok {
+		_spec.SetField(customer.FieldGender, field.TypeEnum, value)
+		_node.Gender = value
 	}
 	if value, ok := cc.mutation.CreatedAt(); ok {
 		_spec.SetField(customer.FieldCreatedAt, field.TypeTime, value)
@@ -359,10 +341,10 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	}
 	if nodes := cc.mutation.TelsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   customer.TelsTable,
-			Columns: customer.TelsPrimaryKey,
+			Columns: []string{customer.TelsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -408,7 +390,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	}
 	if nodes := cc.mutation.LoginIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   customer.LoginTable,
 			Columns: []string{customer.LoginColumn},
@@ -420,7 +402,6 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.customer_login = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

@@ -9,8 +9,11 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/login"
+	"github.com/derfinlay/basecrm/ent/loginreset"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
+	"github.com/derfinlay/basecrm/ent/position"
+	"github.com/derfinlay/basecrm/ent/product"
 	"github.com/derfinlay/basecrm/ent/schema"
 	"github.com/derfinlay/basecrm/ent/tel"
 	"github.com/derfinlay/basecrm/ent/user"
@@ -33,13 +36,45 @@ func init() {
 	// billingaddressDescZip is the schema descriptor for zip field.
 	billingaddressDescZip := billingaddressFields[2].Descriptor()
 	// billingaddress.ZipValidator is a validator for the "zip" field. It is called by the builders before save.
-	billingaddress.ZipValidator = billingaddressDescZip.Validators[0].(func(string) error)
+	billingaddress.ZipValidator = func() func(string) error {
+		validators := billingaddressDescZip.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(zip string) error {
+			for _, fn := range fns {
+				if err := fn(zip); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// billingaddressDescHousenumber is the schema descriptor for housenumber field.
+	billingaddressDescHousenumber := billingaddressFields[3].Descriptor()
+	// billingaddress.HousenumberValidator is a validator for the "housenumber" field. It is called by the builders before save.
+	billingaddress.HousenumberValidator = func() func(string) error {
+		validators := billingaddressDescHousenumber.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(housenumber string) error {
+			for _, fn := range fns {
+				if err := fn(housenumber); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// billingaddressDescCreatedAt is the schema descriptor for created_at field.
-	billingaddressDescCreatedAt := billingaddressFields[3].Descriptor()
+	billingaddressDescCreatedAt := billingaddressFields[4].Descriptor()
 	// billingaddress.DefaultCreatedAt holds the default value on creation for the created_at field.
 	billingaddress.DefaultCreatedAt = billingaddressDescCreatedAt.Default.(func() time.Time)
 	// billingaddressDescUpdatedAt is the schema descriptor for updated_at field.
-	billingaddressDescUpdatedAt := billingaddressFields[4].Descriptor()
+	billingaddressDescUpdatedAt := billingaddressFields[5].Descriptor()
 	// billingaddress.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	billingaddress.DefaultUpdatedAt = billingaddressDescUpdatedAt.Default.(func() time.Time)
 	// billingaddress.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -64,20 +99,12 @@ func init() {
 			return nil
 		}
 	}()
-	// customerDescEmail is the schema descriptor for email field.
-	customerDescEmail := customerFields[1].Descriptor()
-	// customer.EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	customer.EmailValidator = customerDescEmail.Validators[0].(func(string) error)
-	// customerDescPassword is the schema descriptor for password field.
-	customerDescPassword := customerFields[2].Descriptor()
-	// customer.PasswordValidator is a validator for the "password" field. It is called by the builders before save.
-	customer.PasswordValidator = customerDescPassword.Validators[0].(func(string) error)
 	// customerDescCreatedAt is the schema descriptor for created_at field.
-	customerDescCreatedAt := customerFields[3].Descriptor()
+	customerDescCreatedAt := customerFields[2].Descriptor()
 	// customer.DefaultCreatedAt holds the default value on creation for the created_at field.
 	customer.DefaultCreatedAt = customerDescCreatedAt.Default.(func() time.Time)
 	// customerDescUpdatedAt is the schema descriptor for updated_at field.
-	customerDescUpdatedAt := customerFields[4].Descriptor()
+	customerDescUpdatedAt := customerFields[3].Descriptor()
 	// customer.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	customer.DefaultUpdatedAt = customerDescUpdatedAt.Default.(func() time.Time)
 	// customer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -96,10 +123,24 @@ func init() {
 	deliveryaddressDescZip := deliveryaddressFields[2].Descriptor()
 	// deliveryaddress.ZipValidator is a validator for the "zip" field. It is called by the builders before save.
 	deliveryaddress.ZipValidator = deliveryaddressDescZip.Validators[0].(func(string) error)
-	// deliveryaddressDescNumber is the schema descriptor for number field.
-	deliveryaddressDescNumber := deliveryaddressFields[3].Descriptor()
-	// deliveryaddress.NumberValidator is a validator for the "number" field. It is called by the builders before save.
-	deliveryaddress.NumberValidator = deliveryaddressDescNumber.Validators[0].(func(string) error)
+	// deliveryaddressDescHousenumber is the schema descriptor for housenumber field.
+	deliveryaddressDescHousenumber := deliveryaddressFields[3].Descriptor()
+	// deliveryaddress.HousenumberValidator is a validator for the "housenumber" field. It is called by the builders before save.
+	deliveryaddress.HousenumberValidator = func() func(string) error {
+		validators := deliveryaddressDescHousenumber.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(housenumber string) error {
+			for _, fn := range fns {
+				if err := fn(housenumber); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// deliveryaddressDescCreatedAt is the schema descriptor for created_at field.
 	deliveryaddressDescCreatedAt := deliveryaddressFields[4].Descriptor()
 	// deliveryaddress.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -112,14 +153,14 @@ func init() {
 	deliveryaddress.UpdateDefaultUpdatedAt = deliveryaddressDescUpdatedAt.UpdateDefault.(func() time.Time)
 	loginFields := schema.Login{}.Fields()
 	_ = loginFields
-	// loginDescUsername is the schema descriptor for username field.
-	loginDescUsername := loginFields[0].Descriptor()
-	// login.UsernameValidator is a validator for the "username" field. It is called by the builders before save.
-	login.UsernameValidator = loginDescUsername.Validators[0].(func(string) error)
 	// loginDescPassword is the schema descriptor for password field.
-	loginDescPassword := loginFields[1].Descriptor()
+	loginDescPassword := loginFields[0].Descriptor()
 	// login.PasswordValidator is a validator for the "password" field. It is called by the builders before save.
 	login.PasswordValidator = loginDescPassword.Validators[0].(func(string) error)
+	// loginDescEmail is the schema descriptor for email field.
+	loginDescEmail := loginFields[1].Descriptor()
+	// login.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	login.EmailValidator = loginDescEmail.Validators[0].(func(string) error)
 	// loginDescCreatedAt is the schema descriptor for created_at field.
 	loginDescCreatedAt := loginFields[3].Descriptor()
 	// login.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -130,34 +171,130 @@ func init() {
 	login.DefaultUpdatedAt = loginDescUpdatedAt.Default.(func() time.Time)
 	// login.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	login.UpdateDefaultUpdatedAt = loginDescUpdatedAt.UpdateDefault.(func() time.Time)
+	loginresetFields := schema.LoginReset{}.Fields()
+	_ = loginresetFields
+	// loginresetDescToken is the schema descriptor for token field.
+	loginresetDescToken := loginresetFields[0].Descriptor()
+	// loginreset.TokenValidator is a validator for the "token" field. It is called by the builders before save.
+	loginreset.TokenValidator = loginresetDescToken.Validators[0].(func(string) error)
+	// loginresetDescActive is the schema descriptor for active field.
+	loginresetDescActive := loginresetFields[1].Descriptor()
+	// loginreset.DefaultActive holds the default value on creation for the active field.
+	loginreset.DefaultActive = loginresetDescActive.Default.(bool)
+	// loginresetDescCreatedAt is the schema descriptor for created_at field.
+	loginresetDescCreatedAt := loginresetFields[2].Descriptor()
+	// loginreset.DefaultCreatedAt holds the default value on creation for the created_at field.
+	loginreset.DefaultCreatedAt = loginresetDescCreatedAt.Default.(func() time.Time)
+	// loginresetDescUpdatedAt is the schema descriptor for updated_at field.
+	loginresetDescUpdatedAt := loginresetFields[3].Descriptor()
+	// loginreset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	loginreset.DefaultUpdatedAt = loginresetDescUpdatedAt.Default.(func() time.Time)
+	// loginreset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	loginreset.UpdateDefaultUpdatedAt = loginresetDescUpdatedAt.UpdateDefault.(func() time.Time)
 	noteFields := schema.Note{}.Fields()
 	_ = noteFields
-	// noteDescCreatedAt is the schema descriptor for created_at field.
-	noteDescCreatedAt := noteFields[1].Descriptor()
-	// note.DefaultCreatedAt holds the default value on creation for the created_at field.
-	note.DefaultCreatedAt = noteDescCreatedAt.Default.(func() time.Time)
+	// noteDescContent is the schema descriptor for content field.
+	noteDescContent := noteFields[0].Descriptor()
+	// note.ContentValidator is a validator for the "content" field. It is called by the builders before save.
+	note.ContentValidator = func() func(string) error {
+		validators := noteDescContent.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(content string) error {
+			for _, fn := range fns {
+				if err := fn(content); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// noteDescUpdatedAt is the schema descriptor for updated_at field.
-	noteDescUpdatedAt := noteFields[2].Descriptor()
+	noteDescUpdatedAt := noteFields[1].Descriptor()
 	// note.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	note.DefaultUpdatedAt = noteDescUpdatedAt.Default.(func() time.Time)
 	// note.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	note.UpdateDefaultUpdatedAt = noteDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// noteDescCreatedAt is the schema descriptor for created_at field.
+	noteDescCreatedAt := noteFields[2].Descriptor()
+	// note.DefaultCreatedAt holds the default value on creation for the created_at field.
+	note.DefaultCreatedAt = noteDescCreatedAt.Default.(func() time.Time)
 	orderFields := schema.Order{}.Fields()
 	_ = orderFields
-	// orderDescStatus is the schema descriptor for status field.
-	orderDescStatus := orderFields[0].Descriptor()
-	// order.DefaultStatus holds the default value on creation for the status field.
-	order.DefaultStatus = orderDescStatus.Default.(string)
 	// orderDescCreatedAt is the schema descriptor for created_at field.
-	orderDescCreatedAt := orderFields[1].Descriptor()
+	orderDescCreatedAt := orderFields[5].Descriptor()
 	// order.DefaultCreatedAt holds the default value on creation for the created_at field.
 	order.DefaultCreatedAt = orderDescCreatedAt.Default.(func() time.Time)
 	// orderDescUpdatedAt is the schema descriptor for updated_at field.
-	orderDescUpdatedAt := orderFields[2].Descriptor()
+	orderDescUpdatedAt := orderFields[6].Descriptor()
 	// order.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	order.DefaultUpdatedAt = orderDescUpdatedAt.Default.(func() time.Time)
 	// order.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	order.UpdateDefaultUpdatedAt = orderDescUpdatedAt.UpdateDefault.(func() time.Time)
+	positionFields := schema.Position{}.Fields()
+	_ = positionFields
+	// positionDescName is the schema descriptor for name field.
+	positionDescName := positionFields[0].Descriptor()
+	// position.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	position.NameValidator = func() func(string) error {
+		validators := positionDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// positionDescDescription is the schema descriptor for description field.
+	positionDescDescription := positionFields[1].Descriptor()
+	// position.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
+	position.DescriptionValidator = positionDescDescription.Validators[0].(func(string) error)
+	// positionDescUnitPrice is the schema descriptor for unit_price field.
+	positionDescUnitPrice := positionFields[2].Descriptor()
+	// position.UnitPriceValidator is a validator for the "unit_price" field. It is called by the builders before save.
+	position.UnitPriceValidator = positionDescUnitPrice.Validators[0].(func(float64) error)
+	// positionDescAmount is the schema descriptor for amount field.
+	positionDescAmount := positionFields[3].Descriptor()
+	// position.DefaultAmount holds the default value on creation for the amount field.
+	position.DefaultAmount = positionDescAmount.Default.(int)
+	// position.AmountValidator is a validator for the "amount" field. It is called by the builders before save.
+	position.AmountValidator = func() func(int) error {
+		validators := positionDescAmount.Validators
+		fns := [...]func(int) error{
+			validators[0].(func(int) error),
+			validators[1].(func(int) error),
+		}
+		return func(amount int) error {
+			for _, fn := range fns {
+				if err := fn(amount); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// positionDescCreatedAt is the schema descriptor for created_at field.
+	positionDescCreatedAt := positionFields[4].Descriptor()
+	// position.DefaultCreatedAt holds the default value on creation for the created_at field.
+	position.DefaultCreatedAt = positionDescCreatedAt.Default.(time.Time)
+	productFields := schema.Product{}.Fields()
+	_ = productFields
+	// productDescName is the schema descriptor for name field.
+	productDescName := productFields[0].Descriptor()
+	// product.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	product.NameValidator = productDescName.Validators[0].(func(string) error)
+	// productDescPrice is the schema descriptor for price field.
+	productDescPrice := productFields[2].Descriptor()
+	// product.PriceValidator is a validator for the "price" field. It is called by the builders before save.
+	product.PriceValidator = productDescPrice.Validators[0].(func(float64) error)
 	telFields := schema.Tel{}.Fields()
 	_ = telFields
 	// telDescTel is the schema descriptor for tel field.
@@ -194,6 +331,10 @@ func init() {
 			return nil
 		}
 	}()
+	// userDescUsername is the schema descriptor for username field.
+	userDescUsername := userFields[1].Descriptor()
+	// user.UsernameValidator is a validator for the "username" field. It is called by the builders before save.
+	user.UsernameValidator = userDescUsername.Validators[0].(func(string) error)
 	// userDescPassword is the schema descriptor for password field.
 	userDescPassword := userFields[2].Descriptor()
 	// user.PasswordValidator is a validator for the "password" field. It is called by the builders before save.

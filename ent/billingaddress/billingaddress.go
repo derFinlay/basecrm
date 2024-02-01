@@ -20,23 +20,20 @@ const (
 	FieldStreet = "street"
 	// FieldZip holds the string denoting the zip field in the database.
 	FieldZip = "zip"
+	// FieldHousenumber holds the string denoting the housenumber field in the database.
+	FieldHousenumber = "housenumber"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// EdgeCustomer holds the string denoting the customer edge name in mutations.
-	EdgeCustomer = "customer"
 	// EdgeNotes holds the string denoting the notes edge name in mutations.
 	EdgeNotes = "notes"
+	// EdgeCustomer holds the string denoting the customer edge name in mutations.
+	EdgeCustomer = "customer"
+	// EdgeOrder holds the string denoting the order edge name in mutations.
+	EdgeOrder = "order"
 	// Table holds the table name of the billingaddress in the database.
 	Table = "billing_addresses"
-	// CustomerTable is the table that holds the customer relation/edge.
-	CustomerTable = "billing_addresses"
-	// CustomerInverseTable is the table name for the Customer entity.
-	// It exists in this package in order to avoid circular dependency with the "customer" package.
-	CustomerInverseTable = "customers"
-	// CustomerColumn is the table column denoting the customer relation/edge.
-	CustomerColumn = "customer_billing_addresses"
 	// NotesTable is the table that holds the notes relation/edge.
 	NotesTable = "notes"
 	// NotesInverseTable is the table name for the Note entity.
@@ -44,6 +41,20 @@ const (
 	NotesInverseTable = "notes"
 	// NotesColumn is the table column denoting the notes relation/edge.
 	NotesColumn = "billing_address_notes"
+	// CustomerTable is the table that holds the customer relation/edge.
+	CustomerTable = "billing_addresses"
+	// CustomerInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	CustomerInverseTable = "customers"
+	// CustomerColumn is the table column denoting the customer relation/edge.
+	CustomerColumn = "customer_billing_addresses"
+	// OrderTable is the table that holds the order relation/edge.
+	OrderTable = "billing_addresses"
+	// OrderInverseTable is the table name for the Order entity.
+	// It exists in this package in order to avoid circular dependency with the "order" package.
+	OrderInverseTable = "orders"
+	// OrderColumn is the table column denoting the order relation/edge.
+	OrderColumn = "order_billing_address"
 )
 
 // Columns holds all SQL columns for billingaddress fields.
@@ -52,6 +63,7 @@ var Columns = []string{
 	FieldCity,
 	FieldStreet,
 	FieldZip,
+	FieldHousenumber,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -60,6 +72,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"customer_billing_addresses",
+	"order_billing_address",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -84,6 +97,8 @@ var (
 	StreetValidator func(string) error
 	// ZipValidator is a validator for the "zip" field. It is called by the builders before save.
 	ZipValidator func(string) error
+	// HousenumberValidator is a validator for the "housenumber" field. It is called by the builders before save.
+	HousenumberValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -115,6 +130,11 @@ func ByZip(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldZip, opts...).ToFunc()
 }
 
+// ByHousenumber orders the results by the housenumber field.
+func ByHousenumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHousenumber, opts...).ToFunc()
+}
+
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
@@ -123,13 +143,6 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
-}
-
-// ByCustomerField orders the results by customer field.
-func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
-	}
 }
 
 // ByNotesCount orders the results by notes count.
@@ -145,6 +158,27 @@ func ByNotes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newNotesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByCustomerField orders the results by customer field.
+func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByOrderField orders the results by order field.
+func ByOrderField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrderStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newNotesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NotesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+	)
+}
 func newCustomerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -152,10 +186,10 @@ func newCustomerStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
 	)
 }
-func newNotesStep() *sqlgraph.Step {
+func newOrderStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(NotesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+		sqlgraph.To(OrderInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, OrderTable, OrderColumn),
 	)
 }

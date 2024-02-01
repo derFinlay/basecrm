@@ -20,24 +20,26 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// EdgeNote holds the string denoting the note edge name in mutations.
-	EdgeNote = "note"
+	// EdgeNotes holds the string denoting the notes edge name in mutations.
+	EdgeNotes = "notes"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// Table holds the table name of the tel in the database.
 	Table = "tels"
-	// NoteTable is the table that holds the note relation/edge.
-	NoteTable = "notes"
-	// NoteInverseTable is the table name for the Note entity.
+	// NotesTable is the table that holds the notes relation/edge.
+	NotesTable = "notes"
+	// NotesInverseTable is the table name for the Note entity.
 	// It exists in this package in order to avoid circular dependency with the "note" package.
-	NoteInverseTable = "notes"
-	// NoteColumn is the table column denoting the note relation/edge.
-	NoteColumn = "tel_note"
-	// CustomerTable is the table that holds the customer relation/edge. The primary key declared below.
-	CustomerTable = "customer_tels"
+	NotesInverseTable = "notes"
+	// NotesColumn is the table column denoting the notes relation/edge.
+	NotesColumn = "tel_notes"
+	// CustomerTable is the table that holds the customer relation/edge.
+	CustomerTable = "tels"
 	// CustomerInverseTable is the table name for the Customer entity.
 	// It exists in this package in order to avoid circular dependency with the "customer" package.
 	CustomerInverseTable = "customers"
+	// CustomerColumn is the table column denoting the customer relation/edge.
+	CustomerColumn = "customer_tels"
 )
 
 // Columns holds all SQL columns for tel fields.
@@ -48,16 +50,21 @@ var Columns = []string{
 	FieldUpdatedAt,
 }
 
-var (
-	// CustomerPrimaryKey and CustomerColumn2 are the table columns denoting the
-	// primary key for the customer relation (M2M).
-	CustomerPrimaryKey = []string{"customer_id", "tel_id"}
-)
+// ForeignKeys holds the SQL foreign-keys that are owned by the "tels"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"customer_tels",
+}
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -98,37 +105,30 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByNoteField orders the results by note field.
-func ByNoteField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByNotesField orders the results by notes field.
+func ByNotesField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newNoteStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newNotesStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByCustomerCount orders the results by customer count.
-func ByCustomerCount(opts ...sql.OrderTermOption) OrderOption {
+// ByCustomerField orders the results by customer field.
+func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newCustomerStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByCustomer orders the results by customer terms.
-func ByCustomer(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-func newNoteStep() *sqlgraph.Step {
+func newNotesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(NoteInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, NoteTable, NoteColumn),
+		sqlgraph.To(NotesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, NotesTable, NotesColumn),
 	)
 }
 func newCustomerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CustomerInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, true, CustomerTable, CustomerPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
 	)
 }

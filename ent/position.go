@@ -5,18 +5,56 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
 )
 
 // Position is the model entity for the Position schema.
 type Position struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
-	ID           int `json:"id,omitempty"`
-	selectValues sql.SelectValues
+	ID int `json:"id,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// Description holds the value of the "description" field.
+	Description string `json:"description,omitempty"`
+	// UnitPrice holds the value of the "unit_price" field.
+	UnitPrice float64 `json:"unit_price,omitempty"`
+	// Amount holds the value of the "amount" field.
+	Amount int `json:"amount,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the PositionQuery when eager-loading is set.
+	Edges           PositionEdges `json:"edges"`
+	order_positions *int
+	selectValues    sql.SelectValues
+}
+
+// PositionEdges holds the relations/edges for other nodes in the graph.
+type PositionEdges struct {
+	// Order holds the value of the order edge.
+	Order *Order `json:"order,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// OrderOrErr returns the Order value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PositionEdges) OrderOrErr() (*Order, error) {
+	if e.loadedTypes[0] {
+		if e.Order == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: order.Label}
+		}
+		return e.Order, nil
+	}
+	return nil, &NotLoadedError{edge: "order"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -24,7 +62,15 @@ func (*Position) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case position.FieldID:
+		case position.FieldUnitPrice:
+			values[i] = new(sql.NullFloat64)
+		case position.FieldID, position.FieldAmount:
+			values[i] = new(sql.NullInt64)
+		case position.FieldName, position.FieldDescription:
+			values[i] = new(sql.NullString)
+		case position.FieldCreatedAt:
+			values[i] = new(sql.NullTime)
+		case position.ForeignKeys[0]: // order_positions
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -47,6 +93,43 @@ func (po *Position) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			po.ID = int(value.Int64)
+		case position.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				po.Name = value.String
+			}
+		case position.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				po.Description = value.String
+			}
+		case position.FieldUnitPrice:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_price", values[i])
+			} else if value.Valid {
+				po.UnitPrice = value.Float64
+			}
+		case position.FieldAmount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field amount", values[i])
+			} else if value.Valid {
+				po.Amount = int(value.Int64)
+			}
+		case position.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				po.CreatedAt = value.Time
+			}
+		case position.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field order_positions", value)
+			} else if value.Valid {
+				po.order_positions = new(int)
+				*po.order_positions = int(value.Int64)
+			}
 		default:
 			po.selectValues.Set(columns[i], values[i])
 		}
@@ -58,6 +141,11 @@ func (po *Position) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (po *Position) Value(name string) (ent.Value, error) {
 	return po.selectValues.Get(name)
+}
+
+// QueryOrder queries the "order" edge of the Position entity.
+func (po *Position) QueryOrder() *OrderQuery {
+	return NewPositionClient(po.config).QueryOrder(po)
 }
 
 // Update returns a builder for updating this Position.
@@ -82,7 +170,21 @@ func (po *Position) Unwrap() *Position {
 func (po *Position) String() string {
 	var builder strings.Builder
 	builder.WriteString("Position(")
-	builder.WriteString(fmt.Sprintf("id=%v", po.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", po.ID))
+	builder.WriteString("name=")
+	builder.WriteString(po.Name)
+	builder.WriteString(", ")
+	builder.WriteString("description=")
+	builder.WriteString(po.Description)
+	builder.WriteString(", ")
+	builder.WriteString("unit_price=")
+	builder.WriteString(fmt.Sprintf("%v", po.UnitPrice))
+	builder.WriteString(", ")
+	builder.WriteString("amount=")
+	builder.WriteString(fmt.Sprintf("%v", po.Amount))
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(po.CreatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

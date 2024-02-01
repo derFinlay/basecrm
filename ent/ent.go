@@ -16,9 +16,11 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/login"
+	"github.com/derfinlay/basecrm/ent/loginreset"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
+	"github.com/derfinlay/basecrm/ent/product"
 	"github.com/derfinlay/basecrm/ent/role"
 	"github.com/derfinlay/basecrm/ent/tel"
 	"github.com/derfinlay/basecrm/ent/user"
@@ -86,9 +88,11 @@ func checkColumn(table, column string) error {
 			customer.Table:        customer.ValidColumn,
 			deliveryaddress.Table: deliveryaddress.ValidColumn,
 			login.Table:           login.ValidColumn,
+			loginreset.Table:      loginreset.ValidColumn,
 			note.Table:            note.ValidColumn,
 			order.Table:           order.ValidColumn,
 			position.Table:        position.ValidColumn,
+			product.Table:         product.ValidColumn,
 			role.Table:            role.ValidColumn,
 			tel.Table:             tel.ValidColumn,
 			user.Table:            user.ValidColumn,

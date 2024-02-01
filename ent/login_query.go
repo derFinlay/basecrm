@@ -13,17 +13,20 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/login"
+	"github.com/derfinlay/basecrm/ent/loginreset"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
 
 // LoginQuery is the builder for querying Login entities.
 type LoginQuery struct {
 	config
-	ctx          *QueryContext
-	order        []login.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.Login
-	withCustomer *CustomerQuery
+	ctx             *QueryContext
+	order           []login.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Login
+	withCustomer    *CustomerQuery
+	withLoginResets *LoginResetQuery
+	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -74,7 +77,29 @@ func (lq *LoginQuery) QueryCustomer() *CustomerQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(login.Table, login.FieldID, selector),
 			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, login.CustomerTable, login.CustomerColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, login.CustomerTable, login.CustomerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(lq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryLoginResets chains the current query on the "login_resets" edge.
+func (lq *LoginQuery) QueryLoginResets() *LoginResetQuery {
+	query := (&LoginResetClient{config: lq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := lq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := lq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(login.Table, login.FieldID, selector),
+			sqlgraph.To(loginreset.Table, loginreset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, login.LoginResetsTable, login.LoginResetsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(lq.driver.Dialect(), step)
 		return fromU, nil
@@ -269,12 +294,13 @@ func (lq *LoginQuery) Clone() *LoginQuery {
 		return nil
 	}
 	return &LoginQuery{
-		config:       lq.config,
-		ctx:          lq.ctx.Clone(),
-		order:        append([]login.OrderOption{}, lq.order...),
-		inters:       append([]Interceptor{}, lq.inters...),
-		predicates:   append([]predicate.Login{}, lq.predicates...),
-		withCustomer: lq.withCustomer.Clone(),
+		config:          lq.config,
+		ctx:             lq.ctx.Clone(),
+		order:           append([]login.OrderOption{}, lq.order...),
+		inters:          append([]Interceptor{}, lq.inters...),
+		predicates:      append([]predicate.Login{}, lq.predicates...),
+		withCustomer:    lq.withCustomer.Clone(),
+		withLoginResets: lq.withLoginResets.Clone(),
 		// clone intermediate query.
 		sql:  lq.sql.Clone(),
 		path: lq.path,
@@ -292,18 +318,29 @@ func (lq *LoginQuery) WithCustomer(opts ...func(*CustomerQuery)) *LoginQuery {
 	return lq
 }
 
+// WithLoginResets tells the query-builder to eager-load the nodes that are connected to
+// the "login_resets" edge. The optional arguments are used to configure the query builder of the edge.
+func (lq *LoginQuery) WithLoginResets(opts ...func(*LoginResetQuery)) *LoginQuery {
+	query := (&LoginResetClient{config: lq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	lq.withLoginResets = query
+	return lq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
 // Example:
 //
 //	var v []struct {
-//		Username string `json:"username,omitempty"`
+//		Password string `json:"password,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Login.Query().
-//		GroupBy(login.FieldUsername).
+//		GroupBy(login.FieldPassword).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (lq *LoginQuery) GroupBy(field string, fields ...string) *LoginGroupBy {
@@ -321,11 +358,11 @@ func (lq *LoginQuery) GroupBy(field string, fields ...string) *LoginGroupBy {
 // Example:
 //
 //	var v []struct {
-//		Username string `json:"username,omitempty"`
+//		Password string `json:"password,omitempty"`
 //	}
 //
 //	client.Login.Query().
-//		Select(login.FieldUsername).
+//		Select(login.FieldPassword).
 //		Scan(ctx, &v)
 func (lq *LoginQuery) Select(fields ...string) *LoginSelect {
 	lq.ctx.Fields = append(lq.ctx.Fields, fields...)
@@ -369,11 +406,19 @@ func (lq *LoginQuery) prepareQuery(ctx context.Context) error {
 func (lq *LoginQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Login, error) {
 	var (
 		nodes       = []*Login{}
+		withFKs     = lq.withFKs
 		_spec       = lq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			lq.withCustomer != nil,
+			lq.withLoginResets != nil,
 		}
 	)
+	if lq.withCustomer != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, login.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Login).scanValues(nil, columns)
 	}
@@ -393,9 +438,15 @@ func (lq *LoginQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Login,
 		return nodes, nil
 	}
 	if query := lq.withCustomer; query != nil {
-		if err := lq.loadCustomer(ctx, query, nodes,
-			func(n *Login) { n.Edges.Customer = []*Customer{} },
-			func(n *Login, e *Customer) { n.Edges.Customer = append(n.Edges.Customer, e) }); err != nil {
+		if err := lq.loadCustomer(ctx, query, nodes, nil,
+			func(n *Login, e *Customer) { n.Edges.Customer = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := lq.withLoginResets; query != nil {
+		if err := lq.loadLoginResets(ctx, query, nodes,
+			func(n *Login) { n.Edges.LoginResets = []*LoginReset{} },
+			func(n *Login, e *LoginReset) { n.Edges.LoginResets = append(n.Edges.LoginResets, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -403,6 +454,38 @@ func (lq *LoginQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Login,
 }
 
 func (lq *LoginQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*Login, init func(*Login), assign func(*Login, *Customer)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Login)
+	for i := range nodes {
+		if nodes[i].customer_login == nil {
+			continue
+		}
+		fk := *nodes[i].customer_login
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customer.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "customer_login" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (lq *LoginQuery) loadLoginResets(ctx context.Context, query *LoginResetQuery, nodes []*Login, init func(*Login), assign func(*Login, *LoginReset)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*Login)
 	for i := range nodes {
@@ -413,21 +496,21 @@ func (lq *LoginQuery) loadCustomer(ctx context.Context, query *CustomerQuery, no
 		}
 	}
 	query.withFKs = true
-	query.Where(predicate.Customer(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(login.CustomerColumn), fks...))
+	query.Where(predicate.LoginReset(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(login.LoginResetsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.customer_login
+		fk := n.login_login_resets
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "customer_login" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "login_login_resets" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "customer_login" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "login_login_resets" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

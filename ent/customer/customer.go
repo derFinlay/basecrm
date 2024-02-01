@@ -3,6 +3,7 @@
 package customer
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -16,10 +17,8 @@ const (
 	FieldID = "id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
-	// FieldEmail holds the string denoting the email field in the database.
-	FieldEmail = "email"
-	// FieldPassword holds the string denoting the password field in the database.
-	FieldPassword = "password"
+	// FieldGender holds the string denoting the gender field in the database.
+	FieldGender = "gender"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -61,11 +60,13 @@ const (
 	DeliveryAddressesInverseTable = "delivery_addresses"
 	// DeliveryAddressesColumn is the table column denoting the delivery_addresses relation/edge.
 	DeliveryAddressesColumn = "customer_delivery_addresses"
-	// TelsTable is the table that holds the tels relation/edge. The primary key declared below.
-	TelsTable = "customer_tels"
+	// TelsTable is the table that holds the tels relation/edge.
+	TelsTable = "tels"
 	// TelsInverseTable is the table name for the Tel entity.
 	// It exists in this package in order to avoid circular dependency with the "tel" package.
 	TelsInverseTable = "tels"
+	// TelsColumn is the table column denoting the tels relation/edge.
+	TelsColumn = "customer_tels"
 	// CreatedByTable is the table that holds the created_by relation/edge.
 	CreatedByTable = "customers"
 	// CreatedByInverseTable is the table name for the User entity.
@@ -81,7 +82,7 @@ const (
 	// NotesColumn is the table column denoting the notes relation/edge.
 	NotesColumn = "customer_notes"
 	// LoginTable is the table that holds the login relation/edge.
-	LoginTable = "customers"
+	LoginTable = "logins"
 	// LoginInverseTable is the table name for the Login entity.
 	// It exists in this package in order to avoid circular dependency with the "login" package.
 	LoginInverseTable = "logins"
@@ -93,8 +94,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldName,
-	FieldEmail,
-	FieldPassword,
+	FieldGender,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -103,14 +103,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"customer_created_by",
-	"customer_login",
 }
-
-var (
-	// TelsPrimaryKey and TelsColumn2 are the table columns denoting the
-	// primary key for the tels relation (M2M).
-	TelsPrimaryKey = []string{"customer_id", "tel_id"}
-)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -130,10 +123,6 @@ func ValidColumn(column string) bool {
 var (
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
-	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	EmailValidator func(string) error
-	// PasswordValidator is a validator for the "password" field. It is called by the builders before save.
-	PasswordValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -141,6 +130,31 @@ var (
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
 )
+
+// Gender defines the type for the "gender" enum field.
+type Gender string
+
+// Gender values.
+const (
+	GenderC Gender = "c"
+	GenderM Gender = "m"
+	GenderF Gender = "f"
+	GenderD Gender = "d"
+)
+
+func (ge Gender) String() string {
+	return string(ge)
+}
+
+// GenderValidator is a validator for the "gender" field enum values. It is called by the builders before save.
+func GenderValidator(ge Gender) error {
+	switch ge {
+	case GenderC, GenderM, GenderF, GenderD:
+		return nil
+	default:
+		return fmt.Errorf("customer: invalid enum value for gender field: %q", ge)
+	}
+}
 
 // OrderOption defines the ordering options for the Customer queries.
 type OrderOption func(*sql.Selector)
@@ -155,14 +169,9 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
-// ByEmail orders the results by the email field.
-func ByEmail(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldEmail, opts...).ToFunc()
-}
-
-// ByPassword orders the results by the password field.
-func ByPassword(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPassword, opts...).ToFunc()
+// ByGender orders the results by the gender field.
+func ByGender(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGender, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.
@@ -283,7 +292,7 @@ func newTelsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TelsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, TelsTable, TelsPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.O2M, false, TelsTable, TelsColumn),
 	)
 }
 func newCreatedByStep() *sqlgraph.Step {
@@ -304,6 +313,6 @@ func newLoginStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(LoginInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, LoginTable, LoginColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, LoginTable, LoginColumn),
 	)
 }

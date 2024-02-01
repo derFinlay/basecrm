@@ -15,6 +15,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/tel"
+	"github.com/derfinlay/basecrm/ent/user"
 )
 
 // Note is the model entity for the Note schema.
@@ -24,18 +25,19 @@ type Note struct {
 	ID int `json:"id,omitempty"`
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NoteQuery when eager-loading is set.
 	Edges                  NoteEdges `json:"edges"`
 	billing_address_notes  *int
 	customer_notes         *int
 	delivery_address_notes *int
+	note_created_by        *int
 	order_notes            *int
-	tel_note               *int
+	tel_notes              *int
 	selectValues           sql.SelectValues
 }
 
@@ -43,17 +45,19 @@ type Note struct {
 type NoteEdges struct {
 	// Customer holds the value of the customer edge.
 	Customer *Customer `json:"customer,omitempty"`
-	// Orders holds the value of the orders edge.
-	Orders *Order `json:"orders,omitempty"`
+	// Order holds the value of the order edge.
+	Order *Order `json:"order,omitempty"`
 	// BillingAddress holds the value of the billing_address edge.
 	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
 	// DeliveryAddress holds the value of the delivery_address edge.
 	DeliveryAddress *DeliveryAddress `json:"delivery_address,omitempty"`
 	// Tel holds the value of the tel edge.
 	Tel *Tel `json:"tel,omitempty"`
+	// CreatedBy holds the value of the created_by edge.
+	CreatedBy *User `json:"created_by,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // CustomerOrErr returns the Customer value or an error if the edge
@@ -69,17 +73,17 @@ func (e NoteEdges) CustomerOrErr() (*Customer, error) {
 	return nil, &NotLoadedError{edge: "customer"}
 }
 
-// OrdersOrErr returns the Orders value or an error if the edge
+// OrderOrErr returns the Order value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e NoteEdges) OrdersOrErr() (*Order, error) {
+func (e NoteEdges) OrderOrErr() (*Order, error) {
 	if e.loadedTypes[1] {
-		if e.Orders == nil {
+		if e.Order == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: order.Label}
 		}
-		return e.Orders, nil
+		return e.Order, nil
 	}
-	return nil, &NotLoadedError{edge: "orders"}
+	return nil, &NotLoadedError{edge: "order"}
 }
 
 // BillingAddressOrErr returns the BillingAddress value or an error if the edge
@@ -121,6 +125,19 @@ func (e NoteEdges) TelOrErr() (*Tel, error) {
 	return nil, &NotLoadedError{edge: "tel"}
 }
 
+// CreatedByOrErr returns the CreatedBy value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) CreatedByOrErr() (*User, error) {
+	if e.loadedTypes[5] {
+		if e.CreatedBy == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: user.Label}
+		}
+		return e.CreatedBy, nil
+	}
+	return nil, &NotLoadedError{edge: "created_by"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Note) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -130,7 +147,7 @@ func (*Note) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case note.FieldContent:
 			values[i] = new(sql.NullString)
-		case note.FieldCreatedAt, note.FieldUpdatedAt:
+		case note.FieldUpdatedAt, note.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		case note.ForeignKeys[0]: // billing_address_notes
 			values[i] = new(sql.NullInt64)
@@ -138,9 +155,11 @@ func (*Note) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case note.ForeignKeys[2]: // delivery_address_notes
 			values[i] = new(sql.NullInt64)
-		case note.ForeignKeys[3]: // order_notes
+		case note.ForeignKeys[3]: // note_created_by
 			values[i] = new(sql.NullInt64)
-		case note.ForeignKeys[4]: // tel_note
+		case note.ForeignKeys[4]: // order_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[5]: // tel_notes
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -169,17 +188,17 @@ func (n *Note) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				n.Content = value.String
 			}
-		case note.FieldCreatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field created_at", values[i])
-			} else if value.Valid {
-				n.CreatedAt = value.Time
-			}
 		case note.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				n.UpdatedAt = value.Time
+			}
+		case note.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				n.CreatedAt = value.Time
 			}
 		case note.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -204,17 +223,24 @@ func (n *Note) assignValues(columns []string, values []any) error {
 			}
 		case note.ForeignKeys[3]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field note_created_by", value)
+			} else if value.Valid {
+				n.note_created_by = new(int)
+				*n.note_created_by = int(value.Int64)
+			}
+		case note.ForeignKeys[4]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field order_notes", value)
 			} else if value.Valid {
 				n.order_notes = new(int)
 				*n.order_notes = int(value.Int64)
 			}
-		case note.ForeignKeys[4]:
+		case note.ForeignKeys[5]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field tel_note", value)
+				return fmt.Errorf("unexpected type %T for edge-field tel_notes", value)
 			} else if value.Valid {
-				n.tel_note = new(int)
-				*n.tel_note = int(value.Int64)
+				n.tel_notes = new(int)
+				*n.tel_notes = int(value.Int64)
 			}
 		default:
 			n.selectValues.Set(columns[i], values[i])
@@ -234,9 +260,9 @@ func (n *Note) QueryCustomer() *CustomerQuery {
 	return NewNoteClient(n.config).QueryCustomer(n)
 }
 
-// QueryOrders queries the "orders" edge of the Note entity.
-func (n *Note) QueryOrders() *OrderQuery {
-	return NewNoteClient(n.config).QueryOrders(n)
+// QueryOrder queries the "order" edge of the Note entity.
+func (n *Note) QueryOrder() *OrderQuery {
+	return NewNoteClient(n.config).QueryOrder(n)
 }
 
 // QueryBillingAddress queries the "billing_address" edge of the Note entity.
@@ -252,6 +278,11 @@ func (n *Note) QueryDeliveryAddress() *DeliveryAddressQuery {
 // QueryTel queries the "tel" edge of the Note entity.
 func (n *Note) QueryTel() *TelQuery {
 	return NewNoteClient(n.config).QueryTel(n)
+}
+
+// QueryCreatedBy queries the "created_by" edge of the Note entity.
+func (n *Note) QueryCreatedBy() *UserQuery {
+	return NewNoteClient(n.config).QueryCreatedBy(n)
 }
 
 // Update returns a builder for updating this Note.
@@ -280,11 +311,11 @@ func (n *Note) String() string {
 	builder.WriteString("content=")
 	builder.WriteString(n.Content)
 	builder.WriteString(", ")
-	builder.WriteString("created_at=")
-	builder.WriteString(n.CreatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(n.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(n.CreatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

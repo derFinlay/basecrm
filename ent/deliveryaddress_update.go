@@ -14,6 +14,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
@@ -28,20 +29,6 @@ type DeliveryAddressUpdate struct {
 // Where appends a list predicates to the DeliveryAddressUpdate builder.
 func (dau *DeliveryAddressUpdate) Where(ps ...predicate.DeliveryAddress) *DeliveryAddressUpdate {
 	dau.mutation.Where(ps...)
-	return dau
-}
-
-// SetNumber sets the "number" field.
-func (dau *DeliveryAddressUpdate) SetNumber(s string) *DeliveryAddressUpdate {
-	dau.mutation.SetNumber(s)
-	return dau
-}
-
-// SetNillableNumber sets the "number" field if the given value is not nil.
-func (dau *DeliveryAddressUpdate) SetNillableNumber(s *string) *DeliveryAddressUpdate {
-	if s != nil {
-		dau.SetNumber(*s)
-	}
 	return dau
 }
 
@@ -104,6 +91,25 @@ func (dau *DeliveryAddressUpdate) SetCustomer(c *Customer) *DeliveryAddressUpdat
 	return dau.SetCustomerID(c.ID)
 }
 
+// SetOrdersID sets the "orders" edge to the Order entity by ID.
+func (dau *DeliveryAddressUpdate) SetOrdersID(id int) *DeliveryAddressUpdate {
+	dau.mutation.SetOrdersID(id)
+	return dau
+}
+
+// SetNillableOrdersID sets the "orders" edge to the Order entity by ID if the given value is not nil.
+func (dau *DeliveryAddressUpdate) SetNillableOrdersID(id *int) *DeliveryAddressUpdate {
+	if id != nil {
+		dau = dau.SetOrdersID(*id)
+	}
+	return dau
+}
+
+// SetOrders sets the "orders" edge to the Order entity.
+func (dau *DeliveryAddressUpdate) SetOrders(o *Order) *DeliveryAddressUpdate {
+	return dau.SetOrdersID(o.ID)
+}
+
 // Mutation returns the DeliveryAddressMutation object of the builder.
 func (dau *DeliveryAddressUpdate) Mutation() *DeliveryAddressMutation {
 	return dau.mutation
@@ -139,6 +145,12 @@ func (dau *DeliveryAddressUpdate) RemoveNotes(n ...*Note) *DeliveryAddressUpdate
 // ClearCustomer clears the "customer" edge to the Customer entity.
 func (dau *DeliveryAddressUpdate) ClearCustomer() *DeliveryAddressUpdate {
 	dau.mutation.ClearCustomer()
+	return dau
+}
+
+// ClearOrders clears the "orders" edge to the Order entity.
+func (dau *DeliveryAddressUpdate) ClearOrders() *DeliveryAddressUpdate {
+	dau.mutation.ClearOrders()
 	return dau
 }
 
@@ -178,20 +190,7 @@ func (dau *DeliveryAddressUpdate) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (dau *DeliveryAddressUpdate) check() error {
-	if v, ok := dau.mutation.Number(); ok {
-		if err := deliveryaddress.NumberValidator(v); err != nil {
-			return &ValidationError{Name: "number", err: fmt.Errorf(`ent: validator failed for field "DeliveryAddress.number": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (dau *DeliveryAddressUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := dau.check(); err != nil {
-		return n, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(deliveryaddress.Table, deliveryaddress.Columns, sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt))
 	if ps := dau.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -199,9 +198,6 @@ func (dau *DeliveryAddressUpdate) sqlSave(ctx context.Context) (n int, err error
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := dau.mutation.Number(); ok {
-		_spec.SetField(deliveryaddress.FieldNumber, field.TypeString, value)
 	}
 	if value, ok := dau.mutation.UpdatedAt(); ok {
 		_spec.SetField(deliveryaddress.FieldUpdatedAt, field.TypeTime, value)
@@ -309,6 +305,35 @@ func (dau *DeliveryAddressUpdate) sqlSave(ctx context.Context) (n int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if dau.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   deliveryaddress.OrdersTable,
+			Columns: []string{deliveryaddress.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := dau.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   deliveryaddress.OrdersTable,
+			Columns: []string{deliveryaddress.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, dau.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{deliveryaddress.Label}
@@ -327,20 +352,6 @@ type DeliveryAddressUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *DeliveryAddressMutation
-}
-
-// SetNumber sets the "number" field.
-func (dauo *DeliveryAddressUpdateOne) SetNumber(s string) *DeliveryAddressUpdateOne {
-	dauo.mutation.SetNumber(s)
-	return dauo
-}
-
-// SetNillableNumber sets the "number" field if the given value is not nil.
-func (dauo *DeliveryAddressUpdateOne) SetNillableNumber(s *string) *DeliveryAddressUpdateOne {
-	if s != nil {
-		dauo.SetNumber(*s)
-	}
-	return dauo
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -402,6 +413,25 @@ func (dauo *DeliveryAddressUpdateOne) SetCustomer(c *Customer) *DeliveryAddressU
 	return dauo.SetCustomerID(c.ID)
 }
 
+// SetOrdersID sets the "orders" edge to the Order entity by ID.
+func (dauo *DeliveryAddressUpdateOne) SetOrdersID(id int) *DeliveryAddressUpdateOne {
+	dauo.mutation.SetOrdersID(id)
+	return dauo
+}
+
+// SetNillableOrdersID sets the "orders" edge to the Order entity by ID if the given value is not nil.
+func (dauo *DeliveryAddressUpdateOne) SetNillableOrdersID(id *int) *DeliveryAddressUpdateOne {
+	if id != nil {
+		dauo = dauo.SetOrdersID(*id)
+	}
+	return dauo
+}
+
+// SetOrders sets the "orders" edge to the Order entity.
+func (dauo *DeliveryAddressUpdateOne) SetOrders(o *Order) *DeliveryAddressUpdateOne {
+	return dauo.SetOrdersID(o.ID)
+}
+
 // Mutation returns the DeliveryAddressMutation object of the builder.
 func (dauo *DeliveryAddressUpdateOne) Mutation() *DeliveryAddressMutation {
 	return dauo.mutation
@@ -437,6 +467,12 @@ func (dauo *DeliveryAddressUpdateOne) RemoveNotes(n ...*Note) *DeliveryAddressUp
 // ClearCustomer clears the "customer" edge to the Customer entity.
 func (dauo *DeliveryAddressUpdateOne) ClearCustomer() *DeliveryAddressUpdateOne {
 	dauo.mutation.ClearCustomer()
+	return dauo
+}
+
+// ClearOrders clears the "orders" edge to the Order entity.
+func (dauo *DeliveryAddressUpdateOne) ClearOrders() *DeliveryAddressUpdateOne {
+	dauo.mutation.ClearOrders()
 	return dauo
 }
 
@@ -489,20 +525,7 @@ func (dauo *DeliveryAddressUpdateOne) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (dauo *DeliveryAddressUpdateOne) check() error {
-	if v, ok := dauo.mutation.Number(); ok {
-		if err := deliveryaddress.NumberValidator(v); err != nil {
-			return &ValidationError{Name: "number", err: fmt.Errorf(`ent: validator failed for field "DeliveryAddress.number": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (dauo *DeliveryAddressUpdateOne) sqlSave(ctx context.Context) (_node *DeliveryAddress, err error) {
-	if err := dauo.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(deliveryaddress.Table, deliveryaddress.Columns, sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt))
 	id, ok := dauo.mutation.ID()
 	if !ok {
@@ -527,9 +550,6 @@ func (dauo *DeliveryAddressUpdateOne) sqlSave(ctx context.Context) (_node *Deliv
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := dauo.mutation.Number(); ok {
-		_spec.SetField(deliveryaddress.FieldNumber, field.TypeString, value)
 	}
 	if value, ok := dauo.mutation.UpdatedAt(); ok {
 		_spec.SetField(deliveryaddress.FieldUpdatedAt, field.TypeTime, value)
@@ -630,6 +650,35 @@ func (dauo *DeliveryAddressUpdateOne) sqlSave(ctx context.Context) (_node *Deliv
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if dauo.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   deliveryaddress.OrdersTable,
+			Columns: []string{deliveryaddress.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := dauo.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   deliveryaddress.OrdersTable,
+			Columns: []string{deliveryaddress.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

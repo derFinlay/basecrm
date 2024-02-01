@@ -20,8 +20,8 @@ const (
 	FieldStreet = "street"
 	// FieldZip holds the string denoting the zip field in the database.
 	FieldZip = "zip"
-	// FieldNumber holds the string denoting the number field in the database.
-	FieldNumber = "number"
+	// FieldHousenumber holds the string denoting the housenumber field in the database.
+	FieldHousenumber = "housenumber"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -32,6 +32,8 @@ const (
 	EdgeNotes = "notes"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
+	// EdgeOrders holds the string denoting the orders edge name in mutations.
+	EdgeOrders = "orders"
 	// Table holds the table name of the deliveryaddress in the database.
 	Table = "delivery_addresses"
 	// TelephoneTable is the table that holds the telephone relation/edge.
@@ -55,6 +57,13 @@ const (
 	CustomerInverseTable = "customers"
 	// CustomerColumn is the table column denoting the customer relation/edge.
 	CustomerColumn = "customer_delivery_addresses"
+	// OrdersTable is the table that holds the orders relation/edge.
+	OrdersTable = "delivery_addresses"
+	// OrdersInverseTable is the table name for the Order entity.
+	// It exists in this package in order to avoid circular dependency with the "order" package.
+	OrdersInverseTable = "orders"
+	// OrdersColumn is the table column denoting the orders relation/edge.
+	OrdersColumn = "order_delivery_address"
 )
 
 // Columns holds all SQL columns for deliveryaddress fields.
@@ -63,7 +72,7 @@ var Columns = []string{
 	FieldCity,
 	FieldStreet,
 	FieldZip,
-	FieldNumber,
+	FieldHousenumber,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -73,6 +82,7 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"customer_delivery_addresses",
 	"delivery_address_telephone",
+	"order_delivery_address",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -97,8 +107,8 @@ var (
 	StreetValidator func(string) error
 	// ZipValidator is a validator for the "zip" field. It is called by the builders before save.
 	ZipValidator func(string) error
-	// NumberValidator is a validator for the "number" field. It is called by the builders before save.
-	NumberValidator func(string) error
+	// HousenumberValidator is a validator for the "housenumber" field. It is called by the builders before save.
+	HousenumberValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -130,9 +140,9 @@ func ByZip(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldZip, opts...).ToFunc()
 }
 
-// ByNumber orders the results by the number field.
-func ByNumber(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNumber, opts...).ToFunc()
+// ByHousenumber orders the results by the housenumber field.
+func ByHousenumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHousenumber, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.
@@ -172,6 +182,13 @@ func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByOrdersField orders the results by orders field.
+func ByOrdersField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrdersStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newTelephoneStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -191,5 +208,12 @@ func newCustomerStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CustomerInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
+	)
+}
+func newOrdersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrdersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, OrdersTable, OrdersColumn),
 	)
 }

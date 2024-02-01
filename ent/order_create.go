@@ -12,8 +12,11 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
+	"github.com/derfinlay/basecrm/ent/position"
+	"github.com/derfinlay/basecrm/ent/user"
 )
 
 // OrderCreate is the builder for creating a Order entity.
@@ -23,17 +26,33 @@ type OrderCreate struct {
 	hooks    []Hook
 }
 
-// SetStatus sets the "status" field.
-func (oc *OrderCreate) SetStatus(s string) *OrderCreate {
-	oc.mutation.SetStatus(s)
+// SetTax sets the "tax" field.
+func (oc *OrderCreate) SetTax(f float64) *OrderCreate {
+	oc.mutation.SetTax(f)
 	return oc
 }
 
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (oc *OrderCreate) SetNillableStatus(s *string) *OrderCreate {
-	if s != nil {
-		oc.SetStatus(*s)
-	}
+// SetDue sets the "due" field.
+func (oc *OrderCreate) SetDue(t time.Time) *OrderCreate {
+	oc.mutation.SetDue(t)
+	return oc
+}
+
+// SetPrintedAt sets the "printed_at" field.
+func (oc *OrderCreate) SetPrintedAt(t time.Time) *OrderCreate {
+	oc.mutation.SetPrintedAt(t)
+	return oc
+}
+
+// SetPayedAt sets the "payed_at" field.
+func (oc *OrderCreate) SetPayedAt(t time.Time) *OrderCreate {
+	oc.mutation.SetPayedAt(t)
+	return oc
+}
+
+// SetDoneAt sets the "done_at" field.
+func (oc *OrderCreate) SetDoneAt(t time.Time) *OrderCreate {
+	oc.mutation.SetDoneAt(t)
 	return oc
 }
 
@@ -84,23 +103,42 @@ func (oc *OrderCreate) SetCustomer(c *Customer) *OrderCreate {
 	return oc.SetCustomerID(c.ID)
 }
 
-// SetAddressID sets the "address" edge to the BillingAddress entity by ID.
-func (oc *OrderCreate) SetAddressID(id int) *OrderCreate {
-	oc.mutation.SetAddressID(id)
+// SetBillingAddressID sets the "billing_address" edge to the BillingAddress entity by ID.
+func (oc *OrderCreate) SetBillingAddressID(id int) *OrderCreate {
+	oc.mutation.SetBillingAddressID(id)
 	return oc
 }
 
-// SetNillableAddressID sets the "address" edge to the BillingAddress entity by ID if the given value is not nil.
-func (oc *OrderCreate) SetNillableAddressID(id *int) *OrderCreate {
+// SetNillableBillingAddressID sets the "billing_address" edge to the BillingAddress entity by ID if the given value is not nil.
+func (oc *OrderCreate) SetNillableBillingAddressID(id *int) *OrderCreate {
 	if id != nil {
-		oc = oc.SetAddressID(*id)
+		oc = oc.SetBillingAddressID(*id)
 	}
 	return oc
 }
 
-// SetAddress sets the "address" edge to the BillingAddress entity.
-func (oc *OrderCreate) SetAddress(b *BillingAddress) *OrderCreate {
-	return oc.SetAddressID(b.ID)
+// SetBillingAddress sets the "billing_address" edge to the BillingAddress entity.
+func (oc *OrderCreate) SetBillingAddress(b *BillingAddress) *OrderCreate {
+	return oc.SetBillingAddressID(b.ID)
+}
+
+// SetDeliveryAddressID sets the "delivery_address" edge to the DeliveryAddress entity by ID.
+func (oc *OrderCreate) SetDeliveryAddressID(id int) *OrderCreate {
+	oc.mutation.SetDeliveryAddressID(id)
+	return oc
+}
+
+// SetNillableDeliveryAddressID sets the "delivery_address" edge to the DeliveryAddress entity by ID if the given value is not nil.
+func (oc *OrderCreate) SetNillableDeliveryAddressID(id *int) *OrderCreate {
+	if id != nil {
+		oc = oc.SetDeliveryAddressID(*id)
+	}
+	return oc
+}
+
+// SetDeliveryAddress sets the "delivery_address" edge to the DeliveryAddress entity.
+func (oc *OrderCreate) SetDeliveryAddress(d *DeliveryAddress) *OrderCreate {
+	return oc.SetDeliveryAddressID(d.ID)
 }
 
 // AddNoteIDs adds the "notes" edge to the Note entity by IDs.
@@ -116,6 +154,40 @@ func (oc *OrderCreate) AddNotes(n ...*Note) *OrderCreate {
 		ids[i] = n[i].ID
 	}
 	return oc.AddNoteIDs(ids...)
+}
+
+// SetCreatedByID sets the "created_by" edge to the User entity by ID.
+func (oc *OrderCreate) SetCreatedByID(id int) *OrderCreate {
+	oc.mutation.SetCreatedByID(id)
+	return oc
+}
+
+// SetNillableCreatedByID sets the "created_by" edge to the User entity by ID if the given value is not nil.
+func (oc *OrderCreate) SetNillableCreatedByID(id *int) *OrderCreate {
+	if id != nil {
+		oc = oc.SetCreatedByID(*id)
+	}
+	return oc
+}
+
+// SetCreatedBy sets the "created_by" edge to the User entity.
+func (oc *OrderCreate) SetCreatedBy(u *User) *OrderCreate {
+	return oc.SetCreatedByID(u.ID)
+}
+
+// AddPositionIDs adds the "positions" edge to the Position entity by IDs.
+func (oc *OrderCreate) AddPositionIDs(ids ...int) *OrderCreate {
+	oc.mutation.AddPositionIDs(ids...)
+	return oc
+}
+
+// AddPositions adds the "positions" edges to the Position entity.
+func (oc *OrderCreate) AddPositions(p ...*Position) *OrderCreate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return oc.AddPositionIDs(ids...)
 }
 
 // Mutation returns the OrderMutation object of the builder.
@@ -153,10 +225,6 @@ func (oc *OrderCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (oc *OrderCreate) defaults() {
-	if _, ok := oc.mutation.Status(); !ok {
-		v := order.DefaultStatus
-		oc.mutation.SetStatus(v)
-	}
 	if _, ok := oc.mutation.CreatedAt(); !ok {
 		v := order.DefaultCreatedAt()
 		oc.mutation.SetCreatedAt(v)
@@ -169,8 +237,20 @@ func (oc *OrderCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (oc *OrderCreate) check() error {
-	if _, ok := oc.mutation.Status(); !ok {
-		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Order.status"`)}
+	if _, ok := oc.mutation.Tax(); !ok {
+		return &ValidationError{Name: "tax", err: errors.New(`ent: missing required field "Order.tax"`)}
+	}
+	if _, ok := oc.mutation.Due(); !ok {
+		return &ValidationError{Name: "due", err: errors.New(`ent: missing required field "Order.due"`)}
+	}
+	if _, ok := oc.mutation.PrintedAt(); !ok {
+		return &ValidationError{Name: "printed_at", err: errors.New(`ent: missing required field "Order.printed_at"`)}
+	}
+	if _, ok := oc.mutation.PayedAt(); !ok {
+		return &ValidationError{Name: "payed_at", err: errors.New(`ent: missing required field "Order.payed_at"`)}
+	}
+	if _, ok := oc.mutation.DoneAt(); !ok {
+		return &ValidationError{Name: "done_at", err: errors.New(`ent: missing required field "Order.done_at"`)}
 	}
 	if _, ok := oc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Order.created_at"`)}
@@ -204,9 +284,25 @@ func (oc *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 		_node = &Order{config: oc.config}
 		_spec = sqlgraph.NewCreateSpec(order.Table, sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt))
 	)
-	if value, ok := oc.mutation.Status(); ok {
-		_spec.SetField(order.FieldStatus, field.TypeString, value)
-		_node.Status = value
+	if value, ok := oc.mutation.Tax(); ok {
+		_spec.SetField(order.FieldTax, field.TypeFloat64, value)
+		_node.Tax = value
+	}
+	if value, ok := oc.mutation.Due(); ok {
+		_spec.SetField(order.FieldDue, field.TypeTime, value)
+		_node.Due = value
+	}
+	if value, ok := oc.mutation.PrintedAt(); ok {
+		_spec.SetField(order.FieldPrintedAt, field.TypeTime, value)
+		_node.PrintedAt = value
+	}
+	if value, ok := oc.mutation.PayedAt(); ok {
+		_spec.SetField(order.FieldPayedAt, field.TypeTime, value)
+		_node.PayedAt = value
+	}
+	if value, ok := oc.mutation.DoneAt(); ok {
+		_spec.SetField(order.FieldDoneAt, field.TypeTime, value)
+		_node.DoneAt = value
 	}
 	if value, ok := oc.mutation.CreatedAt(); ok {
 		_spec.SetField(order.FieldCreatedAt, field.TypeTime, value)
@@ -233,12 +329,12 @@ func (oc *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 		_node.order_customer = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := oc.mutation.AddressIDs(); len(nodes) > 0 {
+	if nodes := oc.mutation.BillingAddressIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   order.AddressTable,
-			Columns: []string{order.AddressColumn},
+			Table:   order.BillingAddressTable,
+			Columns: []string{order.BillingAddressColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt),
@@ -247,7 +343,22 @@ func (oc *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.order_address = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := oc.mutation.DeliveryAddressIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.DeliveryAddressTable,
+			Columns: []string{order.DeliveryAddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(deliveryaddress.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := oc.mutation.NotesIDs(); len(nodes) > 0 {
@@ -259,6 +370,39 @@ func (oc *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := oc.mutation.CreatedByIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   order.CreatedByTable,
+			Columns: []string{order.CreatedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.order_created_by = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := oc.mutation.PositionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.PositionsTable,
+			Columns: []string{order.PositionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

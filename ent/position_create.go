@@ -4,10 +4,13 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
 )
 
@@ -18,6 +21,79 @@ type PositionCreate struct {
 	hooks    []Hook
 }
 
+// SetName sets the "name" field.
+func (pc *PositionCreate) SetName(s string) *PositionCreate {
+	pc.mutation.SetName(s)
+	return pc
+}
+
+// SetDescription sets the "description" field.
+func (pc *PositionCreate) SetDescription(s string) *PositionCreate {
+	pc.mutation.SetDescription(s)
+	return pc
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (pc *PositionCreate) SetNillableDescription(s *string) *PositionCreate {
+	if s != nil {
+		pc.SetDescription(*s)
+	}
+	return pc
+}
+
+// SetUnitPrice sets the "unit_price" field.
+func (pc *PositionCreate) SetUnitPrice(f float64) *PositionCreate {
+	pc.mutation.SetUnitPrice(f)
+	return pc
+}
+
+// SetAmount sets the "amount" field.
+func (pc *PositionCreate) SetAmount(i int) *PositionCreate {
+	pc.mutation.SetAmount(i)
+	return pc
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (pc *PositionCreate) SetNillableAmount(i *int) *PositionCreate {
+	if i != nil {
+		pc.SetAmount(*i)
+	}
+	return pc
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (pc *PositionCreate) SetCreatedAt(t time.Time) *PositionCreate {
+	pc.mutation.SetCreatedAt(t)
+	return pc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (pc *PositionCreate) SetNillableCreatedAt(t *time.Time) *PositionCreate {
+	if t != nil {
+		pc.SetCreatedAt(*t)
+	}
+	return pc
+}
+
+// SetOrderID sets the "order" edge to the Order entity by ID.
+func (pc *PositionCreate) SetOrderID(id int) *PositionCreate {
+	pc.mutation.SetOrderID(id)
+	return pc
+}
+
+// SetNillableOrderID sets the "order" edge to the Order entity by ID if the given value is not nil.
+func (pc *PositionCreate) SetNillableOrderID(id *int) *PositionCreate {
+	if id != nil {
+		pc = pc.SetOrderID(*id)
+	}
+	return pc
+}
+
+// SetOrder sets the "order" edge to the Order entity.
+func (pc *PositionCreate) SetOrder(o *Order) *PositionCreate {
+	return pc.SetOrderID(o.ID)
+}
+
 // Mutation returns the PositionMutation object of the builder.
 func (pc *PositionCreate) Mutation() *PositionMutation {
 	return pc.mutation
@@ -25,6 +101,7 @@ func (pc *PositionCreate) Mutation() *PositionMutation {
 
 // Save creates the Position in the database.
 func (pc *PositionCreate) Save(ctx context.Context) (*Position, error) {
+	pc.defaults()
 	return withHooks(ctx, pc.sqlSave, pc.mutation, pc.hooks)
 }
 
@@ -50,8 +127,52 @@ func (pc *PositionCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (pc *PositionCreate) defaults() {
+	if _, ok := pc.mutation.Amount(); !ok {
+		v := position.DefaultAmount
+		pc.mutation.SetAmount(v)
+	}
+	if _, ok := pc.mutation.CreatedAt(); !ok {
+		v := position.DefaultCreatedAt
+		pc.mutation.SetCreatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (pc *PositionCreate) check() error {
+	if _, ok := pc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Position.name"`)}
+	}
+	if v, ok := pc.mutation.Name(); ok {
+		if err := position.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Position.name": %w`, err)}
+		}
+	}
+	if v, ok := pc.mutation.Description(); ok {
+		if err := position.DescriptionValidator(v); err != nil {
+			return &ValidationError{Name: "description", err: fmt.Errorf(`ent: validator failed for field "Position.description": %w`, err)}
+		}
+	}
+	if _, ok := pc.mutation.UnitPrice(); !ok {
+		return &ValidationError{Name: "unit_price", err: errors.New(`ent: missing required field "Position.unit_price"`)}
+	}
+	if v, ok := pc.mutation.UnitPrice(); ok {
+		if err := position.UnitPriceValidator(v); err != nil {
+			return &ValidationError{Name: "unit_price", err: fmt.Errorf(`ent: validator failed for field "Position.unit_price": %w`, err)}
+		}
+	}
+	if _, ok := pc.mutation.Amount(); !ok {
+		return &ValidationError{Name: "amount", err: errors.New(`ent: missing required field "Position.amount"`)}
+	}
+	if v, ok := pc.mutation.Amount(); ok {
+		if err := position.AmountValidator(v); err != nil {
+			return &ValidationError{Name: "amount", err: fmt.Errorf(`ent: validator failed for field "Position.amount": %w`, err)}
+		}
+	}
+	if _, ok := pc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Position.created_at"`)}
+	}
 	return nil
 }
 
@@ -78,6 +199,43 @@ func (pc *PositionCreate) createSpec() (*Position, *sqlgraph.CreateSpec) {
 		_node = &Position{config: pc.config}
 		_spec = sqlgraph.NewCreateSpec(position.Table, sqlgraph.NewFieldSpec(position.FieldID, field.TypeInt))
 	)
+	if value, ok := pc.mutation.Name(); ok {
+		_spec.SetField(position.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := pc.mutation.Description(); ok {
+		_spec.SetField(position.FieldDescription, field.TypeString, value)
+		_node.Description = value
+	}
+	if value, ok := pc.mutation.UnitPrice(); ok {
+		_spec.SetField(position.FieldUnitPrice, field.TypeFloat64, value)
+		_node.UnitPrice = value
+	}
+	if value, ok := pc.mutation.Amount(); ok {
+		_spec.SetField(position.FieldAmount, field.TypeInt, value)
+		_node.Amount = value
+	}
+	if value, ok := pc.mutation.CreatedAt(); ok {
+		_spec.SetField(position.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if nodes := pc.mutation.OrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   position.OrderTable,
+			Columns: []string{position.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.order_positions = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -99,6 +257,7 @@ func (pcb *PositionCreateBulk) Save(ctx context.Context) ([]*Position, error) {
 	for i := range pcb.builders {
 		func(i int, root context.Context) {
 			builder := pcb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*PositionMutation)
 				if !ok {

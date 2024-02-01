@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
@@ -26,38 +27,43 @@ type Tel struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the TelQuery when eager-loading is set.
-	Edges        TelEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges         TelEdges `json:"edges"`
+	customer_tels *int
+	selectValues  sql.SelectValues
 }
 
 // TelEdges holds the relations/edges for other nodes in the graph.
 type TelEdges struct {
-	// Note holds the value of the note edge.
-	Note *Note `json:"note,omitempty"`
+	// Notes holds the value of the notes edge.
+	Notes *Note `json:"notes,omitempty"`
 	// Customer holds the value of the customer edge.
-	Customer []*Customer `json:"customer,omitempty"`
+	Customer *Customer `json:"customer,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
 }
 
-// NoteOrErr returns the Note value or an error if the edge
+// NotesOrErr returns the Notes value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e TelEdges) NoteOrErr() (*Note, error) {
+func (e TelEdges) NotesOrErr() (*Note, error) {
 	if e.loadedTypes[0] {
-		if e.Note == nil {
+		if e.Notes == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: note.Label}
 		}
-		return e.Note, nil
+		return e.Notes, nil
 	}
-	return nil, &NotLoadedError{edge: "note"}
+	return nil, &NotLoadedError{edge: "notes"}
 }
 
 // CustomerOrErr returns the Customer value or an error if the edge
-// was not loaded in eager-loading.
-func (e TelEdges) CustomerOrErr() ([]*Customer, error) {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e TelEdges) CustomerOrErr() (*Customer, error) {
 	if e.loadedTypes[1] {
+		if e.Customer == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: customer.Label}
+		}
 		return e.Customer, nil
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -74,6 +80,8 @@ func (*Tel) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case tel.FieldCreatedAt, tel.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case tel.ForeignKeys[0]: // customer_tels
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -113,6 +121,13 @@ func (t *Tel) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				t.UpdatedAt = value.Time
 			}
+		case tel.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field customer_tels", value)
+			} else if value.Valid {
+				t.customer_tels = new(int)
+				*t.customer_tels = int(value.Int64)
+			}
 		default:
 			t.selectValues.Set(columns[i], values[i])
 		}
@@ -126,9 +141,9 @@ func (t *Tel) Value(name string) (ent.Value, error) {
 	return t.selectValues.Get(name)
 }
 
-// QueryNote queries the "note" edge of the Tel entity.
-func (t *Tel) QueryNote() *NoteQuery {
-	return NewTelClient(t.config).QueryNote(t)
+// QueryNotes queries the "notes" edge of the Tel entity.
+func (t *Tel) QueryNotes() *NoteQuery {
+	return NewTelClient(t.config).QueryNotes(t)
 }
 
 // QueryCustomer queries the "customer" edge of the Tel entity.

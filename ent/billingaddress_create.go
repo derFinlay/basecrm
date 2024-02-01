@@ -13,6 +13,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/ent/order"
 )
 
 // BillingAddressCreate is the builder for creating a BillingAddress entity.
@@ -37,6 +38,12 @@ func (bac *BillingAddressCreate) SetStreet(s string) *BillingAddressCreate {
 // SetZip sets the "zip" field.
 func (bac *BillingAddressCreate) SetZip(s string) *BillingAddressCreate {
 	bac.mutation.SetZip(s)
+	return bac
+}
+
+// SetHousenumber sets the "housenumber" field.
+func (bac *BillingAddressCreate) SetHousenumber(s string) *BillingAddressCreate {
+	bac.mutation.SetHousenumber(s)
 	return bac
 }
 
@@ -68,6 +75,21 @@ func (bac *BillingAddressCreate) SetNillableUpdatedAt(t *time.Time) *BillingAddr
 	return bac
 }
 
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (bac *BillingAddressCreate) AddNoteIDs(ids ...int) *BillingAddressCreate {
+	bac.mutation.AddNoteIDs(ids...)
+	return bac
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (bac *BillingAddressCreate) AddNotes(n ...*Note) *BillingAddressCreate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return bac.AddNoteIDs(ids...)
+}
+
 // SetCustomerID sets the "customer" edge to the Customer entity by ID.
 func (bac *BillingAddressCreate) SetCustomerID(id int) *BillingAddressCreate {
 	bac.mutation.SetCustomerID(id)
@@ -87,19 +109,23 @@ func (bac *BillingAddressCreate) SetCustomer(c *Customer) *BillingAddressCreate 
 	return bac.SetCustomerID(c.ID)
 }
 
-// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
-func (bac *BillingAddressCreate) AddNoteIDs(ids ...int) *BillingAddressCreate {
-	bac.mutation.AddNoteIDs(ids...)
+// SetOrderID sets the "order" edge to the Order entity by ID.
+func (bac *BillingAddressCreate) SetOrderID(id int) *BillingAddressCreate {
+	bac.mutation.SetOrderID(id)
 	return bac
 }
 
-// AddNotes adds the "notes" edges to the Note entity.
-func (bac *BillingAddressCreate) AddNotes(n ...*Note) *BillingAddressCreate {
-	ids := make([]int, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+// SetNillableOrderID sets the "order" edge to the Order entity by ID if the given value is not nil.
+func (bac *BillingAddressCreate) SetNillableOrderID(id *int) *BillingAddressCreate {
+	if id != nil {
+		bac = bac.SetOrderID(*id)
 	}
-	return bac.AddNoteIDs(ids...)
+	return bac
+}
+
+// SetOrder sets the "order" edge to the Order entity.
+func (bac *BillingAddressCreate) SetOrder(o *Order) *BillingAddressCreate {
+	return bac.SetOrderID(o.ID)
 }
 
 // Mutation returns the BillingAddressMutation object of the builder.
@@ -173,6 +199,14 @@ func (bac *BillingAddressCreate) check() error {
 			return &ValidationError{Name: "zip", err: fmt.Errorf(`ent: validator failed for field "BillingAddress.zip": %w`, err)}
 		}
 	}
+	if _, ok := bac.mutation.Housenumber(); !ok {
+		return &ValidationError{Name: "housenumber", err: errors.New(`ent: missing required field "BillingAddress.housenumber"`)}
+	}
+	if v, ok := bac.mutation.Housenumber(); ok {
+		if err := billingaddress.HousenumberValidator(v); err != nil {
+			return &ValidationError{Name: "housenumber", err: fmt.Errorf(`ent: validator failed for field "BillingAddress.housenumber": %w`, err)}
+		}
+	}
 	if _, ok := bac.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "BillingAddress.created_at"`)}
 	}
@@ -217,6 +251,10 @@ func (bac *BillingAddressCreate) createSpec() (*BillingAddress, *sqlgraph.Create
 		_spec.SetField(billingaddress.FieldZip, field.TypeString, value)
 		_node.Zip = value
 	}
+	if value, ok := bac.mutation.Housenumber(); ok {
+		_spec.SetField(billingaddress.FieldHousenumber, field.TypeString, value)
+		_node.Housenumber = value
+	}
 	if value, ok := bac.mutation.CreatedAt(); ok {
 		_spec.SetField(billingaddress.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -224,6 +262,22 @@ func (bac *BillingAddressCreate) createSpec() (*BillingAddress, *sqlgraph.Create
 	if value, ok := bac.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingaddress.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := bac.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billingaddress.NotesTable,
+			Columns: []string{billingaddress.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := bac.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -242,20 +296,21 @@ func (bac *BillingAddressCreate) createSpec() (*BillingAddress, *sqlgraph.Create
 		_node.customer_billing_addresses = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bac.mutation.NotesIDs(); len(nodes) > 0 {
+	if nodes := bac.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billingaddress.NotesTable,
-			Columns: []string{billingaddress.NotesColumn},
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   billingaddress.OrderTable,
+			Columns: []string{billingaddress.OrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.order_billing_address = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

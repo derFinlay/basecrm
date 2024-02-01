@@ -49,34 +49,6 @@ func (cu *CustomerUpdate) SetNillableName(s *string) *CustomerUpdate {
 	return cu
 }
 
-// SetEmail sets the "email" field.
-func (cu *CustomerUpdate) SetEmail(s string) *CustomerUpdate {
-	cu.mutation.SetEmail(s)
-	return cu
-}
-
-// SetNillableEmail sets the "email" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableEmail(s *string) *CustomerUpdate {
-	if s != nil {
-		cu.SetEmail(*s)
-	}
-	return cu
-}
-
-// SetPassword sets the "password" field.
-func (cu *CustomerUpdate) SetPassword(s string) *CustomerUpdate {
-	cu.mutation.SetPassword(s)
-	return cu
-}
-
-// SetNillablePassword sets the "password" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillablePassword(s *string) *CustomerUpdate {
-	if s != nil {
-		cu.SetPassword(*s)
-	}
-	return cu
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (cu *CustomerUpdate) SetUpdatedAt(t time.Time) *CustomerUpdate {
 	cu.mutation.SetUpdatedAt(t)
@@ -361,16 +333,6 @@ func (cu *CustomerUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Customer.name": %w`, err)}
 		}
 	}
-	if v, ok := cu.mutation.Email(); ok {
-		if err := customer.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Customer.email": %w`, err)}
-		}
-	}
-	if v, ok := cu.mutation.Password(); ok {
-		if err := customer.PasswordValidator(v); err != nil {
-			return &ValidationError{Name: "password", err: fmt.Errorf(`ent: validator failed for field "Customer.password": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -388,12 +350,6 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := cu.mutation.Name(); ok {
 		_spec.SetField(customer.FieldName, field.TypeString, value)
-	}
-	if value, ok := cu.mutation.Email(); ok {
-		_spec.SetField(customer.FieldEmail, field.TypeString, value)
-	}
-	if value, ok := cu.mutation.Password(); ok {
-		_spec.SetField(customer.FieldPassword, field.TypeString, value)
 	}
 	if value, ok := cu.mutation.UpdatedAt(); ok {
 		_spec.SetField(customer.FieldUpdatedAt, field.TypeTime, value)
@@ -535,10 +491,10 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.TelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   customer.TelsTable,
-			Columns: customer.TelsPrimaryKey,
+			Columns: []string{customer.TelsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -548,10 +504,10 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := cu.mutation.RemovedTelsIDs(); len(nodes) > 0 && !cu.mutation.TelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   customer.TelsTable,
-			Columns: customer.TelsPrimaryKey,
+			Columns: []string{customer.TelsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -564,10 +520,10 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := cu.mutation.TelsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   customer.TelsTable,
-			Columns: customer.TelsPrimaryKey,
+			Columns: []string{customer.TelsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -654,7 +610,7 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.LoginCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   customer.LoginTable,
 			Columns: []string{customer.LoginColumn},
@@ -667,7 +623,7 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := cu.mutation.LoginIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   customer.LoginTable,
 			Columns: []string{customer.LoginColumn},
@@ -711,34 +667,6 @@ func (cuo *CustomerUpdateOne) SetName(s string) *CustomerUpdateOne {
 func (cuo *CustomerUpdateOne) SetNillableName(s *string) *CustomerUpdateOne {
 	if s != nil {
 		cuo.SetName(*s)
-	}
-	return cuo
-}
-
-// SetEmail sets the "email" field.
-func (cuo *CustomerUpdateOne) SetEmail(s string) *CustomerUpdateOne {
-	cuo.mutation.SetEmail(s)
-	return cuo
-}
-
-// SetNillableEmail sets the "email" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableEmail(s *string) *CustomerUpdateOne {
-	if s != nil {
-		cuo.SetEmail(*s)
-	}
-	return cuo
-}
-
-// SetPassword sets the "password" field.
-func (cuo *CustomerUpdateOne) SetPassword(s string) *CustomerUpdateOne {
-	cuo.mutation.SetPassword(s)
-	return cuo
-}
-
-// SetNillablePassword sets the "password" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillablePassword(s *string) *CustomerUpdateOne {
-	if s != nil {
-		cuo.SetPassword(*s)
 	}
 	return cuo
 }
@@ -1040,16 +968,6 @@ func (cuo *CustomerUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Customer.name": %w`, err)}
 		}
 	}
-	if v, ok := cuo.mutation.Email(); ok {
-		if err := customer.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Customer.email": %w`, err)}
-		}
-	}
-	if v, ok := cuo.mutation.Password(); ok {
-		if err := customer.PasswordValidator(v); err != nil {
-			return &ValidationError{Name: "password", err: fmt.Errorf(`ent: validator failed for field "Customer.password": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -1084,12 +1002,6 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if value, ok := cuo.mutation.Name(); ok {
 		_spec.SetField(customer.FieldName, field.TypeString, value)
-	}
-	if value, ok := cuo.mutation.Email(); ok {
-		_spec.SetField(customer.FieldEmail, field.TypeString, value)
-	}
-	if value, ok := cuo.mutation.Password(); ok {
-		_spec.SetField(customer.FieldPassword, field.TypeString, value)
 	}
 	if value, ok := cuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(customer.FieldUpdatedAt, field.TypeTime, value)
@@ -1231,10 +1143,10 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if cuo.mutation.TelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   customer.TelsTable,
-			Columns: customer.TelsPrimaryKey,
+			Columns: []string{customer.TelsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -1244,10 +1156,10 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if nodes := cuo.mutation.RemovedTelsIDs(); len(nodes) > 0 && !cuo.mutation.TelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   customer.TelsTable,
-			Columns: customer.TelsPrimaryKey,
+			Columns: []string{customer.TelsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -1260,10 +1172,10 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if nodes := cuo.mutation.TelsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   customer.TelsTable,
-			Columns: customer.TelsPrimaryKey,
+			Columns: []string{customer.TelsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
@@ -1350,7 +1262,7 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if cuo.mutation.LoginCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   customer.LoginTable,
 			Columns: []string{customer.LoginColumn},
@@ -1363,7 +1275,7 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if nodes := cuo.mutation.LoginIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   customer.LoginTable,
 			Columns: []string{customer.LoginColumn},

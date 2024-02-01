@@ -14,6 +14,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
 
@@ -24,8 +25,9 @@ type BillingAddressQuery struct {
 	order        []billingaddress.OrderOption
 	inters       []Interceptor
 	predicates   []predicate.BillingAddress
-	withCustomer *CustomerQuery
 	withNotes    *NoteQuery
+	withCustomer *CustomerQuery
+	withOrder    *OrderQuery
 	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -63,6 +65,28 @@ func (baq *BillingAddressQuery) Order(o ...billingaddress.OrderOption) *BillingA
 	return baq
 }
 
+// QueryNotes chains the current query on the "notes" edge.
+func (baq *BillingAddressQuery) QueryNotes() *NoteQuery {
+	query := (&NoteClient{config: baq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := baq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := baq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingaddress.Table, billingaddress.FieldID, selector),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingaddress.NotesTable, billingaddress.NotesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(baq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QueryCustomer chains the current query on the "customer" edge.
 func (baq *BillingAddressQuery) QueryCustomer() *CustomerQuery {
 	query := (&CustomerClient{config: baq.config}).Query()
@@ -85,9 +109,9 @@ func (baq *BillingAddressQuery) QueryCustomer() *CustomerQuery {
 	return query
 }
 
-// QueryNotes chains the current query on the "notes" edge.
-func (baq *BillingAddressQuery) QueryNotes() *NoteQuery {
-	query := (&NoteClient{config: baq.config}).Query()
+// QueryOrder chains the current query on the "order" edge.
+func (baq *BillingAddressQuery) QueryOrder() *OrderQuery {
+	query := (&OrderClient{config: baq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := baq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -98,8 +122,8 @@ func (baq *BillingAddressQuery) QueryNotes() *NoteQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingaddress.Table, billingaddress.FieldID, selector),
-			sqlgraph.To(note.Table, note.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billingaddress.NotesTable, billingaddress.NotesColumn),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, billingaddress.OrderTable, billingaddress.OrderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(baq.driver.Dialect(), step)
 		return fromU, nil
@@ -299,12 +323,24 @@ func (baq *BillingAddressQuery) Clone() *BillingAddressQuery {
 		order:        append([]billingaddress.OrderOption{}, baq.order...),
 		inters:       append([]Interceptor{}, baq.inters...),
 		predicates:   append([]predicate.BillingAddress{}, baq.predicates...),
-		withCustomer: baq.withCustomer.Clone(),
 		withNotes:    baq.withNotes.Clone(),
+		withCustomer: baq.withCustomer.Clone(),
+		withOrder:    baq.withOrder.Clone(),
 		// clone intermediate query.
 		sql:  baq.sql.Clone(),
 		path: baq.path,
 	}
+}
+
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (baq *BillingAddressQuery) WithNotes(opts ...func(*NoteQuery)) *BillingAddressQuery {
+	query := (&NoteClient{config: baq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	baq.withNotes = query
+	return baq
 }
 
 // WithCustomer tells the query-builder to eager-load the nodes that are connected to
@@ -318,14 +354,14 @@ func (baq *BillingAddressQuery) WithCustomer(opts ...func(*CustomerQuery)) *Bill
 	return baq
 }
 
-// WithNotes tells the query-builder to eager-load the nodes that are connected to
-// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
-func (baq *BillingAddressQuery) WithNotes(opts ...func(*NoteQuery)) *BillingAddressQuery {
-	query := (&NoteClient{config: baq.config}).Query()
+// WithOrder tells the query-builder to eager-load the nodes that are connected to
+// the "order" edge. The optional arguments are used to configure the query builder of the edge.
+func (baq *BillingAddressQuery) WithOrder(opts ...func(*OrderQuery)) *BillingAddressQuery {
+	query := (&OrderClient{config: baq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	baq.withNotes = query
+	baq.withOrder = query
 	return baq
 }
 
@@ -408,12 +444,13 @@ func (baq *BillingAddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 		nodes       = []*BillingAddress{}
 		withFKs     = baq.withFKs
 		_spec       = baq.querySpec()
-		loadedTypes = [2]bool{
-			baq.withCustomer != nil,
+		loadedTypes = [3]bool{
 			baq.withNotes != nil,
+			baq.withCustomer != nil,
+			baq.withOrder != nil,
 		}
 	)
-	if baq.withCustomer != nil {
+	if baq.withCustomer != nil || baq.withOrder != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -437,12 +474,6 @@ func (baq *BillingAddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := baq.withCustomer; query != nil {
-		if err := baq.loadCustomer(ctx, query, nodes, nil,
-			func(n *BillingAddress, e *Customer) { n.Edges.Customer = e }); err != nil {
-			return nil, err
-		}
-	}
 	if query := baq.withNotes; query != nil {
 		if err := baq.loadNotes(ctx, query, nodes,
 			func(n *BillingAddress) { n.Edges.Notes = []*Note{} },
@@ -450,9 +481,52 @@ func (baq *BillingAddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			return nil, err
 		}
 	}
+	if query := baq.withCustomer; query != nil {
+		if err := baq.loadCustomer(ctx, query, nodes, nil,
+			func(n *BillingAddress, e *Customer) { n.Edges.Customer = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := baq.withOrder; query != nil {
+		if err := baq.loadOrder(ctx, query, nodes, nil,
+			func(n *BillingAddress, e *Order) { n.Edges.Order = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
+func (baq *BillingAddressQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*BillingAddress, init func(*BillingAddress), assign func(*BillingAddress, *Note)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*BillingAddress)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Note(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billingaddress.NotesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.billing_address_notes
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "billing_address_notes" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "billing_address_notes" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
 func (baq *BillingAddressQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*BillingAddress, init func(*BillingAddress), assign func(*BillingAddress, *Customer)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*BillingAddress)
@@ -485,34 +559,35 @@ func (baq *BillingAddressQuery) loadCustomer(ctx context.Context, query *Custome
 	}
 	return nil
 }
-func (baq *BillingAddressQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*BillingAddress, init func(*BillingAddress), assign func(*BillingAddress, *Note)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*BillingAddress)
+func (baq *BillingAddressQuery) loadOrder(ctx context.Context, query *OrderQuery, nodes []*BillingAddress, init func(*BillingAddress), assign func(*BillingAddress, *Order)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*BillingAddress)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		if nodes[i].order_billing_address == nil {
+			continue
 		}
+		fk := *nodes[i].order_billing_address
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.withFKs = true
-	query.Where(predicate.Note(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(billingaddress.NotesColumn), fks...))
-	}))
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(order.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.billing_address_notes
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "billing_address_notes" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "billing_address_notes" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "order_billing_address" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

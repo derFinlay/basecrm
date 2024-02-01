@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
+	"github.com/derfinlay/basecrm/ent/order"
 )
 
 // BillingAddress is the model entity for the BillingAddress schema.
@@ -24,6 +25,8 @@ type BillingAddress struct {
 	Street string `json:"street,omitempty"`
 	// Zip holds the value of the "zip" field.
 	Zip string `json:"zip,omitempty"`
+	// Housenumber holds the value of the "housenumber" field.
+	Housenumber string `json:"housenumber,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -32,24 +35,36 @@ type BillingAddress struct {
 	// The values are being populated by the BillingAddressQuery when eager-loading is set.
 	Edges                      BillingAddressEdges `json:"edges"`
 	customer_billing_addresses *int
+	order_billing_address      *int
 	selectValues               sql.SelectValues
 }
 
 // BillingAddressEdges holds the relations/edges for other nodes in the graph.
 type BillingAddressEdges struct {
-	// Customer holds the value of the customer edge.
-	Customer *Customer `json:"customer,omitempty"`
 	// Notes holds the value of the notes edge.
 	Notes []*Note `json:"notes,omitempty"`
+	// Customer holds the value of the customer edge.
+	Customer *Customer `json:"customer,omitempty"`
+	// Order holds the value of the order edge.
+	Order *Order `json:"order,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
+}
+
+// NotesOrErr returns the Notes value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingAddressEdges) NotesOrErr() ([]*Note, error) {
+	if e.loadedTypes[0] {
+		return e.Notes, nil
+	}
+	return nil, &NotLoadedError{edge: "notes"}
 }
 
 // CustomerOrErr returns the Customer value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e BillingAddressEdges) CustomerOrErr() (*Customer, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		if e.Customer == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: customer.Label}
@@ -59,13 +74,17 @@ func (e BillingAddressEdges) CustomerOrErr() (*Customer, error) {
 	return nil, &NotLoadedError{edge: "customer"}
 }
 
-// NotesOrErr returns the Notes value or an error if the edge
-// was not loaded in eager-loading.
-func (e BillingAddressEdges) NotesOrErr() ([]*Note, error) {
-	if e.loadedTypes[1] {
-		return e.Notes, nil
+// OrderOrErr returns the Order value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingAddressEdges) OrderOrErr() (*Order, error) {
+	if e.loadedTypes[2] {
+		if e.Order == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: order.Label}
+		}
+		return e.Order, nil
 	}
-	return nil, &NotLoadedError{edge: "notes"}
+	return nil, &NotLoadedError{edge: "order"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -75,11 +94,13 @@ func (*BillingAddress) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingaddress.FieldID:
 			values[i] = new(sql.NullInt64)
-		case billingaddress.FieldCity, billingaddress.FieldStreet, billingaddress.FieldZip:
+		case billingaddress.FieldCity, billingaddress.FieldStreet, billingaddress.FieldZip, billingaddress.FieldHousenumber:
 			values[i] = new(sql.NullString)
 		case billingaddress.FieldCreatedAt, billingaddress.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case billingaddress.ForeignKeys[0]: // customer_billing_addresses
+			values[i] = new(sql.NullInt64)
+		case billingaddress.ForeignKeys[1]: // order_billing_address
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -120,6 +141,12 @@ func (ba *BillingAddress) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ba.Zip = value.String
 			}
+		case billingaddress.FieldHousenumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field housenumber", values[i])
+			} else if value.Valid {
+				ba.Housenumber = value.String
+			}
 		case billingaddress.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -139,6 +166,13 @@ func (ba *BillingAddress) assignValues(columns []string, values []any) error {
 				ba.customer_billing_addresses = new(int)
 				*ba.customer_billing_addresses = int(value.Int64)
 			}
+		case billingaddress.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field order_billing_address", value)
+			} else if value.Valid {
+				ba.order_billing_address = new(int)
+				*ba.order_billing_address = int(value.Int64)
+			}
 		default:
 			ba.selectValues.Set(columns[i], values[i])
 		}
@@ -152,14 +186,19 @@ func (ba *BillingAddress) Value(name string) (ent.Value, error) {
 	return ba.selectValues.Get(name)
 }
 
+// QueryNotes queries the "notes" edge of the BillingAddress entity.
+func (ba *BillingAddress) QueryNotes() *NoteQuery {
+	return NewBillingAddressClient(ba.config).QueryNotes(ba)
+}
+
 // QueryCustomer queries the "customer" edge of the BillingAddress entity.
 func (ba *BillingAddress) QueryCustomer() *CustomerQuery {
 	return NewBillingAddressClient(ba.config).QueryCustomer(ba)
 }
 
-// QueryNotes queries the "notes" edge of the BillingAddress entity.
-func (ba *BillingAddress) QueryNotes() *NoteQuery {
-	return NewBillingAddressClient(ba.config).QueryNotes(ba)
+// QueryOrder queries the "order" edge of the BillingAddress entity.
+func (ba *BillingAddress) QueryOrder() *OrderQuery {
+	return NewBillingAddressClient(ba.config).QueryOrder(ba)
 }
 
 // Update returns a builder for updating this BillingAddress.
@@ -193,6 +232,9 @@ func (ba *BillingAddress) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("zip=")
 	builder.WriteString(ba.Zip)
+	builder.WriteString(", ")
+	builder.WriteString("housenumber=")
+	builder.WriteString(ba.Housenumber)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(ba.CreatedAt.Format(time.ANSIC))

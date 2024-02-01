@@ -17,6 +17,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/tel"
+	"github.com/derfinlay/basecrm/ent/user"
 )
 
 // NoteQuery is the builder for querying Note entities.
@@ -27,10 +28,11 @@ type NoteQuery struct {
 	inters              []Interceptor
 	predicates          []predicate.Note
 	withCustomer        *CustomerQuery
-	withOrders          *OrderQuery
+	withOrder           *OrderQuery
 	withBillingAddress  *BillingAddressQuery
 	withDeliveryAddress *DeliveryAddressQuery
 	withTel             *TelQuery
+	withCreatedBy       *UserQuery
 	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -90,8 +92,8 @@ func (nq *NoteQuery) QueryCustomer() *CustomerQuery {
 	return query
 }
 
-// QueryOrders chains the current query on the "orders" edge.
-func (nq *NoteQuery) QueryOrders() *OrderQuery {
+// QueryOrder chains the current query on the "order" edge.
+func (nq *NoteQuery) QueryOrder() *OrderQuery {
 	query := (&OrderClient{config: nq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := nq.prepareQuery(ctx); err != nil {
@@ -104,7 +106,7 @@ func (nq *NoteQuery) QueryOrders() *OrderQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(note.Table, note.FieldID, selector),
 			sqlgraph.To(order.Table, order.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, note.OrdersTable, note.OrdersColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, note.OrderTable, note.OrderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
 		return fromU, nil
@@ -171,6 +173,28 @@ func (nq *NoteQuery) QueryTel() *TelQuery {
 			sqlgraph.From(note.Table, note.FieldID, selector),
 			sqlgraph.To(tel.Table, tel.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, note.TelTable, note.TelColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCreatedBy chains the current query on the "created_by" edge.
+func (nq *NoteQuery) QueryCreatedBy() *UserQuery {
+	query := (&UserClient{config: nq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := nq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := nq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, note.CreatedByTable, note.CreatedByColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
 		return fromU, nil
@@ -371,10 +395,11 @@ func (nq *NoteQuery) Clone() *NoteQuery {
 		inters:              append([]Interceptor{}, nq.inters...),
 		predicates:          append([]predicate.Note{}, nq.predicates...),
 		withCustomer:        nq.withCustomer.Clone(),
-		withOrders:          nq.withOrders.Clone(),
+		withOrder:           nq.withOrder.Clone(),
 		withBillingAddress:  nq.withBillingAddress.Clone(),
 		withDeliveryAddress: nq.withDeliveryAddress.Clone(),
 		withTel:             nq.withTel.Clone(),
+		withCreatedBy:       nq.withCreatedBy.Clone(),
 		// clone intermediate query.
 		sql:  nq.sql.Clone(),
 		path: nq.path,
@@ -392,14 +417,14 @@ func (nq *NoteQuery) WithCustomer(opts ...func(*CustomerQuery)) *NoteQuery {
 	return nq
 }
 
-// WithOrders tells the query-builder to eager-load the nodes that are connected to
-// the "orders" edge. The optional arguments are used to configure the query builder of the edge.
-func (nq *NoteQuery) WithOrders(opts ...func(*OrderQuery)) *NoteQuery {
+// WithOrder tells the query-builder to eager-load the nodes that are connected to
+// the "order" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithOrder(opts ...func(*OrderQuery)) *NoteQuery {
 	query := (&OrderClient{config: nq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	nq.withOrders = query
+	nq.withOrder = query
 	return nq
 }
 
@@ -433,6 +458,17 @@ func (nq *NoteQuery) WithTel(opts ...func(*TelQuery)) *NoteQuery {
 		opt(query)
 	}
 	nq.withTel = query
+	return nq
+}
+
+// WithCreatedBy tells the query-builder to eager-load the nodes that are connected to
+// the "created_by" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithCreatedBy(opts ...func(*UserQuery)) *NoteQuery {
+	query := (&UserClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	nq.withCreatedBy = query
 	return nq
 }
 
@@ -515,15 +551,16 @@ func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, e
 		nodes       = []*Note{}
 		withFKs     = nq.withFKs
 		_spec       = nq.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			nq.withCustomer != nil,
-			nq.withOrders != nil,
+			nq.withOrder != nil,
 			nq.withBillingAddress != nil,
 			nq.withDeliveryAddress != nil,
 			nq.withTel != nil,
+			nq.withCreatedBy != nil,
 		}
 	)
-	if nq.withCustomer != nil || nq.withOrders != nil || nq.withBillingAddress != nil || nq.withDeliveryAddress != nil || nq.withTel != nil {
+	if nq.withCustomer != nil || nq.withOrder != nil || nq.withBillingAddress != nil || nq.withDeliveryAddress != nil || nq.withTel != nil || nq.withCreatedBy != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -553,9 +590,9 @@ func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, e
 			return nil, err
 		}
 	}
-	if query := nq.withOrders; query != nil {
-		if err := nq.loadOrders(ctx, query, nodes, nil,
-			func(n *Note, e *Order) { n.Edges.Orders = e }); err != nil {
+	if query := nq.withOrder; query != nil {
+		if err := nq.loadOrder(ctx, query, nodes, nil,
+			func(n *Note, e *Order) { n.Edges.Order = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -574,6 +611,12 @@ func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, e
 	if query := nq.withTel; query != nil {
 		if err := nq.loadTel(ctx, query, nodes, nil,
 			func(n *Note, e *Tel) { n.Edges.Tel = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := nq.withCreatedBy; query != nil {
+		if err := nq.loadCreatedBy(ctx, query, nodes, nil,
+			func(n *Note, e *User) { n.Edges.CreatedBy = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -612,7 +655,7 @@ func (nq *NoteQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nod
 	}
 	return nil
 }
-func (nq *NoteQuery) loadOrders(ctx context.Context, query *OrderQuery, nodes []*Note, init func(*Note), assign func(*Note, *Order)) error {
+func (nq *NoteQuery) loadOrder(ctx context.Context, query *OrderQuery, nodes []*Note, init func(*Note), assign func(*Note, *Order)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Note)
 	for i := range nodes {
@@ -712,10 +755,10 @@ func (nq *NoteQuery) loadTel(ctx context.Context, query *TelQuery, nodes []*Note
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Note)
 	for i := range nodes {
-		if nodes[i].tel_note == nil {
+		if nodes[i].tel_notes == nil {
 			continue
 		}
-		fk := *nodes[i].tel_note
+		fk := *nodes[i].tel_notes
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -732,7 +775,39 @@ func (nq *NoteQuery) loadTel(ctx context.Context, query *TelQuery, nodes []*Note
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "tel_note" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "tel_notes" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (nq *NoteQuery) loadCreatedBy(ctx context.Context, query *UserQuery, nodes []*Note, init func(*Note), assign func(*Note, *User)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Note)
+	for i := range nodes {
+		if nodes[i].note_created_by == nil {
+			continue
+		}
+		fk := *nodes[i].note_created_by
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "note_created_by" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

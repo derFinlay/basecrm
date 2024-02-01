@@ -18,6 +18,9 @@ type DeliveryAddress func(*sql.Selector)
 // Login is the predicate function for login builders.
 type Login func(*sql.Selector)
 
+// LoginReset is the predicate function for loginreset builders.
+type LoginReset func(*sql.Selector)
+
 // Note is the predicate function for note builders.
 type Note func(*sql.Selector)
 
@@ -26,6 +29,9 @@ type Order func(*sql.Selector)
 
 // Position is the predicate function for position builders.
 type Position func(*sql.Selector)
+
+// Product is the predicate function for product builders.
+type Product func(*sql.Selector)
 
 // Role is the predicate function for role builders.
 type Role func(*sql.Selector)

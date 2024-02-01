@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/login"
+	"github.com/derfinlay/basecrm/ent/loginreset"
 )
 
 // LoginCreate is the builder for creating a Login entity.
@@ -21,15 +22,15 @@ type LoginCreate struct {
 	hooks    []Hook
 }
 
-// SetUsername sets the "username" field.
-func (lc *LoginCreate) SetUsername(s string) *LoginCreate {
-	lc.mutation.SetUsername(s)
-	return lc
-}
-
 // SetPassword sets the "password" field.
 func (lc *LoginCreate) SetPassword(s string) *LoginCreate {
 	lc.mutation.SetPassword(s)
+	return lc
+}
+
+// SetEmail sets the "email" field.
+func (lc *LoginCreate) SetEmail(s string) *LoginCreate {
+	lc.mutation.SetEmail(s)
 	return lc
 }
 
@@ -67,19 +68,38 @@ func (lc *LoginCreate) SetNillableUpdatedAt(t *time.Time) *LoginCreate {
 	return lc
 }
 
-// AddCustomerIDs adds the "customer" edge to the Customer entity by IDs.
-func (lc *LoginCreate) AddCustomerIDs(ids ...int) *LoginCreate {
-	lc.mutation.AddCustomerIDs(ids...)
+// SetCustomerID sets the "customer" edge to the Customer entity by ID.
+func (lc *LoginCreate) SetCustomerID(id int) *LoginCreate {
+	lc.mutation.SetCustomerID(id)
 	return lc
 }
 
-// AddCustomer adds the "customer" edges to the Customer entity.
-func (lc *LoginCreate) AddCustomer(c ...*Customer) *LoginCreate {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
+// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
+func (lc *LoginCreate) SetNillableCustomerID(id *int) *LoginCreate {
+	if id != nil {
+		lc = lc.SetCustomerID(*id)
 	}
-	return lc.AddCustomerIDs(ids...)
+	return lc
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (lc *LoginCreate) SetCustomer(c *Customer) *LoginCreate {
+	return lc.SetCustomerID(c.ID)
+}
+
+// AddLoginResetIDs adds the "login_resets" edge to the LoginReset entity by IDs.
+func (lc *LoginCreate) AddLoginResetIDs(ids ...int) *LoginCreate {
+	lc.mutation.AddLoginResetIDs(ids...)
+	return lc
+}
+
+// AddLoginResets adds the "login_resets" edges to the LoginReset entity.
+func (lc *LoginCreate) AddLoginResets(l ...*LoginReset) *LoginCreate {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return lc.AddLoginResetIDs(ids...)
 }
 
 // Mutation returns the LoginMutation object of the builder.
@@ -129,20 +149,20 @@ func (lc *LoginCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (lc *LoginCreate) check() error {
-	if _, ok := lc.mutation.Username(); !ok {
-		return &ValidationError{Name: "username", err: errors.New(`ent: missing required field "Login.username"`)}
-	}
-	if v, ok := lc.mutation.Username(); ok {
-		if err := login.UsernameValidator(v); err != nil {
-			return &ValidationError{Name: "username", err: fmt.Errorf(`ent: validator failed for field "Login.username": %w`, err)}
-		}
-	}
 	if _, ok := lc.mutation.Password(); !ok {
 		return &ValidationError{Name: "password", err: errors.New(`ent: missing required field "Login.password"`)}
 	}
 	if v, ok := lc.mutation.Password(); ok {
 		if err := login.PasswordValidator(v); err != nil {
 			return &ValidationError{Name: "password", err: fmt.Errorf(`ent: validator failed for field "Login.password": %w`, err)}
+		}
+	}
+	if _, ok := lc.mutation.Email(); !ok {
+		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "Login.email"`)}
+	}
+	if v, ok := lc.mutation.Email(); ok {
+		if err := login.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Login.email": %w`, err)}
 		}
 	}
 	if _, ok := lc.mutation.LastLogin(); !ok {
@@ -180,13 +200,13 @@ func (lc *LoginCreate) createSpec() (*Login, *sqlgraph.CreateSpec) {
 		_node = &Login{config: lc.config}
 		_spec = sqlgraph.NewCreateSpec(login.Table, sqlgraph.NewFieldSpec(login.FieldID, field.TypeInt))
 	)
-	if value, ok := lc.mutation.Username(); ok {
-		_spec.SetField(login.FieldUsername, field.TypeString, value)
-		_node.Username = value
-	}
 	if value, ok := lc.mutation.Password(); ok {
 		_spec.SetField(login.FieldPassword, field.TypeString, value)
 		_node.Password = value
+	}
+	if value, ok := lc.mutation.Email(); ok {
+		_spec.SetField(login.FieldEmail, field.TypeString, value)
+		_node.Email = value
 	}
 	if value, ok := lc.mutation.LastLogin(); ok {
 		_spec.SetField(login.FieldLastLogin, field.TypeTime, value)
@@ -202,13 +222,30 @@ func (lc *LoginCreate) createSpec() (*Login, *sqlgraph.CreateSpec) {
 	}
 	if nodes := lc.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   login.CustomerTable,
 			Columns: []string{login.CustomerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.customer_login = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := lc.mutation.LoginResetsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.LoginResetsTable,
+			Columns: []string{login.LoginResetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

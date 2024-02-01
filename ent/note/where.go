@@ -60,14 +60,14 @@ func Content(v string) predicate.Note {
 	return predicate.Note(sql.FieldEQ(FieldContent, v))
 }
 
-// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
-func CreatedAt(v time.Time) predicate.Note {
-	return predicate.Note(sql.FieldEQ(FieldCreatedAt, v))
-}
-
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.Note {
 	return predicate.Note(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.Note {
+	return predicate.Note(sql.FieldEQ(FieldCreatedAt, v))
 }
 
 // ContentEQ applies the EQ predicate on the "content" field.
@@ -135,46 +135,6 @@ func ContentContainsFold(v string) predicate.Note {
 	return predicate.Note(sql.FieldContainsFold(FieldContent, v))
 }
 
-// CreatedAtEQ applies the EQ predicate on the "created_at" field.
-func CreatedAtEQ(v time.Time) predicate.Note {
-	return predicate.Note(sql.FieldEQ(FieldCreatedAt, v))
-}
-
-// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
-func CreatedAtNEQ(v time.Time) predicate.Note {
-	return predicate.Note(sql.FieldNEQ(FieldCreatedAt, v))
-}
-
-// CreatedAtIn applies the In predicate on the "created_at" field.
-func CreatedAtIn(vs ...time.Time) predicate.Note {
-	return predicate.Note(sql.FieldIn(FieldCreatedAt, vs...))
-}
-
-// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
-func CreatedAtNotIn(vs ...time.Time) predicate.Note {
-	return predicate.Note(sql.FieldNotIn(FieldCreatedAt, vs...))
-}
-
-// CreatedAtGT applies the GT predicate on the "created_at" field.
-func CreatedAtGT(v time.Time) predicate.Note {
-	return predicate.Note(sql.FieldGT(FieldCreatedAt, v))
-}
-
-// CreatedAtGTE applies the GTE predicate on the "created_at" field.
-func CreatedAtGTE(v time.Time) predicate.Note {
-	return predicate.Note(sql.FieldGTE(FieldCreatedAt, v))
-}
-
-// CreatedAtLT applies the LT predicate on the "created_at" field.
-func CreatedAtLT(v time.Time) predicate.Note {
-	return predicate.Note(sql.FieldLT(FieldCreatedAt, v))
-}
-
-// CreatedAtLTE applies the LTE predicate on the "created_at" field.
-func CreatedAtLTE(v time.Time) predicate.Note {
-	return predicate.Note(sql.FieldLTE(FieldCreatedAt, v))
-}
-
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
 func UpdatedAtEQ(v time.Time) predicate.Note {
 	return predicate.Note(sql.FieldEQ(FieldUpdatedAt, v))
@@ -215,6 +175,46 @@ func UpdatedAtLTE(v time.Time) predicate.Note {
 	return predicate.Note(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.Note {
+	return predicate.Note(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.Note {
+	return predicate.Note(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.Note {
+	return predicate.Note(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.Note {
+	return predicate.Note(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.Note {
+	return predicate.Note(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.Note {
+	return predicate.Note(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.Note {
+	return predicate.Note(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.Note {
+	return predicate.Note(sql.FieldLTE(FieldCreatedAt, v))
+}
+
 // HasCustomer applies the HasEdge predicate on the "customer" edge.
 func HasCustomer() predicate.Note {
 	return predicate.Note(func(s *sql.Selector) {
@@ -238,21 +238,21 @@ func HasCustomerWith(preds ...predicate.Customer) predicate.Note {
 	})
 }
 
-// HasOrders applies the HasEdge predicate on the "orders" edge.
-func HasOrders() predicate.Note {
+// HasOrder applies the HasEdge predicate on the "order" edge.
+func HasOrder() predicate.Note {
 	return predicate.Note(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OrdersTable, OrdersColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, OrderTable, OrderColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasOrdersWith applies the HasEdge predicate on the "orders" edge with a given conditions (other predicates).
-func HasOrdersWith(preds ...predicate.Order) predicate.Note {
+// HasOrderWith applies the HasEdge predicate on the "order" edge with a given conditions (other predicates).
+func HasOrderWith(preds ...predicate.Order) predicate.Note {
 	return predicate.Note(func(s *sql.Selector) {
-		step := newOrdersStep()
+		step := newOrderStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -322,6 +322,29 @@ func HasTel() predicate.Note {
 func HasTelWith(preds ...predicate.Tel) predicate.Note {
 	return predicate.Note(func(s *sql.Selector) {
 		step := newTelStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCreatedBy applies the HasEdge predicate on the "created_by" edge.
+func HasCreatedBy() predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CreatedByTable, CreatedByColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCreatedByWith applies the HasEdge predicate on the "created_by" edge with a given conditions (other predicates).
+func HasCreatedByWith(preds ...predicate.User) predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := newCreatedByStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

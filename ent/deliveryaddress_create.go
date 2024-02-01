@@ -13,6 +13,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
 	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
 
@@ -41,9 +42,9 @@ func (dac *DeliveryAddressCreate) SetZip(s string) *DeliveryAddressCreate {
 	return dac
 }
 
-// SetNumber sets the "number" field.
-func (dac *DeliveryAddressCreate) SetNumber(s string) *DeliveryAddressCreate {
-	dac.mutation.SetNumber(s)
+// SetHousenumber sets the "housenumber" field.
+func (dac *DeliveryAddressCreate) SetHousenumber(s string) *DeliveryAddressCreate {
+	dac.mutation.SetHousenumber(s)
 	return dac
 }
 
@@ -128,6 +129,25 @@ func (dac *DeliveryAddressCreate) SetCustomer(c *Customer) *DeliveryAddressCreat
 	return dac.SetCustomerID(c.ID)
 }
 
+// SetOrdersID sets the "orders" edge to the Order entity by ID.
+func (dac *DeliveryAddressCreate) SetOrdersID(id int) *DeliveryAddressCreate {
+	dac.mutation.SetOrdersID(id)
+	return dac
+}
+
+// SetNillableOrdersID sets the "orders" edge to the Order entity by ID if the given value is not nil.
+func (dac *DeliveryAddressCreate) SetNillableOrdersID(id *int) *DeliveryAddressCreate {
+	if id != nil {
+		dac = dac.SetOrdersID(*id)
+	}
+	return dac
+}
+
+// SetOrders sets the "orders" edge to the Order entity.
+func (dac *DeliveryAddressCreate) SetOrders(o *Order) *DeliveryAddressCreate {
+	return dac.SetOrdersID(o.ID)
+}
+
 // Mutation returns the DeliveryAddressMutation object of the builder.
 func (dac *DeliveryAddressCreate) Mutation() *DeliveryAddressMutation {
 	return dac.mutation
@@ -199,12 +219,12 @@ func (dac *DeliveryAddressCreate) check() error {
 			return &ValidationError{Name: "zip", err: fmt.Errorf(`ent: validator failed for field "DeliveryAddress.zip": %w`, err)}
 		}
 	}
-	if _, ok := dac.mutation.Number(); !ok {
-		return &ValidationError{Name: "number", err: errors.New(`ent: missing required field "DeliveryAddress.number"`)}
+	if _, ok := dac.mutation.Housenumber(); !ok {
+		return &ValidationError{Name: "housenumber", err: errors.New(`ent: missing required field "DeliveryAddress.housenumber"`)}
 	}
-	if v, ok := dac.mutation.Number(); ok {
-		if err := deliveryaddress.NumberValidator(v); err != nil {
-			return &ValidationError{Name: "number", err: fmt.Errorf(`ent: validator failed for field "DeliveryAddress.number": %w`, err)}
+	if v, ok := dac.mutation.Housenumber(); ok {
+		if err := deliveryaddress.HousenumberValidator(v); err != nil {
+			return &ValidationError{Name: "housenumber", err: fmt.Errorf(`ent: validator failed for field "DeliveryAddress.housenumber": %w`, err)}
 		}
 	}
 	if _, ok := dac.mutation.CreatedAt(); !ok {
@@ -251,9 +271,9 @@ func (dac *DeliveryAddressCreate) createSpec() (*DeliveryAddress, *sqlgraph.Crea
 		_spec.SetField(deliveryaddress.FieldZip, field.TypeString, value)
 		_node.Zip = value
 	}
-	if value, ok := dac.mutation.Number(); ok {
-		_spec.SetField(deliveryaddress.FieldNumber, field.TypeString, value)
-		_node.Number = value
+	if value, ok := dac.mutation.Housenumber(); ok {
+		_spec.SetField(deliveryaddress.FieldHousenumber, field.TypeString, value)
+		_node.Housenumber = value
 	}
 	if value, ok := dac.mutation.CreatedAt(); ok {
 		_spec.SetField(deliveryaddress.FieldCreatedAt, field.TypeTime, value)
@@ -311,6 +331,23 @@ func (dac *DeliveryAddressCreate) createSpec() (*DeliveryAddress, *sqlgraph.Crea
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.customer_delivery_addresses = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := dac.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   deliveryaddress.OrdersTable,
+			Columns: []string{deliveryaddress.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.order_delivery_address = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

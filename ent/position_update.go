@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
@@ -27,9 +28,34 @@ func (pu *PositionUpdate) Where(ps ...predicate.Position) *PositionUpdate {
 	return pu
 }
 
+// SetOrderID sets the "order" edge to the Order entity by ID.
+func (pu *PositionUpdate) SetOrderID(id int) *PositionUpdate {
+	pu.mutation.SetOrderID(id)
+	return pu
+}
+
+// SetNillableOrderID sets the "order" edge to the Order entity by ID if the given value is not nil.
+func (pu *PositionUpdate) SetNillableOrderID(id *int) *PositionUpdate {
+	if id != nil {
+		pu = pu.SetOrderID(*id)
+	}
+	return pu
+}
+
+// SetOrder sets the "order" edge to the Order entity.
+func (pu *PositionUpdate) SetOrder(o *Order) *PositionUpdate {
+	return pu.SetOrderID(o.ID)
+}
+
 // Mutation returns the PositionMutation object of the builder.
 func (pu *PositionUpdate) Mutation() *PositionMutation {
 	return pu.mutation
+}
+
+// ClearOrder clears the "order" edge to the Order entity.
+func (pu *PositionUpdate) ClearOrder() *PositionUpdate {
+	pu.mutation.ClearOrder()
+	return pu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -68,6 +94,38 @@ func (pu *PositionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if pu.mutation.DescriptionCleared() {
+		_spec.ClearField(position.FieldDescription, field.TypeString)
+	}
+	if pu.mutation.OrderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   position.OrderTable,
+			Columns: []string{position.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.OrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   position.OrderTable,
+			Columns: []string{position.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{position.Label}
@@ -88,9 +146,34 @@ type PositionUpdateOne struct {
 	mutation *PositionMutation
 }
 
+// SetOrderID sets the "order" edge to the Order entity by ID.
+func (puo *PositionUpdateOne) SetOrderID(id int) *PositionUpdateOne {
+	puo.mutation.SetOrderID(id)
+	return puo
+}
+
+// SetNillableOrderID sets the "order" edge to the Order entity by ID if the given value is not nil.
+func (puo *PositionUpdateOne) SetNillableOrderID(id *int) *PositionUpdateOne {
+	if id != nil {
+		puo = puo.SetOrderID(*id)
+	}
+	return puo
+}
+
+// SetOrder sets the "order" edge to the Order entity.
+func (puo *PositionUpdateOne) SetOrder(o *Order) *PositionUpdateOne {
+	return puo.SetOrderID(o.ID)
+}
+
 // Mutation returns the PositionMutation object of the builder.
 func (puo *PositionUpdateOne) Mutation() *PositionMutation {
 	return puo.mutation
+}
+
+// ClearOrder clears the "order" edge to the Order entity.
+func (puo *PositionUpdateOne) ClearOrder() *PositionUpdateOne {
+	puo.mutation.ClearOrder()
+	return puo
 }
 
 // Where appends a list predicates to the PositionUpdate builder.
@@ -158,6 +241,38 @@ func (puo *PositionUpdateOne) sqlSave(ctx context.Context) (_node *Position, err
 				ps[i](selector)
 			}
 		}
+	}
+	if puo.mutation.DescriptionCleared() {
+		_spec.ClearField(position.FieldDescription, field.TypeString)
+	}
+	if puo.mutation.OrderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   position.OrderTable,
+			Columns: []string{position.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.OrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   position.OrderTable,
+			Columns: []string{position.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Position{config: puo.config}
 	_spec.Assign = _node.assignValues

@@ -153,7 +153,7 @@ func (cq *CustomerQuery) QueryTels() *TelQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(customer.Table, customer.FieldID, selector),
 			sqlgraph.To(tel.Table, tel.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, customer.TelsTable, customer.TelsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.TelsTable, customer.TelsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -219,7 +219,7 @@ func (cq *CustomerQuery) QueryLogin() *LoginQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(customer.Table, customer.FieldID, selector),
 			sqlgraph.To(login.Table, login.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, customer.LoginTable, customer.LoginColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, customer.LoginTable, customer.LoginColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -598,7 +598,7 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 			cq.withLogin != nil,
 		}
 	)
-	if cq.withCreatedBy != nil || cq.withLogin != nil {
+	if cq.withCreatedBy != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -768,63 +768,33 @@ func (cq *CustomerQuery) loadDeliveryAddresses(ctx context.Context, query *Deliv
 	return nil
 }
 func (cq *CustomerQuery) loadTels(ctx context.Context, query *TelQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *Tel)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[int]*Customer)
-	nids := make(map[int]map[*Customer]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Customer)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 		if init != nil {
-			init(node)
+			init(nodes[i])
 		}
 	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(customer.TelsTable)
-		s.Join(joinT).On(s.C(tel.FieldID), joinT.C(customer.TelsPrimaryKey[1]))
-		s.Where(sql.InValues(joinT.C(customer.TelsPrimaryKey[0]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(customer.TelsPrimaryKey[0]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
-	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := int(values[0].(*sql.NullInt64).Int64)
-				inValue := int(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Customer]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Tel](ctx, query, qr, query.inters)
+	query.withFKs = true
+	query.Where(predicate.Tel(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.TelsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
+		fk := n.customer_tels
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "customer_tels" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected "tels" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_tels" returned %v for node %v`, *fk, n.ID)
 		}
-		for kn := range nodes {
-			assign(kn, n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -892,34 +862,30 @@ func (cq *CustomerQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes 
 	return nil
 }
 func (cq *CustomerQuery) loadLogin(ctx context.Context, query *LoginQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *Login)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Customer)
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Customer)
 	for i := range nodes {
-		if nodes[i].customer_login == nil {
-			continue
-		}
-		fk := *nodes[i].customer_login
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(login.IDIn(ids...))
+	query.withFKs = true
+	query.Where(predicate.Login(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.LoginColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.customer_login
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "customer_login" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "customer_login" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_login" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }

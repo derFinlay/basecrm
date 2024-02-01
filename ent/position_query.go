@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
@@ -21,6 +22,8 @@ type PositionQuery struct {
 	order      []position.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Position
+	withOrder  *OrderQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -55,6 +58,28 @@ func (pq *PositionQuery) Unique(unique bool) *PositionQuery {
 func (pq *PositionQuery) Order(o ...position.OrderOption) *PositionQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryOrder chains the current query on the "order" edge.
+func (pq *PositionQuery) QueryOrder() *OrderQuery {
+	query := (&OrderClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, selector),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, position.OrderTable, position.OrderColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Position entity from the query.
@@ -249,14 +274,38 @@ func (pq *PositionQuery) Clone() *PositionQuery {
 		order:      append([]position.OrderOption{}, pq.order...),
 		inters:     append([]Interceptor{}, pq.inters...),
 		predicates: append([]predicate.Position{}, pq.predicates...),
+		withOrder:  pq.withOrder.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
 	}
 }
 
+// WithOrder tells the query-builder to eager-load the nodes that are connected to
+// the "order" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PositionQuery) WithOrder(opts ...func(*OrderQuery)) *PositionQuery {
+	query := (&OrderClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withOrder = query
+	return pq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Position.Query().
+//		GroupBy(position.FieldName).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
 func (pq *PositionQuery) GroupBy(field string, fields ...string) *PositionGroupBy {
 	pq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &PositionGroupBy{build: pq}
@@ -268,6 +317,16 @@ func (pq *PositionQuery) GroupBy(field string, fields ...string) *PositionGroupB
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//	}
+//
+//	client.Position.Query().
+//		Select(position.FieldName).
+//		Scan(ctx, &v)
 func (pq *PositionQuery) Select(fields ...string) *PositionSelect {
 	pq.ctx.Fields = append(pq.ctx.Fields, fields...)
 	sbuild := &PositionSelect{PositionQuery: pq}
@@ -309,15 +368,26 @@ func (pq *PositionQuery) prepareQuery(ctx context.Context) error {
 
 func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Position, error) {
 	var (
-		nodes = []*Position{}
-		_spec = pq.querySpec()
+		nodes       = []*Position{}
+		withFKs     = pq.withFKs
+		_spec       = pq.querySpec()
+		loadedTypes = [1]bool{
+			pq.withOrder != nil,
+		}
 	)
+	if pq.withOrder != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, position.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Position).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Position{config: pq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -329,7 +399,46 @@ func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Pos
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := pq.withOrder; query != nil {
+		if err := pq.loadOrder(ctx, query, nodes, nil,
+			func(n *Position, e *Order) { n.Edges.Order = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (pq *PositionQuery) loadOrder(ctx context.Context, query *OrderQuery, nodes []*Position, init func(*Position), assign func(*Position, *Order)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Position)
+	for i := range nodes {
+		if nodes[i].order_positions == nil {
+			continue
+		}
+		fk := *nodes[i].order_positions
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(order.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "order_positions" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (pq *PositionQuery) sqlCount(ctx context.Context) (int, error) {

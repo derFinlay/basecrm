@@ -55,9 +55,29 @@ func IDLTE(id int) predicate.Order {
 	return predicate.Order(sql.FieldLTE(FieldID, id))
 }
 
-// Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
-func Status(v string) predicate.Order {
-	return predicate.Order(sql.FieldEQ(FieldStatus, v))
+// Tax applies equality check predicate on the "tax" field. It's identical to TaxEQ.
+func Tax(v float64) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldTax, v))
+}
+
+// Due applies equality check predicate on the "due" field. It's identical to DueEQ.
+func Due(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldDue, v))
+}
+
+// PrintedAt applies equality check predicate on the "printed_at" field. It's identical to PrintedAtEQ.
+func PrintedAt(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldPrintedAt, v))
+}
+
+// PayedAt applies equality check predicate on the "payed_at" field. It's identical to PayedAtEQ.
+func PayedAt(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldPayedAt, v))
+}
+
+// DoneAt applies equality check predicate on the "done_at" field. It's identical to DoneAtEQ.
+func DoneAt(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldDoneAt, v))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
@@ -70,69 +90,204 @@ func UpdatedAt(v time.Time) predicate.Order {
 	return predicate.Order(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v string) predicate.Order {
-	return predicate.Order(sql.FieldEQ(FieldStatus, v))
+// TaxEQ applies the EQ predicate on the "tax" field.
+func TaxEQ(v float64) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldTax, v))
 }
 
-// StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v string) predicate.Order {
-	return predicate.Order(sql.FieldNEQ(FieldStatus, v))
+// TaxNEQ applies the NEQ predicate on the "tax" field.
+func TaxNEQ(v float64) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldTax, v))
 }
 
-// StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...string) predicate.Order {
-	return predicate.Order(sql.FieldIn(FieldStatus, vs...))
+// TaxIn applies the In predicate on the "tax" field.
+func TaxIn(vs ...float64) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldTax, vs...))
 }
 
-// StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...string) predicate.Order {
-	return predicate.Order(sql.FieldNotIn(FieldStatus, vs...))
+// TaxNotIn applies the NotIn predicate on the "tax" field.
+func TaxNotIn(vs ...float64) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldTax, vs...))
 }
 
-// StatusGT applies the GT predicate on the "status" field.
-func StatusGT(v string) predicate.Order {
-	return predicate.Order(sql.FieldGT(FieldStatus, v))
+// TaxGT applies the GT predicate on the "tax" field.
+func TaxGT(v float64) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldTax, v))
 }
 
-// StatusGTE applies the GTE predicate on the "status" field.
-func StatusGTE(v string) predicate.Order {
-	return predicate.Order(sql.FieldGTE(FieldStatus, v))
+// TaxGTE applies the GTE predicate on the "tax" field.
+func TaxGTE(v float64) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldTax, v))
 }
 
-// StatusLT applies the LT predicate on the "status" field.
-func StatusLT(v string) predicate.Order {
-	return predicate.Order(sql.FieldLT(FieldStatus, v))
+// TaxLT applies the LT predicate on the "tax" field.
+func TaxLT(v float64) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldTax, v))
 }
 
-// StatusLTE applies the LTE predicate on the "status" field.
-func StatusLTE(v string) predicate.Order {
-	return predicate.Order(sql.FieldLTE(FieldStatus, v))
+// TaxLTE applies the LTE predicate on the "tax" field.
+func TaxLTE(v float64) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldTax, v))
 }
 
-// StatusContains applies the Contains predicate on the "status" field.
-func StatusContains(v string) predicate.Order {
-	return predicate.Order(sql.FieldContains(FieldStatus, v))
+// DueEQ applies the EQ predicate on the "due" field.
+func DueEQ(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldDue, v))
 }
 
-// StatusHasPrefix applies the HasPrefix predicate on the "status" field.
-func StatusHasPrefix(v string) predicate.Order {
-	return predicate.Order(sql.FieldHasPrefix(FieldStatus, v))
+// DueNEQ applies the NEQ predicate on the "due" field.
+func DueNEQ(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldDue, v))
 }
 
-// StatusHasSuffix applies the HasSuffix predicate on the "status" field.
-func StatusHasSuffix(v string) predicate.Order {
-	return predicate.Order(sql.FieldHasSuffix(FieldStatus, v))
+// DueIn applies the In predicate on the "due" field.
+func DueIn(vs ...time.Time) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldDue, vs...))
 }
 
-// StatusEqualFold applies the EqualFold predicate on the "status" field.
-func StatusEqualFold(v string) predicate.Order {
-	return predicate.Order(sql.FieldEqualFold(FieldStatus, v))
+// DueNotIn applies the NotIn predicate on the "due" field.
+func DueNotIn(vs ...time.Time) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldDue, vs...))
 }
 
-// StatusContainsFold applies the ContainsFold predicate on the "status" field.
-func StatusContainsFold(v string) predicate.Order {
-	return predicate.Order(sql.FieldContainsFold(FieldStatus, v))
+// DueGT applies the GT predicate on the "due" field.
+func DueGT(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldDue, v))
+}
+
+// DueGTE applies the GTE predicate on the "due" field.
+func DueGTE(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldDue, v))
+}
+
+// DueLT applies the LT predicate on the "due" field.
+func DueLT(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldDue, v))
+}
+
+// DueLTE applies the LTE predicate on the "due" field.
+func DueLTE(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldDue, v))
+}
+
+// PrintedAtEQ applies the EQ predicate on the "printed_at" field.
+func PrintedAtEQ(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldPrintedAt, v))
+}
+
+// PrintedAtNEQ applies the NEQ predicate on the "printed_at" field.
+func PrintedAtNEQ(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldPrintedAt, v))
+}
+
+// PrintedAtIn applies the In predicate on the "printed_at" field.
+func PrintedAtIn(vs ...time.Time) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldPrintedAt, vs...))
+}
+
+// PrintedAtNotIn applies the NotIn predicate on the "printed_at" field.
+func PrintedAtNotIn(vs ...time.Time) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldPrintedAt, vs...))
+}
+
+// PrintedAtGT applies the GT predicate on the "printed_at" field.
+func PrintedAtGT(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldPrintedAt, v))
+}
+
+// PrintedAtGTE applies the GTE predicate on the "printed_at" field.
+func PrintedAtGTE(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldPrintedAt, v))
+}
+
+// PrintedAtLT applies the LT predicate on the "printed_at" field.
+func PrintedAtLT(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldPrintedAt, v))
+}
+
+// PrintedAtLTE applies the LTE predicate on the "printed_at" field.
+func PrintedAtLTE(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldPrintedAt, v))
+}
+
+// PayedAtEQ applies the EQ predicate on the "payed_at" field.
+func PayedAtEQ(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldPayedAt, v))
+}
+
+// PayedAtNEQ applies the NEQ predicate on the "payed_at" field.
+func PayedAtNEQ(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldPayedAt, v))
+}
+
+// PayedAtIn applies the In predicate on the "payed_at" field.
+func PayedAtIn(vs ...time.Time) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldPayedAt, vs...))
+}
+
+// PayedAtNotIn applies the NotIn predicate on the "payed_at" field.
+func PayedAtNotIn(vs ...time.Time) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldPayedAt, vs...))
+}
+
+// PayedAtGT applies the GT predicate on the "payed_at" field.
+func PayedAtGT(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldPayedAt, v))
+}
+
+// PayedAtGTE applies the GTE predicate on the "payed_at" field.
+func PayedAtGTE(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldPayedAt, v))
+}
+
+// PayedAtLT applies the LT predicate on the "payed_at" field.
+func PayedAtLT(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldPayedAt, v))
+}
+
+// PayedAtLTE applies the LTE predicate on the "payed_at" field.
+func PayedAtLTE(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldPayedAt, v))
+}
+
+// DoneAtEQ applies the EQ predicate on the "done_at" field.
+func DoneAtEQ(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldDoneAt, v))
+}
+
+// DoneAtNEQ applies the NEQ predicate on the "done_at" field.
+func DoneAtNEQ(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldDoneAt, v))
+}
+
+// DoneAtIn applies the In predicate on the "done_at" field.
+func DoneAtIn(vs ...time.Time) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldDoneAt, vs...))
+}
+
+// DoneAtNotIn applies the NotIn predicate on the "done_at" field.
+func DoneAtNotIn(vs ...time.Time) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldDoneAt, vs...))
+}
+
+// DoneAtGT applies the GT predicate on the "done_at" field.
+func DoneAtGT(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldDoneAt, v))
+}
+
+// DoneAtGTE applies the GTE predicate on the "done_at" field.
+func DoneAtGTE(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldDoneAt, v))
+}
+
+// DoneAtLT applies the LT predicate on the "done_at" field.
+func DoneAtLT(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldDoneAt, v))
+}
+
+// DoneAtLTE applies the LTE predicate on the "done_at" field.
+func DoneAtLTE(v time.Time) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldDoneAt, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -238,21 +393,44 @@ func HasCustomerWith(preds ...predicate.Customer) predicate.Order {
 	})
 }
 
-// HasAddress applies the HasEdge predicate on the "address" edge.
-func HasAddress() predicate.Order {
+// HasBillingAddress applies the HasEdge predicate on the "billing_address" edge.
+func HasBillingAddress() predicate.Order {
 	return predicate.Order(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, AddressTable, AddressColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, BillingAddressTable, BillingAddressColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAddressWith applies the HasEdge predicate on the "address" edge with a given conditions (other predicates).
-func HasAddressWith(preds ...predicate.BillingAddress) predicate.Order {
+// HasBillingAddressWith applies the HasEdge predicate on the "billing_address" edge with a given conditions (other predicates).
+func HasBillingAddressWith(preds ...predicate.BillingAddress) predicate.Order {
 	return predicate.Order(func(s *sql.Selector) {
-		step := newAddressStep()
+		step := newBillingAddressStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasDeliveryAddress applies the HasEdge predicate on the "delivery_address" edge.
+func HasDeliveryAddress() predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, DeliveryAddressTable, DeliveryAddressColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasDeliveryAddressWith applies the HasEdge predicate on the "delivery_address" edge with a given conditions (other predicates).
+func HasDeliveryAddressWith(preds ...predicate.DeliveryAddress) predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := newDeliveryAddressStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -276,6 +454,52 @@ func HasNotes() predicate.Order {
 func HasNotesWith(preds ...predicate.Note) predicate.Order {
 	return predicate.Order(func(s *sql.Selector) {
 		step := newNotesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCreatedBy applies the HasEdge predicate on the "created_by" edge.
+func HasCreatedBy() predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CreatedByTable, CreatedByColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCreatedByWith applies the HasEdge predicate on the "created_by" edge with a given conditions (other predicates).
+func HasCreatedByWith(preds ...predicate.User) predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := newCreatedByStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPositions applies the HasEdge predicate on the "positions" edge.
+func HasPositions() predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PositionsTable, PositionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPositionsWith applies the HasEdge predicate on the "positions" edge with a given conditions (other predicates).
+func HasPositionsWith(preds ...predicate.Position) predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := newPositionsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

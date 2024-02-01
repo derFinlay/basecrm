@@ -14,10 +14,10 @@ const (
 	Label = "login"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldUsername holds the string denoting the username field in the database.
-	FieldUsername = "username"
 	// FieldPassword holds the string denoting the password field in the database.
 	FieldPassword = "password"
+	// FieldEmail holds the string denoting the email field in the database.
+	FieldEmail = "email"
 	// FieldLastLogin holds the string denoting the last_login field in the database.
 	FieldLastLogin = "last_login"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -26,25 +26,40 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
+	// EdgeLoginResets holds the string denoting the login_resets edge name in mutations.
+	EdgeLoginResets = "login_resets"
 	// Table holds the table name of the login in the database.
 	Table = "logins"
 	// CustomerTable is the table that holds the customer relation/edge.
-	CustomerTable = "customers"
+	CustomerTable = "logins"
 	// CustomerInverseTable is the table name for the Customer entity.
 	// It exists in this package in order to avoid circular dependency with the "customer" package.
 	CustomerInverseTable = "customers"
 	// CustomerColumn is the table column denoting the customer relation/edge.
 	CustomerColumn = "customer_login"
+	// LoginResetsTable is the table that holds the login_resets relation/edge.
+	LoginResetsTable = "login_resets"
+	// LoginResetsInverseTable is the table name for the LoginReset entity.
+	// It exists in this package in order to avoid circular dependency with the "loginreset" package.
+	LoginResetsInverseTable = "login_resets"
+	// LoginResetsColumn is the table column denoting the login_resets relation/edge.
+	LoginResetsColumn = "login_login_resets"
 )
 
 // Columns holds all SQL columns for login fields.
 var Columns = []string{
 	FieldID,
-	FieldUsername,
 	FieldPassword,
+	FieldEmail,
 	FieldLastLogin,
 	FieldCreatedAt,
 	FieldUpdatedAt,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "logins"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"customer_login",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -54,14 +69,19 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
+			return true
+		}
+	}
 	return false
 }
 
 var (
-	// UsernameValidator is a validator for the "username" field. It is called by the builders before save.
-	UsernameValidator func(string) error
 	// PasswordValidator is a validator for the "password" field. It is called by the builders before save.
 	PasswordValidator func(string) error
+	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	EmailValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -78,14 +98,14 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByUsername orders the results by the username field.
-func ByUsername(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldUsername, opts...).ToFunc()
-}
-
 // ByPassword orders the results by the password field.
 func ByPassword(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPassword, opts...).ToFunc()
+}
+
+// ByEmail orders the results by the email field.
+func ByEmail(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmail, opts...).ToFunc()
 }
 
 // ByLastLogin orders the results by the last_login field.
@@ -103,23 +123,37 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByCustomerCount orders the results by customer count.
-func ByCustomerCount(opts ...sql.OrderTermOption) OrderOption {
+// ByCustomerField orders the results by customer field.
+func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newCustomerStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByCustomer orders the results by customer terms.
-func ByCustomer(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByLoginResetsCount orders the results by login_resets count.
+func ByLoginResetsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborsCount(s, newLoginResetsStep(), opts...)
+	}
+}
+
+// ByLoginResets orders the results by login_resets terms.
+func ByLoginResets(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLoginResetsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newCustomerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CustomerInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, true, CustomerTable, CustomerColumn),
+		sqlgraph.Edge(sqlgraph.O2O, true, CustomerTable, CustomerColumn),
+	)
+}
+func newLoginResetsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LoginResetsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, LoginResetsTable, LoginResetsColumn),
 	)
 }

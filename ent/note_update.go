@@ -18,6 +18,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/tel"
+	"github.com/derfinlay/basecrm/ent/user"
 )
 
 // NoteUpdate is the builder for updating Note entities.
@@ -30,20 +31,6 @@ type NoteUpdate struct {
 // Where appends a list predicates to the NoteUpdate builder.
 func (nu *NoteUpdate) Where(ps ...predicate.Note) *NoteUpdate {
 	nu.mutation.Where(ps...)
-	return nu
-}
-
-// SetContent sets the "content" field.
-func (nu *NoteUpdate) SetContent(s string) *NoteUpdate {
-	nu.mutation.SetContent(s)
-	return nu
-}
-
-// SetNillableContent sets the "content" field if the given value is not nil.
-func (nu *NoteUpdate) SetNillableContent(s *string) *NoteUpdate {
-	if s != nil {
-		nu.SetContent(*s)
-	}
 	return nu
 }
 
@@ -72,23 +59,23 @@ func (nu *NoteUpdate) SetCustomer(c *Customer) *NoteUpdate {
 	return nu.SetCustomerID(c.ID)
 }
 
-// SetOrdersID sets the "orders" edge to the Order entity by ID.
-func (nu *NoteUpdate) SetOrdersID(id int) *NoteUpdate {
-	nu.mutation.SetOrdersID(id)
+// SetOrderID sets the "order" edge to the Order entity by ID.
+func (nu *NoteUpdate) SetOrderID(id int) *NoteUpdate {
+	nu.mutation.SetOrderID(id)
 	return nu
 }
 
-// SetNillableOrdersID sets the "orders" edge to the Order entity by ID if the given value is not nil.
-func (nu *NoteUpdate) SetNillableOrdersID(id *int) *NoteUpdate {
+// SetNillableOrderID sets the "order" edge to the Order entity by ID if the given value is not nil.
+func (nu *NoteUpdate) SetNillableOrderID(id *int) *NoteUpdate {
 	if id != nil {
-		nu = nu.SetOrdersID(*id)
+		nu = nu.SetOrderID(*id)
 	}
 	return nu
 }
 
-// SetOrders sets the "orders" edge to the Order entity.
-func (nu *NoteUpdate) SetOrders(o *Order) *NoteUpdate {
-	return nu.SetOrdersID(o.ID)
+// SetOrder sets the "order" edge to the Order entity.
+func (nu *NoteUpdate) SetOrder(o *Order) *NoteUpdate {
+	return nu.SetOrderID(o.ID)
 }
 
 // SetBillingAddressID sets the "billing_address" edge to the BillingAddress entity by ID.
@@ -148,6 +135,25 @@ func (nu *NoteUpdate) SetTel(t *Tel) *NoteUpdate {
 	return nu.SetTelID(t.ID)
 }
 
+// SetCreatedByID sets the "created_by" edge to the User entity by ID.
+func (nu *NoteUpdate) SetCreatedByID(id int) *NoteUpdate {
+	nu.mutation.SetCreatedByID(id)
+	return nu
+}
+
+// SetNillableCreatedByID sets the "created_by" edge to the User entity by ID if the given value is not nil.
+func (nu *NoteUpdate) SetNillableCreatedByID(id *int) *NoteUpdate {
+	if id != nil {
+		nu = nu.SetCreatedByID(*id)
+	}
+	return nu
+}
+
+// SetCreatedBy sets the "created_by" edge to the User entity.
+func (nu *NoteUpdate) SetCreatedBy(u *User) *NoteUpdate {
+	return nu.SetCreatedByID(u.ID)
+}
+
 // Mutation returns the NoteMutation object of the builder.
 func (nu *NoteUpdate) Mutation() *NoteMutation {
 	return nu.mutation
@@ -159,9 +165,9 @@ func (nu *NoteUpdate) ClearCustomer() *NoteUpdate {
 	return nu
 }
 
-// ClearOrders clears the "orders" edge to the Order entity.
-func (nu *NoteUpdate) ClearOrders() *NoteUpdate {
-	nu.mutation.ClearOrders()
+// ClearOrder clears the "order" edge to the Order entity.
+func (nu *NoteUpdate) ClearOrder() *NoteUpdate {
+	nu.mutation.ClearOrder()
 	return nu
 }
 
@@ -180,6 +186,12 @@ func (nu *NoteUpdate) ClearDeliveryAddress() *NoteUpdate {
 // ClearTel clears the "tel" edge to the Tel entity.
 func (nu *NoteUpdate) ClearTel() *NoteUpdate {
 	nu.mutation.ClearTel()
+	return nu
+}
+
+// ClearCreatedBy clears the "created_by" edge to the User entity.
+func (nu *NoteUpdate) ClearCreatedBy() *NoteUpdate {
+	nu.mutation.ClearCreatedBy()
 	return nu
 }
 
@@ -228,9 +240,6 @@ func (nu *NoteUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := nu.mutation.Content(); ok {
-		_spec.SetField(note.FieldContent, field.TypeString, value)
-	}
 	if value, ok := nu.mutation.UpdatedAt(); ok {
 		_spec.SetField(note.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -263,12 +272,12 @@ func (nu *NoteUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nu.mutation.OrdersCleared() {
+	if nu.mutation.OrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   note.OrdersTable,
-			Columns: []string{note.OrdersColumn},
+			Table:   note.OrderTable,
+			Columns: []string{note.OrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
@@ -276,12 +285,12 @@ func (nu *NoteUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nu.mutation.OrdersIDs(); len(nodes) > 0 {
+	if nodes := nu.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   note.OrdersTable,
-			Columns: []string{note.OrdersColumn},
+			Table:   note.OrderTable,
+			Columns: []string{note.OrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
@@ -379,6 +388,35 @@ func (nu *NoteUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if nu.mutation.CreatedByCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   note.CreatedByTable,
+			Columns: []string{note.CreatedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nu.mutation.CreatedByIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   note.CreatedByTable,
+			Columns: []string{note.CreatedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, nu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{note.Label}
@@ -397,20 +435,6 @@ type NoteUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *NoteMutation
-}
-
-// SetContent sets the "content" field.
-func (nuo *NoteUpdateOne) SetContent(s string) *NoteUpdateOne {
-	nuo.mutation.SetContent(s)
-	return nuo
-}
-
-// SetNillableContent sets the "content" field if the given value is not nil.
-func (nuo *NoteUpdateOne) SetNillableContent(s *string) *NoteUpdateOne {
-	if s != nil {
-		nuo.SetContent(*s)
-	}
-	return nuo
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -438,23 +462,23 @@ func (nuo *NoteUpdateOne) SetCustomer(c *Customer) *NoteUpdateOne {
 	return nuo.SetCustomerID(c.ID)
 }
 
-// SetOrdersID sets the "orders" edge to the Order entity by ID.
-func (nuo *NoteUpdateOne) SetOrdersID(id int) *NoteUpdateOne {
-	nuo.mutation.SetOrdersID(id)
+// SetOrderID sets the "order" edge to the Order entity by ID.
+func (nuo *NoteUpdateOne) SetOrderID(id int) *NoteUpdateOne {
+	nuo.mutation.SetOrderID(id)
 	return nuo
 }
 
-// SetNillableOrdersID sets the "orders" edge to the Order entity by ID if the given value is not nil.
-func (nuo *NoteUpdateOne) SetNillableOrdersID(id *int) *NoteUpdateOne {
+// SetNillableOrderID sets the "order" edge to the Order entity by ID if the given value is not nil.
+func (nuo *NoteUpdateOne) SetNillableOrderID(id *int) *NoteUpdateOne {
 	if id != nil {
-		nuo = nuo.SetOrdersID(*id)
+		nuo = nuo.SetOrderID(*id)
 	}
 	return nuo
 }
 
-// SetOrders sets the "orders" edge to the Order entity.
-func (nuo *NoteUpdateOne) SetOrders(o *Order) *NoteUpdateOne {
-	return nuo.SetOrdersID(o.ID)
+// SetOrder sets the "order" edge to the Order entity.
+func (nuo *NoteUpdateOne) SetOrder(o *Order) *NoteUpdateOne {
+	return nuo.SetOrderID(o.ID)
 }
 
 // SetBillingAddressID sets the "billing_address" edge to the BillingAddress entity by ID.
@@ -514,6 +538,25 @@ func (nuo *NoteUpdateOne) SetTel(t *Tel) *NoteUpdateOne {
 	return nuo.SetTelID(t.ID)
 }
 
+// SetCreatedByID sets the "created_by" edge to the User entity by ID.
+func (nuo *NoteUpdateOne) SetCreatedByID(id int) *NoteUpdateOne {
+	nuo.mutation.SetCreatedByID(id)
+	return nuo
+}
+
+// SetNillableCreatedByID sets the "created_by" edge to the User entity by ID if the given value is not nil.
+func (nuo *NoteUpdateOne) SetNillableCreatedByID(id *int) *NoteUpdateOne {
+	if id != nil {
+		nuo = nuo.SetCreatedByID(*id)
+	}
+	return nuo
+}
+
+// SetCreatedBy sets the "created_by" edge to the User entity.
+func (nuo *NoteUpdateOne) SetCreatedBy(u *User) *NoteUpdateOne {
+	return nuo.SetCreatedByID(u.ID)
+}
+
 // Mutation returns the NoteMutation object of the builder.
 func (nuo *NoteUpdateOne) Mutation() *NoteMutation {
 	return nuo.mutation
@@ -525,9 +568,9 @@ func (nuo *NoteUpdateOne) ClearCustomer() *NoteUpdateOne {
 	return nuo
 }
 
-// ClearOrders clears the "orders" edge to the Order entity.
-func (nuo *NoteUpdateOne) ClearOrders() *NoteUpdateOne {
-	nuo.mutation.ClearOrders()
+// ClearOrder clears the "order" edge to the Order entity.
+func (nuo *NoteUpdateOne) ClearOrder() *NoteUpdateOne {
+	nuo.mutation.ClearOrder()
 	return nuo
 }
 
@@ -546,6 +589,12 @@ func (nuo *NoteUpdateOne) ClearDeliveryAddress() *NoteUpdateOne {
 // ClearTel clears the "tel" edge to the Tel entity.
 func (nuo *NoteUpdateOne) ClearTel() *NoteUpdateOne {
 	nuo.mutation.ClearTel()
+	return nuo
+}
+
+// ClearCreatedBy clears the "created_by" edge to the User entity.
+func (nuo *NoteUpdateOne) ClearCreatedBy() *NoteUpdateOne {
+	nuo.mutation.ClearCreatedBy()
 	return nuo
 }
 
@@ -624,9 +673,6 @@ func (nuo *NoteUpdateOne) sqlSave(ctx context.Context) (_node *Note, err error) 
 			}
 		}
 	}
-	if value, ok := nuo.mutation.Content(); ok {
-		_spec.SetField(note.FieldContent, field.TypeString, value)
-	}
 	if value, ok := nuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(note.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -659,12 +705,12 @@ func (nuo *NoteUpdateOne) sqlSave(ctx context.Context) (_node *Note, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nuo.mutation.OrdersCleared() {
+	if nuo.mutation.OrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   note.OrdersTable,
-			Columns: []string{note.OrdersColumn},
+			Table:   note.OrderTable,
+			Columns: []string{note.OrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
@@ -672,12 +718,12 @@ func (nuo *NoteUpdateOne) sqlSave(ctx context.Context) (_node *Note, err error) 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nuo.mutation.OrdersIDs(); len(nodes) > 0 {
+	if nodes := nuo.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   note.OrdersTable,
-			Columns: []string{note.OrdersColumn},
+			Table:   note.OrderTable,
+			Columns: []string{note.OrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
@@ -768,6 +814,35 @@ func (nuo *NoteUpdateOne) sqlSave(ctx context.Context) (_node *Note, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tel.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nuo.mutation.CreatedByCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   note.CreatedByTable,
+			Columns: []string{note.CreatedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nuo.mutation.CreatedByIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   note.CreatedByTable,
+			Columns: []string{note.CreatedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

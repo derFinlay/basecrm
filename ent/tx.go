@@ -20,12 +20,16 @@ type Tx struct {
 	DeliveryAddress *DeliveryAddressClient
 	// Login is the client for interacting with the Login builders.
 	Login *LoginClient
+	// LoginReset is the client for interacting with the LoginReset builders.
+	LoginReset *LoginResetClient
 	// Note is the client for interacting with the Note builders.
 	Note *NoteClient
 	// Order is the client for interacting with the Order builders.
 	Order *OrderClient
 	// Position is the client for interacting with the Position builders.
 	Position *PositionClient
+	// Product is the client for interacting with the Product builders.
+	Product *ProductClient
 	// Role is the client for interacting with the Role builders.
 	Role *RoleClient
 	// Tel is the client for interacting with the Tel builders.
@@ -167,9 +171,11 @@ func (tx *Tx) init() {
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.DeliveryAddress = NewDeliveryAddressClient(tx.config)
 	tx.Login = NewLoginClient(tx.config)
+	tx.LoginReset = NewLoginResetClient(tx.config)
 	tx.Note = NewNoteClient(tx.config)
 	tx.Order = NewOrderClient(tx.config)
 	tx.Position = NewPositionClient(tx.config)
+	tx.Product = NewProductClient(tx.config)
 	tx.Role = NewRoleClient(tx.config)
 	tx.Tel = NewTelClient(tx.config)
 	tx.User = NewUserClient(tx.config)

@@ -56,38 +56,42 @@ func (tc *TelCreate) SetNillableUpdatedAt(t *time.Time) *TelCreate {
 	return tc
 }
 
-// SetNoteID sets the "note" edge to the Note entity by ID.
-func (tc *TelCreate) SetNoteID(id int) *TelCreate {
-	tc.mutation.SetNoteID(id)
+// SetNotesID sets the "notes" edge to the Note entity by ID.
+func (tc *TelCreate) SetNotesID(id int) *TelCreate {
+	tc.mutation.SetNotesID(id)
 	return tc
 }
 
-// SetNillableNoteID sets the "note" edge to the Note entity by ID if the given value is not nil.
-func (tc *TelCreate) SetNillableNoteID(id *int) *TelCreate {
+// SetNillableNotesID sets the "notes" edge to the Note entity by ID if the given value is not nil.
+func (tc *TelCreate) SetNillableNotesID(id *int) *TelCreate {
 	if id != nil {
-		tc = tc.SetNoteID(*id)
+		tc = tc.SetNotesID(*id)
 	}
 	return tc
 }
 
-// SetNote sets the "note" edge to the Note entity.
-func (tc *TelCreate) SetNote(n *Note) *TelCreate {
-	return tc.SetNoteID(n.ID)
+// SetNotes sets the "notes" edge to the Note entity.
+func (tc *TelCreate) SetNotes(n *Note) *TelCreate {
+	return tc.SetNotesID(n.ID)
 }
 
-// AddCustomerIDs adds the "customer" edge to the Customer entity by IDs.
-func (tc *TelCreate) AddCustomerIDs(ids ...int) *TelCreate {
-	tc.mutation.AddCustomerIDs(ids...)
+// SetCustomerID sets the "customer" edge to the Customer entity by ID.
+func (tc *TelCreate) SetCustomerID(id int) *TelCreate {
+	tc.mutation.SetCustomerID(id)
 	return tc
 }
 
-// AddCustomer adds the "customer" edges to the Customer entity.
-func (tc *TelCreate) AddCustomer(c ...*Customer) *TelCreate {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
+// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
+func (tc *TelCreate) SetNillableCustomerID(id *int) *TelCreate {
+	if id != nil {
+		tc = tc.SetCustomerID(*id)
 	}
-	return tc.AddCustomerIDs(ids...)
+	return tc
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (tc *TelCreate) SetCustomer(c *Customer) *TelCreate {
+	return tc.SetCustomerID(c.ID)
 }
 
 // Mutation returns the TelMutation object of the builder.
@@ -189,12 +193,12 @@ func (tc *TelCreate) createSpec() (*Tel, *sqlgraph.CreateSpec) {
 		_spec.SetField(tel.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if nodes := tc.mutation.NoteIDs(); len(nodes) > 0 {
+	if nodes := tc.mutation.NotesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   tel.NoteTable,
-			Columns: []string{tel.NoteColumn},
+			Table:   tel.NotesTable,
+			Columns: []string{tel.NotesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
@@ -207,10 +211,10 @@ func (tc *TelCreate) createSpec() (*Tel, *sqlgraph.CreateSpec) {
 	}
 	if nodes := tc.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   tel.CustomerTable,
-			Columns: tel.CustomerPrimaryKey,
+			Columns: []string{tel.CustomerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
@@ -219,6 +223,7 @@ func (tc *TelCreate) createSpec() (*Tel, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.customer_tels = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

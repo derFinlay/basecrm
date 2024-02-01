@@ -14,6 +14,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
 
@@ -30,52 +31,25 @@ func (bau *BillingAddressUpdate) Where(ps ...predicate.BillingAddress) *BillingA
 	return bau
 }
 
-// SetCity sets the "city" field.
-func (bau *BillingAddressUpdate) SetCity(s string) *BillingAddressUpdate {
-	bau.mutation.SetCity(s)
-	return bau
-}
-
-// SetNillableCity sets the "city" field if the given value is not nil.
-func (bau *BillingAddressUpdate) SetNillableCity(s *string) *BillingAddressUpdate {
-	if s != nil {
-		bau.SetCity(*s)
-	}
-	return bau
-}
-
-// SetStreet sets the "street" field.
-func (bau *BillingAddressUpdate) SetStreet(s string) *BillingAddressUpdate {
-	bau.mutation.SetStreet(s)
-	return bau
-}
-
-// SetNillableStreet sets the "street" field if the given value is not nil.
-func (bau *BillingAddressUpdate) SetNillableStreet(s *string) *BillingAddressUpdate {
-	if s != nil {
-		bau.SetStreet(*s)
-	}
-	return bau
-}
-
-// SetZip sets the "zip" field.
-func (bau *BillingAddressUpdate) SetZip(s string) *BillingAddressUpdate {
-	bau.mutation.SetZip(s)
-	return bau
-}
-
-// SetNillableZip sets the "zip" field if the given value is not nil.
-func (bau *BillingAddressUpdate) SetNillableZip(s *string) *BillingAddressUpdate {
-	if s != nil {
-		bau.SetZip(*s)
-	}
-	return bau
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (bau *BillingAddressUpdate) SetUpdatedAt(t time.Time) *BillingAddressUpdate {
 	bau.mutation.SetUpdatedAt(t)
 	return bau
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (bau *BillingAddressUpdate) AddNoteIDs(ids ...int) *BillingAddressUpdate {
+	bau.mutation.AddNoteIDs(ids...)
+	return bau
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (bau *BillingAddressUpdate) AddNotes(n ...*Note) *BillingAddressUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return bau.AddNoteIDs(ids...)
 }
 
 // SetCustomerID sets the "customer" edge to the Customer entity by ID.
@@ -97,30 +71,28 @@ func (bau *BillingAddressUpdate) SetCustomer(c *Customer) *BillingAddressUpdate 
 	return bau.SetCustomerID(c.ID)
 }
 
-// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
-func (bau *BillingAddressUpdate) AddNoteIDs(ids ...int) *BillingAddressUpdate {
-	bau.mutation.AddNoteIDs(ids...)
+// SetOrderID sets the "order" edge to the Order entity by ID.
+func (bau *BillingAddressUpdate) SetOrderID(id int) *BillingAddressUpdate {
+	bau.mutation.SetOrderID(id)
 	return bau
 }
 
-// AddNotes adds the "notes" edges to the Note entity.
-func (bau *BillingAddressUpdate) AddNotes(n ...*Note) *BillingAddressUpdate {
-	ids := make([]int, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+// SetNillableOrderID sets the "order" edge to the Order entity by ID if the given value is not nil.
+func (bau *BillingAddressUpdate) SetNillableOrderID(id *int) *BillingAddressUpdate {
+	if id != nil {
+		bau = bau.SetOrderID(*id)
 	}
-	return bau.AddNoteIDs(ids...)
+	return bau
+}
+
+// SetOrder sets the "order" edge to the Order entity.
+func (bau *BillingAddressUpdate) SetOrder(o *Order) *BillingAddressUpdate {
+	return bau.SetOrderID(o.ID)
 }
 
 // Mutation returns the BillingAddressMutation object of the builder.
 func (bau *BillingAddressUpdate) Mutation() *BillingAddressMutation {
 	return bau.mutation
-}
-
-// ClearCustomer clears the "customer" edge to the Customer entity.
-func (bau *BillingAddressUpdate) ClearCustomer() *BillingAddressUpdate {
-	bau.mutation.ClearCustomer()
-	return bau
 }
 
 // ClearNotes clears all "notes" edges to the Note entity.
@@ -142,6 +114,18 @@ func (bau *BillingAddressUpdate) RemoveNotes(n ...*Note) *BillingAddressUpdate {
 		ids[i] = n[i].ID
 	}
 	return bau.RemoveNoteIDs(ids...)
+}
+
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (bau *BillingAddressUpdate) ClearCustomer() *BillingAddressUpdate {
+	bau.mutation.ClearCustomer()
+	return bau
+}
+
+// ClearOrder clears the "order" edge to the Order entity.
+func (bau *BillingAddressUpdate) ClearOrder() *BillingAddressUpdate {
+	bau.mutation.ClearOrder()
+	return bau
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -180,30 +164,7 @@ func (bau *BillingAddressUpdate) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (bau *BillingAddressUpdate) check() error {
-	if v, ok := bau.mutation.City(); ok {
-		if err := billingaddress.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "BillingAddress.city": %w`, err)}
-		}
-	}
-	if v, ok := bau.mutation.Street(); ok {
-		if err := billingaddress.StreetValidator(v); err != nil {
-			return &ValidationError{Name: "street", err: fmt.Errorf(`ent: validator failed for field "BillingAddress.street": %w`, err)}
-		}
-	}
-	if v, ok := bau.mutation.Zip(); ok {
-		if err := billingaddress.ZipValidator(v); err != nil {
-			return &ValidationError{Name: "zip", err: fmt.Errorf(`ent: validator failed for field "BillingAddress.zip": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (bau *BillingAddressUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := bau.check(); err != nil {
-		return n, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(billingaddress.Table, billingaddress.Columns, sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt))
 	if ps := bau.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -212,46 +173,8 @@ func (bau *BillingAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 			}
 		}
 	}
-	if value, ok := bau.mutation.City(); ok {
-		_spec.SetField(billingaddress.FieldCity, field.TypeString, value)
-	}
-	if value, ok := bau.mutation.Street(); ok {
-		_spec.SetField(billingaddress.FieldStreet, field.TypeString, value)
-	}
-	if value, ok := bau.mutation.Zip(); ok {
-		_spec.SetField(billingaddress.FieldZip, field.TypeString, value)
-	}
 	if value, ok := bau.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingaddress.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if bau.mutation.CustomerCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billingaddress.CustomerTable,
-			Columns: []string{billingaddress.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bau.mutation.CustomerIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billingaddress.CustomerTable,
-			Columns: []string{billingaddress.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if bau.mutation.NotesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -298,6 +221,64 @@ func (bau *BillingAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if bau.mutation.CustomerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingaddress.CustomerTable,
+			Columns: []string{billingaddress.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bau.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingaddress.CustomerTable,
+			Columns: []string{billingaddress.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bau.mutation.OrderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   billingaddress.OrderTable,
+			Columns: []string{billingaddress.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bau.mutation.OrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   billingaddress.OrderTable,
+			Columns: []string{billingaddress.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bau.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingaddress.Label}
@@ -318,52 +299,25 @@ type BillingAddressUpdateOne struct {
 	mutation *BillingAddressMutation
 }
 
-// SetCity sets the "city" field.
-func (bauo *BillingAddressUpdateOne) SetCity(s string) *BillingAddressUpdateOne {
-	bauo.mutation.SetCity(s)
-	return bauo
-}
-
-// SetNillableCity sets the "city" field if the given value is not nil.
-func (bauo *BillingAddressUpdateOne) SetNillableCity(s *string) *BillingAddressUpdateOne {
-	if s != nil {
-		bauo.SetCity(*s)
-	}
-	return bauo
-}
-
-// SetStreet sets the "street" field.
-func (bauo *BillingAddressUpdateOne) SetStreet(s string) *BillingAddressUpdateOne {
-	bauo.mutation.SetStreet(s)
-	return bauo
-}
-
-// SetNillableStreet sets the "street" field if the given value is not nil.
-func (bauo *BillingAddressUpdateOne) SetNillableStreet(s *string) *BillingAddressUpdateOne {
-	if s != nil {
-		bauo.SetStreet(*s)
-	}
-	return bauo
-}
-
-// SetZip sets the "zip" field.
-func (bauo *BillingAddressUpdateOne) SetZip(s string) *BillingAddressUpdateOne {
-	bauo.mutation.SetZip(s)
-	return bauo
-}
-
-// SetNillableZip sets the "zip" field if the given value is not nil.
-func (bauo *BillingAddressUpdateOne) SetNillableZip(s *string) *BillingAddressUpdateOne {
-	if s != nil {
-		bauo.SetZip(*s)
-	}
-	return bauo
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (bauo *BillingAddressUpdateOne) SetUpdatedAt(t time.Time) *BillingAddressUpdateOne {
 	bauo.mutation.SetUpdatedAt(t)
 	return bauo
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (bauo *BillingAddressUpdateOne) AddNoteIDs(ids ...int) *BillingAddressUpdateOne {
+	bauo.mutation.AddNoteIDs(ids...)
+	return bauo
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (bauo *BillingAddressUpdateOne) AddNotes(n ...*Note) *BillingAddressUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return bauo.AddNoteIDs(ids...)
 }
 
 // SetCustomerID sets the "customer" edge to the Customer entity by ID.
@@ -385,30 +339,28 @@ func (bauo *BillingAddressUpdateOne) SetCustomer(c *Customer) *BillingAddressUpd
 	return bauo.SetCustomerID(c.ID)
 }
 
-// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
-func (bauo *BillingAddressUpdateOne) AddNoteIDs(ids ...int) *BillingAddressUpdateOne {
-	bauo.mutation.AddNoteIDs(ids...)
+// SetOrderID sets the "order" edge to the Order entity by ID.
+func (bauo *BillingAddressUpdateOne) SetOrderID(id int) *BillingAddressUpdateOne {
+	bauo.mutation.SetOrderID(id)
 	return bauo
 }
 
-// AddNotes adds the "notes" edges to the Note entity.
-func (bauo *BillingAddressUpdateOne) AddNotes(n ...*Note) *BillingAddressUpdateOne {
-	ids := make([]int, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+// SetNillableOrderID sets the "order" edge to the Order entity by ID if the given value is not nil.
+func (bauo *BillingAddressUpdateOne) SetNillableOrderID(id *int) *BillingAddressUpdateOne {
+	if id != nil {
+		bauo = bauo.SetOrderID(*id)
 	}
-	return bauo.AddNoteIDs(ids...)
+	return bauo
+}
+
+// SetOrder sets the "order" edge to the Order entity.
+func (bauo *BillingAddressUpdateOne) SetOrder(o *Order) *BillingAddressUpdateOne {
+	return bauo.SetOrderID(o.ID)
 }
 
 // Mutation returns the BillingAddressMutation object of the builder.
 func (bauo *BillingAddressUpdateOne) Mutation() *BillingAddressMutation {
 	return bauo.mutation
-}
-
-// ClearCustomer clears the "customer" edge to the Customer entity.
-func (bauo *BillingAddressUpdateOne) ClearCustomer() *BillingAddressUpdateOne {
-	bauo.mutation.ClearCustomer()
-	return bauo
 }
 
 // ClearNotes clears all "notes" edges to the Note entity.
@@ -430,6 +382,18 @@ func (bauo *BillingAddressUpdateOne) RemoveNotes(n ...*Note) *BillingAddressUpda
 		ids[i] = n[i].ID
 	}
 	return bauo.RemoveNoteIDs(ids...)
+}
+
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (bauo *BillingAddressUpdateOne) ClearCustomer() *BillingAddressUpdateOne {
+	bauo.mutation.ClearCustomer()
+	return bauo
+}
+
+// ClearOrder clears the "order" edge to the Order entity.
+func (bauo *BillingAddressUpdateOne) ClearOrder() *BillingAddressUpdateOne {
+	bauo.mutation.ClearOrder()
+	return bauo
 }
 
 // Where appends a list predicates to the BillingAddressUpdate builder.
@@ -481,30 +445,7 @@ func (bauo *BillingAddressUpdateOne) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (bauo *BillingAddressUpdateOne) check() error {
-	if v, ok := bauo.mutation.City(); ok {
-		if err := billingaddress.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "BillingAddress.city": %w`, err)}
-		}
-	}
-	if v, ok := bauo.mutation.Street(); ok {
-		if err := billingaddress.StreetValidator(v); err != nil {
-			return &ValidationError{Name: "street", err: fmt.Errorf(`ent: validator failed for field "BillingAddress.street": %w`, err)}
-		}
-	}
-	if v, ok := bauo.mutation.Zip(); ok {
-		if err := billingaddress.ZipValidator(v); err != nil {
-			return &ValidationError{Name: "zip", err: fmt.Errorf(`ent: validator failed for field "BillingAddress.zip": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (bauo *BillingAddressUpdateOne) sqlSave(ctx context.Context) (_node *BillingAddress, err error) {
-	if err := bauo.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(billingaddress.Table, billingaddress.Columns, sqlgraph.NewFieldSpec(billingaddress.FieldID, field.TypeInt))
 	id, ok := bauo.mutation.ID()
 	if !ok {
@@ -530,46 +471,8 @@ func (bauo *BillingAddressUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			}
 		}
 	}
-	if value, ok := bauo.mutation.City(); ok {
-		_spec.SetField(billingaddress.FieldCity, field.TypeString, value)
-	}
-	if value, ok := bauo.mutation.Street(); ok {
-		_spec.SetField(billingaddress.FieldStreet, field.TypeString, value)
-	}
-	if value, ok := bauo.mutation.Zip(); ok {
-		_spec.SetField(billingaddress.FieldZip, field.TypeString, value)
-	}
 	if value, ok := bauo.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingaddress.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if bauo.mutation.CustomerCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billingaddress.CustomerTable,
-			Columns: []string{billingaddress.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bauo.mutation.CustomerIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billingaddress.CustomerTable,
-			Columns: []string{billingaddress.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if bauo.mutation.NotesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -609,6 +512,64 @@ func (bauo *BillingAddressUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bauo.mutation.CustomerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingaddress.CustomerTable,
+			Columns: []string{billingaddress.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bauo.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingaddress.CustomerTable,
+			Columns: []string{billingaddress.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bauo.mutation.OrderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   billingaddress.OrderTable,
+			Columns: []string{billingaddress.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bauo.mutation.OrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   billingaddress.OrderTable,
+			Columns: []string{billingaddress.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

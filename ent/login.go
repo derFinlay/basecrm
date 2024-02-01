@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/login"
 )
 
@@ -17,10 +18,10 @@ type Login struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
-	// Username holds the value of the "username" field.
-	Username string `json:"username,omitempty"`
 	// Password holds the value of the "password" field.
 	Password string `json:"password,omitempty"`
+	// Email holds the value of the "email" field.
+	Email string `json:"email,omitempty"`
 	// LastLogin holds the value of the "last_login" field.
 	LastLogin time.Time `json:"last_login,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -29,26 +30,42 @@ type Login struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LoginQuery when eager-loading is set.
-	Edges        LoginEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges          LoginEdges `json:"edges"`
+	customer_login *int
+	selectValues   sql.SelectValues
 }
 
 // LoginEdges holds the relations/edges for other nodes in the graph.
 type LoginEdges struct {
 	// Customer holds the value of the customer edge.
-	Customer []*Customer `json:"customer,omitempty"`
+	Customer *Customer `json:"customer,omitempty"`
+	// LoginResets holds the value of the login_resets edge.
+	LoginResets []*LoginReset `json:"login_resets,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // CustomerOrErr returns the Customer value or an error if the edge
-// was not loaded in eager-loading.
-func (e LoginEdges) CustomerOrErr() ([]*Customer, error) {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LoginEdges) CustomerOrErr() (*Customer, error) {
 	if e.loadedTypes[0] {
+		if e.Customer == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: customer.Label}
+		}
 		return e.Customer, nil
 	}
 	return nil, &NotLoadedError{edge: "customer"}
+}
+
+// LoginResetsOrErr returns the LoginResets value or an error if the edge
+// was not loaded in eager-loading.
+func (e LoginEdges) LoginResetsOrErr() ([]*LoginReset, error) {
+	if e.loadedTypes[1] {
+		return e.LoginResets, nil
+	}
+	return nil, &NotLoadedError{edge: "login_resets"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -58,10 +75,12 @@ func (*Login) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case login.FieldID:
 			values[i] = new(sql.NullInt64)
-		case login.FieldUsername, login.FieldPassword:
+		case login.FieldPassword, login.FieldEmail:
 			values[i] = new(sql.NullString)
 		case login.FieldLastLogin, login.FieldCreatedAt, login.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case login.ForeignKeys[0]: // customer_login
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -83,17 +102,17 @@ func (l *Login) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			l.ID = int(value.Int64)
-		case login.FieldUsername:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field username", values[i])
-			} else if value.Valid {
-				l.Username = value.String
-			}
 		case login.FieldPassword:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field password", values[i])
 			} else if value.Valid {
 				l.Password = value.String
+			}
+		case login.FieldEmail:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field email", values[i])
+			} else if value.Valid {
+				l.Email = value.String
 			}
 		case login.FieldLastLogin:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -113,6 +132,13 @@ func (l *Login) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				l.UpdatedAt = value.Time
 			}
+		case login.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field customer_login", value)
+			} else if value.Valid {
+				l.customer_login = new(int)
+				*l.customer_login = int(value.Int64)
+			}
 		default:
 			l.selectValues.Set(columns[i], values[i])
 		}
@@ -129,6 +155,11 @@ func (l *Login) Value(name string) (ent.Value, error) {
 // QueryCustomer queries the "customer" edge of the Login entity.
 func (l *Login) QueryCustomer() *CustomerQuery {
 	return NewLoginClient(l.config).QueryCustomer(l)
+}
+
+// QueryLoginResets queries the "login_resets" edge of the Login entity.
+func (l *Login) QueryLoginResets() *LoginResetQuery {
+	return NewLoginClient(l.config).QueryLoginResets(l)
 }
 
 // Update returns a builder for updating this Login.
@@ -154,11 +185,11 @@ func (l *Login) String() string {
 	var builder strings.Builder
 	builder.WriteString("Login(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", l.ID))
-	builder.WriteString("username=")
-	builder.WriteString(l.Username)
-	builder.WriteString(", ")
 	builder.WriteString("password=")
 	builder.WriteString(l.Password)
+	builder.WriteString(", ")
+	builder.WriteString("email=")
+	builder.WriteString(l.Email)
 	builder.WriteString(", ")
 	builder.WriteString("last_login=")
 	builder.WriteString(l.LastLogin.Format(time.ANSIC))
