@@ -23,6 +23,7 @@ func (LoginReset) Fields() []ent.Field {
 
 func (LoginReset) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("notes", Note.Type),
 		edge.From("login", Login.Type).Ref("login_resets").Unique(),
 	}
 }

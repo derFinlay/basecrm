@@ -27,5 +27,6 @@ func (Login) Edges() []ent.Edge {
 		edge.From("customer", Customer.Type).Ref("login").Unique(),
 
 		edge.To("login_resets", LoginReset.Type),
+		edge.To("notes", Note.Type),
 	}
 }

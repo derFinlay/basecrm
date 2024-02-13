@@ -26,7 +26,8 @@ func (User) Fields() []ent.Field {
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("customers", Customer.Type).Ref("created_by"),
-		edge.From("notes", Note.Type).Ref("created_by"),
+		edge.To("notes", Note.Type),
 		edge.From("orders", Order.Type).Ref("created_by"),
+		edge.From("sessions", UserSession.Type).Ref("user").Unique(),
 	}
 }

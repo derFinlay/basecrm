@@ -36,6 +36,8 @@ func (Position) Fields() []ent.Field {
 
 func (Position) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("notes", Note.Type),
+
 		edge.From("order", Order.Type).Ref("positions").Unique(),
 	}
 }

@@ -22,7 +22,7 @@ func (Tel) Fields() []ent.Field {
 
 func (Tel) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("notes", Note.Type).Unique(),
+		edge.To("notes", Note.Type),
 
 		edge.From("customer", Customer.Type).Ref("tels").Unique(),
 	}
