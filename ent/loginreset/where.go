@@ -230,6 +230,29 @@ func UpdatedAtLTE(v time.Time) predicate.LoginReset {
 	return predicate.LoginReset(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
+// HasNotes applies the HasEdge predicate on the "notes" edge.
+func HasNotes() predicate.LoginReset {
+	return predicate.LoginReset(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNotesWith applies the HasEdge predicate on the "notes" edge with a given conditions (other predicates).
+func HasNotesWith(preds ...predicate.Note) predicate.LoginReset {
+	return predicate.LoginReset(func(s *sql.Selector) {
+		step := newNotesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasLogin applies the HasEdge predicate on the "login" edge.
 func HasLogin() predicate.LoginReset {
 	return predicate.LoginReset(func(s *sql.Selector) {

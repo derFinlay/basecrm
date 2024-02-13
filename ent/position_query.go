@@ -4,12 +4,14 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
 	"github.com/derfinlay/basecrm/ent/predicate"
@@ -22,6 +24,7 @@ type PositionQuery struct {
 	order      []position.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Position
+	withNotes  *NoteQuery
 	withOrder  *OrderQuery
 	withFKs    bool
 	// intermediate query (i.e. traversal path).
@@ -58,6 +61,28 @@ func (pq *PositionQuery) Unique(unique bool) *PositionQuery {
 func (pq *PositionQuery) Order(o ...position.OrderOption) *PositionQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryNotes chains the current query on the "notes" edge.
+func (pq *PositionQuery) QueryNotes() *NoteQuery {
+	query := (&NoteClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(position.Table, position.FieldID, selector),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, position.NotesTable, position.NotesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryOrder chains the current query on the "order" edge.
@@ -274,11 +299,23 @@ func (pq *PositionQuery) Clone() *PositionQuery {
 		order:      append([]position.OrderOption{}, pq.order...),
 		inters:     append([]Interceptor{}, pq.inters...),
 		predicates: append([]predicate.Position{}, pq.predicates...),
+		withNotes:  pq.withNotes.Clone(),
 		withOrder:  pq.withOrder.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
 	}
+}
+
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PositionQuery) WithNotes(opts ...func(*NoteQuery)) *PositionQuery {
+	query := (&NoteClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withNotes = query
+	return pq
 }
 
 // WithOrder tells the query-builder to eager-load the nodes that are connected to
@@ -371,7 +408,8 @@ func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Pos
 		nodes       = []*Position{}
 		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
+			pq.withNotes != nil,
 			pq.withOrder != nil,
 		}
 	)
@@ -399,6 +437,13 @@ func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Pos
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := pq.withNotes; query != nil {
+		if err := pq.loadNotes(ctx, query, nodes,
+			func(n *Position) { n.Edges.Notes = []*Note{} },
+			func(n *Position, e *Note) { n.Edges.Notes = append(n.Edges.Notes, e) }); err != nil {
+			return nil, err
+		}
+	}
 	if query := pq.withOrder; query != nil {
 		if err := pq.loadOrder(ctx, query, nodes, nil,
 			func(n *Position, e *Order) { n.Edges.Order = e }); err != nil {
@@ -408,6 +453,37 @@ func (pq *PositionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Pos
 	return nodes, nil
 }
 
+func (pq *PositionQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*Position, init func(*Position), assign func(*Position, *Note)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Position)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Note(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(position.NotesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.position_notes
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "position_notes" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "position_notes" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
 func (pq *PositionQuery) loadOrder(ctx context.Context, query *OrderQuery, nodes []*Position, init func(*Position), assign func(*Position, *Order)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Position)

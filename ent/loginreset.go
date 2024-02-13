@@ -35,17 +35,28 @@ type LoginReset struct {
 
 // LoginResetEdges holds the relations/edges for other nodes in the graph.
 type LoginResetEdges struct {
+	// Notes holds the value of the notes edge.
+	Notes []*Note `json:"notes,omitempty"`
 	// Login holds the value of the login edge.
 	Login *Login `json:"login,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
+}
+
+// NotesOrErr returns the Notes value or an error if the edge
+// was not loaded in eager-loading.
+func (e LoginResetEdges) NotesOrErr() ([]*Note, error) {
+	if e.loadedTypes[0] {
+		return e.Notes, nil
+	}
+	return nil, &NotLoadedError{edge: "notes"}
 }
 
 // LoginOrErr returns the Login value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e LoginResetEdges) LoginOrErr() (*Login, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		if e.Login == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: login.Label}
@@ -133,6 +144,11 @@ func (lr *LoginReset) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (lr *LoginReset) Value(name string) (ent.Value, error) {
 	return lr.selectValues.Get(name)
+}
+
+// QueryNotes queries the "notes" edge of the LoginReset entity.
+func (lr *LoginReset) QueryNotes() *NoteQuery {
+	return NewLoginResetClient(lr.config).QueryNotes(lr)
 }
 
 // QueryLogin queries the "login" edge of the LoginReset entity.

@@ -152,15 +152,22 @@ var (
 	// NotesColumns holds the columns for the "notes" table.
 	NotesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "title", Type: field.TypeString, Size: 200},
 		{Name: "content", Type: field.TypeString, Size: 1000},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "billing_address_notes", Type: field.TypeInt, Nullable: true},
 		{Name: "customer_notes", Type: field.TypeInt, Nullable: true},
 		{Name: "delivery_address_notes", Type: field.TypeInt, Nullable: true},
+		{Name: "login_notes", Type: field.TypeInt, Nullable: true},
+		{Name: "login_reset_notes", Type: field.TypeInt, Nullable: true},
 		{Name: "note_created_by", Type: field.TypeInt, Nullable: true},
 		{Name: "order_notes", Type: field.TypeInt, Nullable: true},
-		{Name: "tel_notes", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "position_notes", Type: field.TypeInt, Nullable: true},
+		{Name: "product_notes", Type: field.TypeInt, Nullable: true},
+		{Name: "role_notes", Type: field.TypeInt, Nullable: true},
+		{Name: "tel_notes", Type: field.TypeInt, Nullable: true},
+		{Name: "user_notes", Type: field.TypeInt, Nullable: true},
 	}
 	// NotesTable holds the schema information for the "notes" table.
 	NotesTable = &schema.Table{
@@ -170,38 +177,74 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "notes_billing_addresses_notes",
-				Columns:    []*schema.Column{NotesColumns[4]},
+				Columns:    []*schema.Column{NotesColumns[5]},
 				RefColumns: []*schema.Column{BillingAddressesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "notes_customers_notes",
-				Columns:    []*schema.Column{NotesColumns[5]},
+				Columns:    []*schema.Column{NotesColumns[6]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "notes_delivery_addresses_notes",
-				Columns:    []*schema.Column{NotesColumns[6]},
+				Columns:    []*schema.Column{NotesColumns[7]},
 				RefColumns: []*schema.Column{DeliveryAddressesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
+				Symbol:     "notes_logins_notes",
+				Columns:    []*schema.Column{NotesColumns[8]},
+				RefColumns: []*schema.Column{LoginsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notes_login_resets_notes",
+				Columns:    []*schema.Column{NotesColumns[9]},
+				RefColumns: []*schema.Column{LoginResetsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
 				Symbol:     "notes_users_created_by",
-				Columns:    []*schema.Column{NotesColumns[7]},
+				Columns:    []*schema.Column{NotesColumns[10]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "notes_orders_notes",
-				Columns:    []*schema.Column{NotesColumns[8]},
+				Columns:    []*schema.Column{NotesColumns[11]},
 				RefColumns: []*schema.Column{OrdersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
+				Symbol:     "notes_positions_notes",
+				Columns:    []*schema.Column{NotesColumns[12]},
+				RefColumns: []*schema.Column{PositionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notes_products_notes",
+				Columns:    []*schema.Column{NotesColumns[13]},
+				RefColumns: []*schema.Column{ProductsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notes_roles_notes",
+				Columns:    []*schema.Column{NotesColumns[14]},
+				RefColumns: []*schema.Column{RolesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
 				Symbol:     "notes_tels_notes",
-				Columns:    []*schema.Column{NotesColumns[9]},
+				Columns:    []*schema.Column{NotesColumns[15]},
 				RefColumns: []*schema.Column{TelsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notes_users_notes",
+				Columns:    []*schema.Column{NotesColumns[16]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -286,6 +329,7 @@ var (
 	// RolesColumns holds the columns for the "roles" table.
 	RolesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 50},
 	}
 	// RolesTable holds the schema information for the "roles" table.
 	RolesTable = &schema.Table{
@@ -324,12 +368,34 @@ var (
 		{Name: "last_login", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "user_session_user", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "users_user_sessions_user",
+				Columns:    []*schema.Column{UsersColumns[7]},
+				RefColumns: []*schema.Column{UserSessionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// UserSessionsColumns holds the columns for the "user_sessions" table.
+	UserSessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "token", Type: field.TypeString, Size: 32},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// UserSessionsTable holds the schema information for the "user_sessions" table.
+	UserSessionsTable = &schema.Table{
+		Name:       "user_sessions",
+		Columns:    UserSessionsColumns,
+		PrimaryKey: []*schema.Column{UserSessionsColumns[0]},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
@@ -345,6 +411,7 @@ var (
 		RolesTable,
 		TelsTable,
 		UsersTable,
+		UserSessionsTable,
 	}
 )
 
@@ -360,12 +427,19 @@ func init() {
 	NotesTable.ForeignKeys[0].RefTable = BillingAddressesTable
 	NotesTable.ForeignKeys[1].RefTable = CustomersTable
 	NotesTable.ForeignKeys[2].RefTable = DeliveryAddressesTable
-	NotesTable.ForeignKeys[3].RefTable = UsersTable
-	NotesTable.ForeignKeys[4].RefTable = OrdersTable
-	NotesTable.ForeignKeys[5].RefTable = TelsTable
+	NotesTable.ForeignKeys[3].RefTable = LoginsTable
+	NotesTable.ForeignKeys[4].RefTable = LoginResetsTable
+	NotesTable.ForeignKeys[5].RefTable = UsersTable
+	NotesTable.ForeignKeys[6].RefTable = OrdersTable
+	NotesTable.ForeignKeys[7].RefTable = PositionsTable
+	NotesTable.ForeignKeys[8].RefTable = ProductsTable
+	NotesTable.ForeignKeys[9].RefTable = RolesTable
+	NotesTable.ForeignKeys[10].RefTable = TelsTable
+	NotesTable.ForeignKeys[11].RefTable = UsersTable
 	OrdersTable.ForeignKeys[0].RefTable = CustomersTable
 	OrdersTable.ForeignKeys[1].RefTable = CustomersTable
 	OrdersTable.ForeignKeys[2].RefTable = UsersTable
 	PositionsTable.ForeignKeys[0].RefTable = OrdersTable
 	TelsTable.ForeignKeys[0].RefTable = CustomersTable
+	UsersTable.ForeignKeys[0].RefTable = UserSessionsTable
 }

@@ -41,9 +41,11 @@ type LoginEdges struct {
 	Customer *Customer `json:"customer,omitempty"`
 	// LoginResets holds the value of the login_resets edge.
 	LoginResets []*LoginReset `json:"login_resets,omitempty"`
+	// Notes holds the value of the notes edge.
+	Notes []*Note `json:"notes,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // CustomerOrErr returns the Customer value or an error if the edge
@@ -66,6 +68,15 @@ func (e LoginEdges) LoginResetsOrErr() ([]*LoginReset, error) {
 		return e.LoginResets, nil
 	}
 	return nil, &NotLoadedError{edge: "login_resets"}
+}
+
+// NotesOrErr returns the Notes value or an error if the edge
+// was not loaded in eager-loading.
+func (e LoginEdges) NotesOrErr() ([]*Note, error) {
+	if e.loadedTypes[2] {
+		return e.Notes, nil
+	}
+	return nil, &NotLoadedError{edge: "notes"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -160,6 +171,11 @@ func (l *Login) QueryCustomer() *CustomerQuery {
 // QueryLoginResets queries the "login_resets" edge of the Login entity.
 func (l *Login) QueryLoginResets() *LoginResetQuery {
 	return NewLoginClient(l.config).QueryLoginResets(l)
+}
+
+// QueryNotes queries the "notes" edge of the Login entity.
+func (l *Login) QueryNotes() *NoteQuery {
+	return NewLoginClient(l.config).QueryNotes(l)
 }
 
 // Update returns a builder for updating this Login.

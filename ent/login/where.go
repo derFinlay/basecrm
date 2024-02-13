@@ -376,6 +376,29 @@ func HasLoginResetsWith(preds ...predicate.LoginReset) predicate.Login {
 	})
 }
 
+// HasNotes applies the HasEdge predicate on the "notes" edge.
+func HasNotes() predicate.Login {
+	return predicate.Login(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNotesWith applies the HasEdge predicate on the "notes" edge with a given conditions (other predicates).
+func HasNotesWith(preds ...predicate.Note) predicate.Login {
+	return predicate.Login(func(s *sql.Selector) {
+		step := newNotesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Login) predicate.Login {
 	return predicate.Login(sql.AndPredicates(predicates...))

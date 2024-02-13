@@ -22,10 +22,19 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// EdgeNotes holds the string denoting the notes edge name in mutations.
+	EdgeNotes = "notes"
 	// EdgeLogin holds the string denoting the login edge name in mutations.
 	EdgeLogin = "login"
 	// Table holds the table name of the loginreset in the database.
 	Table = "login_resets"
+	// NotesTable is the table that holds the notes relation/edge.
+	NotesTable = "notes"
+	// NotesInverseTable is the table name for the Note entity.
+	// It exists in this package in order to avoid circular dependency with the "note" package.
+	NotesInverseTable = "notes"
+	// NotesColumn is the table column denoting the notes relation/edge.
+	NotesColumn = "login_reset_notes"
 	// LoginTable is the table that holds the login relation/edge.
 	LoginTable = "login_resets"
 	// LoginInverseTable is the table name for the Login entity.
@@ -106,11 +115,32 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
+// ByNotesCount orders the results by notes count.
+func ByNotesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNotesStep(), opts...)
+	}
+}
+
+// ByNotes orders the results by notes terms.
+func ByNotes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNotesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByLoginField orders the results by login field.
 func ByLoginField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newLoginStep(), sql.OrderByField(field, opts...))
 	}
+}
+func newNotesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NotesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+	)
 }
 func newLoginStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -12,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/loginreset"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
 
@@ -22,6 +24,7 @@ type LoginResetQuery struct {
 	order      []loginreset.OrderOption
 	inters     []Interceptor
 	predicates []predicate.LoginReset
+	withNotes  *NoteQuery
 	withLogin  *LoginQuery
 	withFKs    bool
 	// intermediate query (i.e. traversal path).
@@ -58,6 +61,28 @@ func (lrq *LoginResetQuery) Unique(unique bool) *LoginResetQuery {
 func (lrq *LoginResetQuery) Order(o ...loginreset.OrderOption) *LoginResetQuery {
 	lrq.order = append(lrq.order, o...)
 	return lrq
+}
+
+// QueryNotes chains the current query on the "notes" edge.
+func (lrq *LoginResetQuery) QueryNotes() *NoteQuery {
+	query := (&NoteClient{config: lrq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := lrq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := lrq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(loginreset.Table, loginreset.FieldID, selector),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, loginreset.NotesTable, loginreset.NotesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(lrq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryLogin chains the current query on the "login" edge.
@@ -274,11 +299,23 @@ func (lrq *LoginResetQuery) Clone() *LoginResetQuery {
 		order:      append([]loginreset.OrderOption{}, lrq.order...),
 		inters:     append([]Interceptor{}, lrq.inters...),
 		predicates: append([]predicate.LoginReset{}, lrq.predicates...),
+		withNotes:  lrq.withNotes.Clone(),
 		withLogin:  lrq.withLogin.Clone(),
 		// clone intermediate query.
 		sql:  lrq.sql.Clone(),
 		path: lrq.path,
 	}
+}
+
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (lrq *LoginResetQuery) WithNotes(opts ...func(*NoteQuery)) *LoginResetQuery {
+	query := (&NoteClient{config: lrq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	lrq.withNotes = query
+	return lrq
 }
 
 // WithLogin tells the query-builder to eager-load the nodes that are connected to
@@ -371,7 +408,8 @@ func (lrq *LoginResetQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 		nodes       = []*LoginReset{}
 		withFKs     = lrq.withFKs
 		_spec       = lrq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
+			lrq.withNotes != nil,
 			lrq.withLogin != nil,
 		}
 	)
@@ -399,6 +437,13 @@ func (lrq *LoginResetQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := lrq.withNotes; query != nil {
+		if err := lrq.loadNotes(ctx, query, nodes,
+			func(n *LoginReset) { n.Edges.Notes = []*Note{} },
+			func(n *LoginReset, e *Note) { n.Edges.Notes = append(n.Edges.Notes, e) }); err != nil {
+			return nil, err
+		}
+	}
 	if query := lrq.withLogin; query != nil {
 		if err := lrq.loadLogin(ctx, query, nodes, nil,
 			func(n *LoginReset, e *Login) { n.Edges.Login = e }); err != nil {
@@ -408,6 +453,37 @@ func (lrq *LoginResetQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	return nodes, nil
 }
 
+func (lrq *LoginResetQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*LoginReset, init func(*LoginReset), assign func(*LoginReset, *Note)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*LoginReset)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Note(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(loginreset.NotesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.login_reset_notes
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "login_reset_notes" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "login_reset_notes" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
 func (lrq *LoginResetQuery) loadLogin(ctx context.Context, query *LoginQuery, nodes []*LoginReset, init func(*LoginReset), assign func(*LoginReset, *Login)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*LoginReset)

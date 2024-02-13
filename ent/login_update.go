@@ -14,6 +14,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/loginreset"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
 
@@ -112,6 +113,21 @@ func (lu *LoginUpdate) AddLoginResets(l ...*LoginReset) *LoginUpdate {
 	return lu.AddLoginResetIDs(ids...)
 }
 
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (lu *LoginUpdate) AddNoteIDs(ids ...int) *LoginUpdate {
+	lu.mutation.AddNoteIDs(ids...)
+	return lu
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (lu *LoginUpdate) AddNotes(n ...*Note) *LoginUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return lu.AddNoteIDs(ids...)
+}
+
 // Mutation returns the LoginMutation object of the builder.
 func (lu *LoginUpdate) Mutation() *LoginMutation {
 	return lu.mutation
@@ -142,6 +158,27 @@ func (lu *LoginUpdate) RemoveLoginResets(l ...*LoginReset) *LoginUpdate {
 		ids[i] = l[i].ID
 	}
 	return lu.RemoveLoginResetIDs(ids...)
+}
+
+// ClearNotes clears all "notes" edges to the Note entity.
+func (lu *LoginUpdate) ClearNotes() *LoginUpdate {
+	lu.mutation.ClearNotes()
+	return lu
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (lu *LoginUpdate) RemoveNoteIDs(ids ...int) *LoginUpdate {
+	lu.mutation.RemoveNoteIDs(ids...)
+	return lu
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (lu *LoginUpdate) RemoveNotes(n ...*Note) *LoginUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return lu.RemoveNoteIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -293,6 +330,51 @@ func (lu *LoginUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if lu.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.NotesTable,
+			Columns: []string{login.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.RemovedNotesIDs(); len(nodes) > 0 && !lu.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.NotesTable,
+			Columns: []string{login.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.NotesTable,
+			Columns: []string{login.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, lu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{login.Label}
@@ -395,6 +477,21 @@ func (luo *LoginUpdateOne) AddLoginResets(l ...*LoginReset) *LoginUpdateOne {
 	return luo.AddLoginResetIDs(ids...)
 }
 
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (luo *LoginUpdateOne) AddNoteIDs(ids ...int) *LoginUpdateOne {
+	luo.mutation.AddNoteIDs(ids...)
+	return luo
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (luo *LoginUpdateOne) AddNotes(n ...*Note) *LoginUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return luo.AddNoteIDs(ids...)
+}
+
 // Mutation returns the LoginMutation object of the builder.
 func (luo *LoginUpdateOne) Mutation() *LoginMutation {
 	return luo.mutation
@@ -425,6 +522,27 @@ func (luo *LoginUpdateOne) RemoveLoginResets(l ...*LoginReset) *LoginUpdateOne {
 		ids[i] = l[i].ID
 	}
 	return luo.RemoveLoginResetIDs(ids...)
+}
+
+// ClearNotes clears all "notes" edges to the Note entity.
+func (luo *LoginUpdateOne) ClearNotes() *LoginUpdateOne {
+	luo.mutation.ClearNotes()
+	return luo
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (luo *LoginUpdateOne) RemoveNoteIDs(ids ...int) *LoginUpdateOne {
+	luo.mutation.RemoveNoteIDs(ids...)
+	return luo
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (luo *LoginUpdateOne) RemoveNotes(n ...*Note) *LoginUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return luo.RemoveNoteIDs(ids...)
 }
 
 // Where appends a list predicates to the LoginUpdate builder.
@@ -599,6 +717,51 @@ func (luo *LoginUpdateOne) sqlSave(ctx context.Context) (_node *Login, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if luo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.NotesTable,
+			Columns: []string{login.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.RemovedNotesIDs(); len(nodes) > 0 && !luo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.NotesTable,
+			Columns: []string{login.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.NotesTable,
+			Columns: []string{login.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

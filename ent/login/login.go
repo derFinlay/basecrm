@@ -28,6 +28,8 @@ const (
 	EdgeCustomer = "customer"
 	// EdgeLoginResets holds the string denoting the login_resets edge name in mutations.
 	EdgeLoginResets = "login_resets"
+	// EdgeNotes holds the string denoting the notes edge name in mutations.
+	EdgeNotes = "notes"
 	// Table holds the table name of the login in the database.
 	Table = "logins"
 	// CustomerTable is the table that holds the customer relation/edge.
@@ -44,6 +46,13 @@ const (
 	LoginResetsInverseTable = "login_resets"
 	// LoginResetsColumn is the table column denoting the login_resets relation/edge.
 	LoginResetsColumn = "login_login_resets"
+	// NotesTable is the table that holds the notes relation/edge.
+	NotesTable = "notes"
+	// NotesInverseTable is the table name for the Note entity.
+	// It exists in this package in order to avoid circular dependency with the "note" package.
+	NotesInverseTable = "notes"
+	// NotesColumn is the table column denoting the notes relation/edge.
+	NotesColumn = "login_notes"
 )
 
 // Columns holds all SQL columns for login fields.
@@ -143,6 +152,20 @@ func ByLoginResets(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newLoginResetsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByNotesCount orders the results by notes count.
+func ByNotesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNotesStep(), opts...)
+	}
+}
+
+// ByNotes orders the results by notes terms.
+func ByNotes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNotesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCustomerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -155,5 +178,12 @@ func newLoginResetsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(LoginResetsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, LoginResetsTable, LoginResetsColumn),
+	)
+}
+func newNotesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NotesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
 	)
 }

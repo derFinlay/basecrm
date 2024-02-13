@@ -41,3 +41,6 @@ type Tel func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
+
+// UserSession is the predicate function for usersession builders.
+type UserSession func(*sql.Selector)

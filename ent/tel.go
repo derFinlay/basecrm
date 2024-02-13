@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/derfinlay/basecrm/ent/customer"
-	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/tel"
 )
 
@@ -35,7 +34,7 @@ type Tel struct {
 // TelEdges holds the relations/edges for other nodes in the graph.
 type TelEdges struct {
 	// Notes holds the value of the notes edge.
-	Notes *Note `json:"notes,omitempty"`
+	Notes []*Note `json:"notes,omitempty"`
 	// Customer holds the value of the customer edge.
 	Customer *Customer `json:"customer,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -44,13 +43,9 @@ type TelEdges struct {
 }
 
 // NotesOrErr returns the Notes value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e TelEdges) NotesOrErr() (*Note, error) {
+// was not loaded in eager-loading.
+func (e TelEdges) NotesOrErr() ([]*Note, error) {
 	if e.loadedTypes[0] {
-		if e.Notes == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: note.Label}
-		}
 		return e.Notes, nil
 	}
 	return nil, &NotLoadedError{edge: "notes"}

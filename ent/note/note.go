@@ -14,40 +14,38 @@ const (
 	Label = "note"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldTitle holds the string denoting the title field in the database.
+	FieldTitle = "title"
 	// FieldContent holds the string denoting the content field in the database.
 	FieldContent = "content"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
-	// EdgeCustomer holds the string denoting the customer edge name in mutations.
-	EdgeCustomer = "customer"
-	// EdgeOrder holds the string denoting the order edge name in mutations.
-	EdgeOrder = "order"
 	// EdgeBillingAddress holds the string denoting the billing_address edge name in mutations.
 	EdgeBillingAddress = "billing_address"
+	// EdgeCustomer holds the string denoting the customer edge name in mutations.
+	EdgeCustomer = "customer"
 	// EdgeDeliveryAddress holds the string denoting the delivery_address edge name in mutations.
 	EdgeDeliveryAddress = "delivery_address"
+	// EdgeLoginReset holds the string denoting the login_reset edge name in mutations.
+	EdgeLoginReset = "login_reset"
+	// EdgeLogin holds the string denoting the login edge name in mutations.
+	EdgeLogin = "login"
+	// EdgeOrder holds the string denoting the order edge name in mutations.
+	EdgeOrder = "order"
+	// EdgePosition holds the string denoting the position edge name in mutations.
+	EdgePosition = "position"
+	// EdgeProduct holds the string denoting the product edge name in mutations.
+	EdgeProduct = "product"
+	// EdgeRole holds the string denoting the role edge name in mutations.
+	EdgeRole = "role"
 	// EdgeTel holds the string denoting the tel edge name in mutations.
 	EdgeTel = "tel"
 	// EdgeCreatedBy holds the string denoting the created_by edge name in mutations.
 	EdgeCreatedBy = "created_by"
 	// Table holds the table name of the note in the database.
 	Table = "notes"
-	// CustomerTable is the table that holds the customer relation/edge.
-	CustomerTable = "notes"
-	// CustomerInverseTable is the table name for the Customer entity.
-	// It exists in this package in order to avoid circular dependency with the "customer" package.
-	CustomerInverseTable = "customers"
-	// CustomerColumn is the table column denoting the customer relation/edge.
-	CustomerColumn = "customer_notes"
-	// OrderTable is the table that holds the order relation/edge.
-	OrderTable = "notes"
-	// OrderInverseTable is the table name for the Order entity.
-	// It exists in this package in order to avoid circular dependency with the "order" package.
-	OrderInverseTable = "orders"
-	// OrderColumn is the table column denoting the order relation/edge.
-	OrderColumn = "order_notes"
 	// BillingAddressTable is the table that holds the billing_address relation/edge.
 	BillingAddressTable = "notes"
 	// BillingAddressInverseTable is the table name for the BillingAddress entity.
@@ -55,6 +53,13 @@ const (
 	BillingAddressInverseTable = "billing_addresses"
 	// BillingAddressColumn is the table column denoting the billing_address relation/edge.
 	BillingAddressColumn = "billing_address_notes"
+	// CustomerTable is the table that holds the customer relation/edge.
+	CustomerTable = "notes"
+	// CustomerInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	CustomerInverseTable = "customers"
+	// CustomerColumn is the table column denoting the customer relation/edge.
+	CustomerColumn = "customer_notes"
 	// DeliveryAddressTable is the table that holds the delivery_address relation/edge.
 	DeliveryAddressTable = "notes"
 	// DeliveryAddressInverseTable is the table name for the DeliveryAddress entity.
@@ -62,6 +67,48 @@ const (
 	DeliveryAddressInverseTable = "delivery_addresses"
 	// DeliveryAddressColumn is the table column denoting the delivery_address relation/edge.
 	DeliveryAddressColumn = "delivery_address_notes"
+	// LoginResetTable is the table that holds the login_reset relation/edge.
+	LoginResetTable = "notes"
+	// LoginResetInverseTable is the table name for the LoginReset entity.
+	// It exists in this package in order to avoid circular dependency with the "loginreset" package.
+	LoginResetInverseTable = "login_resets"
+	// LoginResetColumn is the table column denoting the login_reset relation/edge.
+	LoginResetColumn = "login_reset_notes"
+	// LoginTable is the table that holds the login relation/edge.
+	LoginTable = "notes"
+	// LoginInverseTable is the table name for the Login entity.
+	// It exists in this package in order to avoid circular dependency with the "login" package.
+	LoginInverseTable = "logins"
+	// LoginColumn is the table column denoting the login relation/edge.
+	LoginColumn = "login_notes"
+	// OrderTable is the table that holds the order relation/edge.
+	OrderTable = "notes"
+	// OrderInverseTable is the table name for the Order entity.
+	// It exists in this package in order to avoid circular dependency with the "order" package.
+	OrderInverseTable = "orders"
+	// OrderColumn is the table column denoting the order relation/edge.
+	OrderColumn = "order_notes"
+	// PositionTable is the table that holds the position relation/edge.
+	PositionTable = "notes"
+	// PositionInverseTable is the table name for the Position entity.
+	// It exists in this package in order to avoid circular dependency with the "position" package.
+	PositionInverseTable = "positions"
+	// PositionColumn is the table column denoting the position relation/edge.
+	PositionColumn = "position_notes"
+	// ProductTable is the table that holds the product relation/edge.
+	ProductTable = "notes"
+	// ProductInverseTable is the table name for the Product entity.
+	// It exists in this package in order to avoid circular dependency with the "product" package.
+	ProductInverseTable = "products"
+	// ProductColumn is the table column denoting the product relation/edge.
+	ProductColumn = "product_notes"
+	// RoleTable is the table that holds the role relation/edge.
+	RoleTable = "notes"
+	// RoleInverseTable is the table name for the Role entity.
+	// It exists in this package in order to avoid circular dependency with the "role" package.
+	RoleInverseTable = "roles"
+	// RoleColumn is the table column denoting the role relation/edge.
+	RoleColumn = "role_notes"
 	// TelTable is the table that holds the tel relation/edge.
 	TelTable = "notes"
 	// TelInverseTable is the table name for the Tel entity.
@@ -81,6 +128,7 @@ const (
 // Columns holds all SQL columns for note fields.
 var Columns = []string{
 	FieldID,
+	FieldTitle,
 	FieldContent,
 	FieldUpdatedAt,
 	FieldCreatedAt,
@@ -92,9 +140,15 @@ var ForeignKeys = []string{
 	"billing_address_notes",
 	"customer_notes",
 	"delivery_address_notes",
+	"login_notes",
+	"login_reset_notes",
 	"note_created_by",
 	"order_notes",
+	"position_notes",
+	"product_notes",
+	"role_notes",
 	"tel_notes",
+	"user_notes",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -113,6 +167,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	TitleValidator func(string) error
 	// ContentValidator is a validator for the "content" field. It is called by the builders before save.
 	ContentValidator func(string) error
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -131,6 +187,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
+// ByTitle orders the results by the title field.
+func ByTitle(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTitle, opts...).ToFunc()
+}
+
 // ByContent orders the results by the content field.
 func ByContent(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldContent, opts...).ToFunc()
@@ -146,10 +207,38 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
 }
 
+// ByBillingAddressField orders the results by billing_address field.
+func ByBillingAddressField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingAddressStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByCustomerField orders the results by customer field.
 func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByDeliveryAddressField orders the results by delivery_address field.
+func ByDeliveryAddressField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newDeliveryAddressStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByLoginResetField orders the results by login_reset field.
+func ByLoginResetField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLoginResetStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByLoginField orders the results by login field.
+func ByLoginField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLoginStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -160,17 +249,24 @@ func ByOrderField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByBillingAddressField orders the results by billing_address field.
-func ByBillingAddressField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByPositionField orders the results by position field.
+func ByPositionField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingAddressStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newPositionStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByDeliveryAddressField orders the results by delivery_address field.
-func ByDeliveryAddressField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByProductField orders the results by product field.
+func ByProductField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newDeliveryAddressStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newProductStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByRoleField orders the results by role field.
+func ByRoleField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRoleStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -187,25 +283,18 @@ func ByCreatedByField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCreatedByStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newCustomerStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CustomerInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
-	)
-}
-func newOrderStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OrderInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, OrderTable, OrderColumn),
-	)
-}
 func newBillingAddressStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingAddressInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingAddressTable, BillingAddressColumn),
+	)
+}
+func newCustomerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
 	)
 }
 func newDeliveryAddressStep() *sqlgraph.Step {
@@ -215,11 +304,53 @@ func newDeliveryAddressStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, DeliveryAddressTable, DeliveryAddressColumn),
 	)
 }
+func newLoginResetStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LoginResetInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, LoginResetTable, LoginResetColumn),
+	)
+}
+func newLoginStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LoginInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, LoginTable, LoginColumn),
+	)
+}
+func newOrderStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrderInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrderTable, OrderColumn),
+	)
+}
+func newPositionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PositionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PositionTable, PositionColumn),
+	)
+}
+func newProductStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProductInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ProductTable, ProductColumn),
+	)
+}
+func newRoleStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RoleInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, RoleTable, RoleColumn),
+	)
+}
 func newTelStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TelInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, TelTable, TelColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, TelTable, TelColumn),
 	)
 }
 func newCreatedByStep() *sqlgraph.Step {

@@ -77,7 +77,7 @@ func (tq *TelQuery) QueryNotes() *NoteQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(tel.Table, tel.FieldID, selector),
 			sqlgraph.To(note.Table, note.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, tel.NotesTable, tel.NotesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, tel.NotesTable, tel.NotesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -438,8 +438,9 @@ func (tq *TelQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Tel, err
 		return nodes, nil
 	}
 	if query := tq.withNotes; query != nil {
-		if err := tq.loadNotes(ctx, query, nodes, nil,
-			func(n *Tel, e *Note) { n.Edges.Notes = e }); err != nil {
+		if err := tq.loadNotes(ctx, query, nodes,
+			func(n *Tel) { n.Edges.Notes = []*Note{} },
+			func(n *Tel, e *Note) { n.Edges.Notes = append(n.Edges.Notes, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -458,6 +459,9 @@ func (tq *TelQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*Te
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
 	}
 	query.withFKs = true
 	query.Where(predicate.Note(func(s *sql.Selector) {

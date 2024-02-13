@@ -24,10 +24,19 @@ const (
 	FieldAmount = "amount"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// EdgeNotes holds the string denoting the notes edge name in mutations.
+	EdgeNotes = "notes"
 	// EdgeOrder holds the string denoting the order edge name in mutations.
 	EdgeOrder = "order"
 	// Table holds the table name of the position in the database.
 	Table = "positions"
+	// NotesTable is the table that holds the notes relation/edge.
+	NotesTable = "notes"
+	// NotesInverseTable is the table name for the Note entity.
+	// It exists in this package in order to avoid circular dependency with the "note" package.
+	NotesInverseTable = "notes"
+	// NotesColumn is the table column denoting the notes relation/edge.
+	NotesColumn = "position_notes"
 	// OrderTable is the table that holds the order relation/edge.
 	OrderTable = "positions"
 	// OrderInverseTable is the table name for the Order entity.
@@ -116,11 +125,32 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
 }
 
+// ByNotesCount orders the results by notes count.
+func ByNotesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNotesStep(), opts...)
+	}
+}
+
+// ByNotes orders the results by notes terms.
+func ByNotes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNotesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByOrderField orders the results by order field.
 func ByOrderField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newOrderStep(), sql.OrderByField(field, opts...))
 	}
+}
+func newNotesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NotesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
+	)
 }
 func newOrderStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

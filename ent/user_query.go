@@ -16,6 +16,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/user"
+	"github.com/derfinlay/basecrm/ent/usersession"
 )
 
 // UserQuery is the builder for querying User entities.
@@ -28,6 +29,8 @@ type UserQuery struct {
 	withCustomers *CustomerQuery
 	withNotes     *NoteQuery
 	withOrders    *OrderQuery
+	withSessions  *UserSessionQuery
+	withFKs       bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -100,7 +103,7 @@ func (uq *UserQuery) QueryNotes() *NoteQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(note.Table, note.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, user.NotesTable, user.NotesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.NotesTable, user.NotesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -123,6 +126,28 @@ func (uq *UserQuery) QueryOrders() *OrderQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(order.Table, order.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, true, user.OrdersTable, user.OrdersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySessions chains the current query on the "sessions" edge.
+func (uq *UserQuery) QuerySessions() *UserSessionQuery {
+	query := (&UserSessionClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(usersession.Table, usersession.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, user.SessionsTable, user.SessionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -325,6 +350,7 @@ func (uq *UserQuery) Clone() *UserQuery {
 		withCustomers: uq.withCustomers.Clone(),
 		withNotes:     uq.withNotes.Clone(),
 		withOrders:    uq.withOrders.Clone(),
+		withSessions:  uq.withSessions.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
@@ -361,6 +387,17 @@ func (uq *UserQuery) WithOrders(opts ...func(*OrderQuery)) *UserQuery {
 		opt(query)
 	}
 	uq.withOrders = query
+	return uq
+}
+
+// WithSessions tells the query-builder to eager-load the nodes that are connected to
+// the "sessions" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithSessions(opts ...func(*UserSessionQuery)) *UserQuery {
+	query := (&UserSessionClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withSessions = query
 	return uq
 }
 
@@ -441,13 +478,21 @@ func (uq *UserQuery) prepareQuery(ctx context.Context) error {
 func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, error) {
 	var (
 		nodes       = []*User{}
+		withFKs     = uq.withFKs
 		_spec       = uq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			uq.withCustomers != nil,
 			uq.withNotes != nil,
 			uq.withOrders != nil,
+			uq.withSessions != nil,
 		}
 	)
+	if uq.withSessions != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, user.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*User).scanValues(nil, columns)
 	}
@@ -484,6 +529,12 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := uq.loadOrders(ctx, query, nodes,
 			func(n *User) { n.Edges.Orders = []*Order{} },
 			func(n *User, e *Order) { n.Edges.Orders = append(n.Edges.Orders, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withSessions; query != nil {
+		if err := uq.loadSessions(ctx, query, nodes, nil,
+			func(n *User, e *UserSession) { n.Edges.Sessions = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -540,13 +591,13 @@ func (uq *UserQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*U
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.note_created_by
+		fk := n.user_notes
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "note_created_by" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "user_notes" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "note_created_by" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_notes" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -580,6 +631,38 @@ func (uq *UserQuery) loadOrders(ctx context.Context, query *OrderQuery, nodes []
 			return fmt.Errorf(`unexpected referenced foreign-key "order_created_by" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadSessions(ctx context.Context, query *UserSessionQuery, nodes []*User, init func(*User), assign func(*User, *UserSession)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*User)
+	for i := range nodes {
+		if nodes[i].user_session_user == nil {
+			continue
+		}
+		fk := *nodes[i].user_session_user
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(usersession.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_session_user" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

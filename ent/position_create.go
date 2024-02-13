@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
 )
@@ -73,6 +74,21 @@ func (pc *PositionCreate) SetNillableCreatedAt(t *time.Time) *PositionCreate {
 		pc.SetCreatedAt(*t)
 	}
 	return pc
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (pc *PositionCreate) AddNoteIDs(ids ...int) *PositionCreate {
+	pc.mutation.AddNoteIDs(ids...)
+	return pc
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (pc *PositionCreate) AddNotes(n ...*Note) *PositionCreate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return pc.AddNoteIDs(ids...)
 }
 
 // SetOrderID sets the "order" edge to the Order entity by ID.
@@ -218,6 +234,22 @@ func (pc *PositionCreate) createSpec() (*Position, *sqlgraph.CreateSpec) {
 	if value, ok := pc.mutation.CreatedAt(); ok {
 		_spec.SetField(position.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if nodes := pc.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   position.NotesTable,
+			Columns: []string{position.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := pc.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

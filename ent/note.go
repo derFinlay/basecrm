@@ -12,8 +12,13 @@ import (
 	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
+	"github.com/derfinlay/basecrm/ent/login"
+	"github.com/derfinlay/basecrm/ent/loginreset"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
+	"github.com/derfinlay/basecrm/ent/position"
+	"github.com/derfinlay/basecrm/ent/product"
+	"github.com/derfinlay/basecrm/ent/role"
 	"github.com/derfinlay/basecrm/ent/tel"
 	"github.com/derfinlay/basecrm/ent/user"
 )
@@ -23,6 +28,8 @@ type Note struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// Title holds the value of the "title" field.
+	Title string `json:"title,omitempty"`
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -35,61 +42,51 @@ type Note struct {
 	billing_address_notes  *int
 	customer_notes         *int
 	delivery_address_notes *int
+	login_notes            *int
+	login_reset_notes      *int
 	note_created_by        *int
 	order_notes            *int
+	position_notes         *int
+	product_notes          *int
+	role_notes             *int
 	tel_notes              *int
+	user_notes             *int
 	selectValues           sql.SelectValues
 }
 
 // NoteEdges holds the relations/edges for other nodes in the graph.
 type NoteEdges struct {
-	// Customer holds the value of the customer edge.
-	Customer *Customer `json:"customer,omitempty"`
-	// Order holds the value of the order edge.
-	Order *Order `json:"order,omitempty"`
 	// BillingAddress holds the value of the billing_address edge.
 	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+	// Customer holds the value of the customer edge.
+	Customer *Customer `json:"customer,omitempty"`
 	// DeliveryAddress holds the value of the delivery_address edge.
 	DeliveryAddress *DeliveryAddress `json:"delivery_address,omitempty"`
+	// LoginReset holds the value of the login_reset edge.
+	LoginReset *LoginReset `json:"login_reset,omitempty"`
+	// Login holds the value of the login edge.
+	Login *Login `json:"login,omitempty"`
+	// Order holds the value of the order edge.
+	Order *Order `json:"order,omitempty"`
+	// Position holds the value of the position edge.
+	Position *Position `json:"position,omitempty"`
+	// Product holds the value of the product edge.
+	Product *Product `json:"product,omitempty"`
+	// Role holds the value of the role edge.
+	Role *Role `json:"role,omitempty"`
 	// Tel holds the value of the tel edge.
 	Tel *Tel `json:"tel,omitempty"`
 	// CreatedBy holds the value of the created_by edge.
 	CreatedBy *User `json:"created_by,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
-}
-
-// CustomerOrErr returns the Customer value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e NoteEdges) CustomerOrErr() (*Customer, error) {
-	if e.loadedTypes[0] {
-		if e.Customer == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: customer.Label}
-		}
-		return e.Customer, nil
-	}
-	return nil, &NotLoadedError{edge: "customer"}
-}
-
-// OrderOrErr returns the Order value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e NoteEdges) OrderOrErr() (*Order, error) {
-	if e.loadedTypes[1] {
-		if e.Order == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: order.Label}
-		}
-		return e.Order, nil
-	}
-	return nil, &NotLoadedError{edge: "order"}
+	loadedTypes [11]bool
 }
 
 // BillingAddressOrErr returns the BillingAddress value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e NoteEdges) BillingAddressOrErr() (*BillingAddress, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[0] {
 		if e.BillingAddress == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: billingaddress.Label}
@@ -99,10 +96,23 @@ func (e NoteEdges) BillingAddressOrErr() (*BillingAddress, error) {
 	return nil, &NotLoadedError{edge: "billing_address"}
 }
 
+// CustomerOrErr returns the Customer value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) CustomerOrErr() (*Customer, error) {
+	if e.loadedTypes[1] {
+		if e.Customer == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: customer.Label}
+		}
+		return e.Customer, nil
+	}
+	return nil, &NotLoadedError{edge: "customer"}
+}
+
 // DeliveryAddressOrErr returns the DeliveryAddress value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e NoteEdges) DeliveryAddressOrErr() (*DeliveryAddress, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[2] {
 		if e.DeliveryAddress == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: deliveryaddress.Label}
@@ -112,10 +122,88 @@ func (e NoteEdges) DeliveryAddressOrErr() (*DeliveryAddress, error) {
 	return nil, &NotLoadedError{edge: "delivery_address"}
 }
 
+// LoginResetOrErr returns the LoginReset value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) LoginResetOrErr() (*LoginReset, error) {
+	if e.loadedTypes[3] {
+		if e.LoginReset == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: loginreset.Label}
+		}
+		return e.LoginReset, nil
+	}
+	return nil, &NotLoadedError{edge: "login_reset"}
+}
+
+// LoginOrErr returns the Login value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) LoginOrErr() (*Login, error) {
+	if e.loadedTypes[4] {
+		if e.Login == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: login.Label}
+		}
+		return e.Login, nil
+	}
+	return nil, &NotLoadedError{edge: "login"}
+}
+
+// OrderOrErr returns the Order value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) OrderOrErr() (*Order, error) {
+	if e.loadedTypes[5] {
+		if e.Order == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: order.Label}
+		}
+		return e.Order, nil
+	}
+	return nil, &NotLoadedError{edge: "order"}
+}
+
+// PositionOrErr returns the Position value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) PositionOrErr() (*Position, error) {
+	if e.loadedTypes[6] {
+		if e.Position == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: position.Label}
+		}
+		return e.Position, nil
+	}
+	return nil, &NotLoadedError{edge: "position"}
+}
+
+// ProductOrErr returns the Product value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) ProductOrErr() (*Product, error) {
+	if e.loadedTypes[7] {
+		if e.Product == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: product.Label}
+		}
+		return e.Product, nil
+	}
+	return nil, &NotLoadedError{edge: "product"}
+}
+
+// RoleOrErr returns the Role value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NoteEdges) RoleOrErr() (*Role, error) {
+	if e.loadedTypes[8] {
+		if e.Role == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: role.Label}
+		}
+		return e.Role, nil
+	}
+	return nil, &NotLoadedError{edge: "role"}
+}
+
 // TelOrErr returns the Tel value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e NoteEdges) TelOrErr() (*Tel, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[9] {
 		if e.Tel == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: tel.Label}
@@ -128,7 +216,7 @@ func (e NoteEdges) TelOrErr() (*Tel, error) {
 // CreatedByOrErr returns the CreatedBy value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e NoteEdges) CreatedByOrErr() (*User, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[10] {
 		if e.CreatedBy == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: user.Label}
@@ -145,7 +233,7 @@ func (*Note) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case note.FieldID:
 			values[i] = new(sql.NullInt64)
-		case note.FieldContent:
+		case note.FieldTitle, note.FieldContent:
 			values[i] = new(sql.NullString)
 		case note.FieldUpdatedAt, note.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -155,11 +243,23 @@ func (*Note) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case note.ForeignKeys[2]: // delivery_address_notes
 			values[i] = new(sql.NullInt64)
-		case note.ForeignKeys[3]: // note_created_by
+		case note.ForeignKeys[3]: // login_notes
 			values[i] = new(sql.NullInt64)
-		case note.ForeignKeys[4]: // order_notes
+		case note.ForeignKeys[4]: // login_reset_notes
 			values[i] = new(sql.NullInt64)
-		case note.ForeignKeys[5]: // tel_notes
+		case note.ForeignKeys[5]: // note_created_by
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[6]: // order_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[7]: // position_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[8]: // product_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[9]: // role_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[10]: // tel_notes
+			values[i] = new(sql.NullInt64)
+		case note.ForeignKeys[11]: // user_notes
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -182,6 +282,12 @@ func (n *Note) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			n.ID = int(value.Int64)
+		case note.FieldTitle:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field title", values[i])
+			} else if value.Valid {
+				n.Title = value.String
+			}
 		case note.FieldContent:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field content", values[i])
@@ -223,24 +329,66 @@ func (n *Note) assignValues(columns []string, values []any) error {
 			}
 		case note.ForeignKeys[3]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field login_notes", value)
+			} else if value.Valid {
+				n.login_notes = new(int)
+				*n.login_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[4]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field login_reset_notes", value)
+			} else if value.Valid {
+				n.login_reset_notes = new(int)
+				*n.login_reset_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[5]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field note_created_by", value)
 			} else if value.Valid {
 				n.note_created_by = new(int)
 				*n.note_created_by = int(value.Int64)
 			}
-		case note.ForeignKeys[4]:
+		case note.ForeignKeys[6]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field order_notes", value)
 			} else if value.Valid {
 				n.order_notes = new(int)
 				*n.order_notes = int(value.Int64)
 			}
-		case note.ForeignKeys[5]:
+		case note.ForeignKeys[7]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field position_notes", value)
+			} else if value.Valid {
+				n.position_notes = new(int)
+				*n.position_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[8]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field product_notes", value)
+			} else if value.Valid {
+				n.product_notes = new(int)
+				*n.product_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[9]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field role_notes", value)
+			} else if value.Valid {
+				n.role_notes = new(int)
+				*n.role_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[10]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field tel_notes", value)
 			} else if value.Valid {
 				n.tel_notes = new(int)
 				*n.tel_notes = int(value.Int64)
+			}
+		case note.ForeignKeys[11]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_notes", value)
+			} else if value.Valid {
+				n.user_notes = new(int)
+				*n.user_notes = int(value.Int64)
 			}
 		default:
 			n.selectValues.Set(columns[i], values[i])
@@ -255,9 +403,29 @@ func (n *Note) Value(name string) (ent.Value, error) {
 	return n.selectValues.Get(name)
 }
 
+// QueryBillingAddress queries the "billing_address" edge of the Note entity.
+func (n *Note) QueryBillingAddress() *BillingAddressQuery {
+	return NewNoteClient(n.config).QueryBillingAddress(n)
+}
+
 // QueryCustomer queries the "customer" edge of the Note entity.
 func (n *Note) QueryCustomer() *CustomerQuery {
 	return NewNoteClient(n.config).QueryCustomer(n)
+}
+
+// QueryDeliveryAddress queries the "delivery_address" edge of the Note entity.
+func (n *Note) QueryDeliveryAddress() *DeliveryAddressQuery {
+	return NewNoteClient(n.config).QueryDeliveryAddress(n)
+}
+
+// QueryLoginReset queries the "login_reset" edge of the Note entity.
+func (n *Note) QueryLoginReset() *LoginResetQuery {
+	return NewNoteClient(n.config).QueryLoginReset(n)
+}
+
+// QueryLogin queries the "login" edge of the Note entity.
+func (n *Note) QueryLogin() *LoginQuery {
+	return NewNoteClient(n.config).QueryLogin(n)
 }
 
 // QueryOrder queries the "order" edge of the Note entity.
@@ -265,14 +433,19 @@ func (n *Note) QueryOrder() *OrderQuery {
 	return NewNoteClient(n.config).QueryOrder(n)
 }
 
-// QueryBillingAddress queries the "billing_address" edge of the Note entity.
-func (n *Note) QueryBillingAddress() *BillingAddressQuery {
-	return NewNoteClient(n.config).QueryBillingAddress(n)
+// QueryPosition queries the "position" edge of the Note entity.
+func (n *Note) QueryPosition() *PositionQuery {
+	return NewNoteClient(n.config).QueryPosition(n)
 }
 
-// QueryDeliveryAddress queries the "delivery_address" edge of the Note entity.
-func (n *Note) QueryDeliveryAddress() *DeliveryAddressQuery {
-	return NewNoteClient(n.config).QueryDeliveryAddress(n)
+// QueryProduct queries the "product" edge of the Note entity.
+func (n *Note) QueryProduct() *ProductQuery {
+	return NewNoteClient(n.config).QueryProduct(n)
+}
+
+// QueryRole queries the "role" edge of the Note entity.
+func (n *Note) QueryRole() *RoleQuery {
+	return NewNoteClient(n.config).QueryRole(n)
 }
 
 // QueryTel queries the "tel" edge of the Note entity.
@@ -308,6 +481,9 @@ func (n *Note) String() string {
 	var builder strings.Builder
 	builder.WriteString("Note(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", n.ID))
+	builder.WriteString("title=")
+	builder.WriteString(n.Title)
+	builder.WriteString(", ")
 	builder.WriteString("content=")
 	builder.WriteString(n.Content)
 	builder.WriteString(", ")

@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/derfinlay/basecrm/ent/user"
+	"github.com/derfinlay/basecrm/ent/usersession"
 )
 
 // User is the model entity for the User schema.
@@ -31,8 +32,9 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
-	Edges        UserEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges             UserEdges `json:"edges"`
+	user_session_user *int
+	selectValues      sql.SelectValues
 }
 
 // UserEdges holds the relations/edges for other nodes in the graph.
@@ -43,9 +45,11 @@ type UserEdges struct {
 	Notes []*Note `json:"notes,omitempty"`
 	// Orders holds the value of the orders edge.
 	Orders []*Order `json:"orders,omitempty"`
+	// Sessions holds the value of the sessions edge.
+	Sessions *UserSession `json:"sessions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // CustomersOrErr returns the Customers value or an error if the edge
@@ -75,6 +79,19 @@ func (e UserEdges) OrdersOrErr() ([]*Order, error) {
 	return nil, &NotLoadedError{edge: "orders"}
 }
 
+// SessionsOrErr returns the Sessions value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UserEdges) SessionsOrErr() (*UserSession, error) {
+	if e.loadedTypes[3] {
+		if e.Sessions == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: usersession.Label}
+		}
+		return e.Sessions, nil
+	}
+	return nil, &NotLoadedError{edge: "sessions"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -86,6 +103,8 @@ func (*User) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case user.FieldLastLogin, user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case user.ForeignKeys[0]: // user_session_user
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -143,6 +162,13 @@ func (u *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				u.UpdatedAt = value.Time
 			}
+		case user.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_session_user", value)
+			} else if value.Valid {
+				u.user_session_user = new(int)
+				*u.user_session_user = int(value.Int64)
+			}
 		default:
 			u.selectValues.Set(columns[i], values[i])
 		}
@@ -169,6 +195,11 @@ func (u *User) QueryNotes() *NoteQuery {
 // QueryOrders queries the "orders" edge of the User entity.
 func (u *User) QueryOrders() *OrderQuery {
 	return NewUserClient(u.config).QueryOrders(u)
+}
+
+// QuerySessions queries the "sessions" edge of the User entity.
+func (u *User) QuerySessions() *UserSessionQuery {
+	return NewUserClient(u.config).QuerySessions(u)
 }
 
 // Update returns a builder for updating this User.

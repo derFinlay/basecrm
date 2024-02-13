@@ -4,12 +4,14 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/role"
 )
@@ -21,6 +23,7 @@ type RoleQuery struct {
 	order      []role.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Role
+	withNotes  *NoteQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -55,6 +58,28 @@ func (rq *RoleQuery) Unique(unique bool) *RoleQuery {
 func (rq *RoleQuery) Order(o ...role.OrderOption) *RoleQuery {
 	rq.order = append(rq.order, o...)
 	return rq
+}
+
+// QueryNotes chains the current query on the "notes" edge.
+func (rq *RoleQuery) QueryNotes() *NoteQuery {
+	query := (&NoteClient{config: rq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(role.Table, role.FieldID, selector),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, role.NotesTable, role.NotesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Role entity from the query.
@@ -249,14 +274,38 @@ func (rq *RoleQuery) Clone() *RoleQuery {
 		order:      append([]role.OrderOption{}, rq.order...),
 		inters:     append([]Interceptor{}, rq.inters...),
 		predicates: append([]predicate.Role{}, rq.predicates...),
+		withNotes:  rq.withNotes.Clone(),
 		// clone intermediate query.
 		sql:  rq.sql.Clone(),
 		path: rq.path,
 	}
 }
 
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RoleQuery) WithNotes(opts ...func(*NoteQuery)) *RoleQuery {
+	query := (&NoteClient{config: rq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withNotes = query
+	return rq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Role.Query().
+//		GroupBy(role.FieldName).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
 func (rq *RoleQuery) GroupBy(field string, fields ...string) *RoleGroupBy {
 	rq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &RoleGroupBy{build: rq}
@@ -268,6 +317,16 @@ func (rq *RoleQuery) GroupBy(field string, fields ...string) *RoleGroupBy {
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//	}
+//
+//	client.Role.Query().
+//		Select(role.FieldName).
+//		Scan(ctx, &v)
 func (rq *RoleQuery) Select(fields ...string) *RoleSelect {
 	rq.ctx.Fields = append(rq.ctx.Fields, fields...)
 	sbuild := &RoleSelect{RoleQuery: rq}
@@ -309,8 +368,11 @@ func (rq *RoleQuery) prepareQuery(ctx context.Context) error {
 
 func (rq *RoleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Role, error) {
 	var (
-		nodes = []*Role{}
-		_spec = rq.querySpec()
+		nodes       = []*Role{}
+		_spec       = rq.querySpec()
+		loadedTypes = [1]bool{
+			rq.withNotes != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Role).scanValues(nil, columns)
@@ -318,6 +380,7 @@ func (rq *RoleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Role, e
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Role{config: rq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -329,7 +392,46 @@ func (rq *RoleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Role, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := rq.withNotes; query != nil {
+		if err := rq.loadNotes(ctx, query, nodes,
+			func(n *Role) { n.Edges.Notes = []*Note{} },
+			func(n *Role, e *Note) { n.Edges.Notes = append(n.Edges.Notes, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (rq *RoleQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*Role, init func(*Role), assign func(*Role, *Note)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Role)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Note(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(role.NotesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.role_notes
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "role_notes" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "role_notes" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (rq *RoleQuery) sqlCount(ctx context.Context) (int, error) {

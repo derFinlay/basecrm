@@ -14,9 +14,11 @@ import (
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/position"
 	"github.com/derfinlay/basecrm/ent/product"
+	"github.com/derfinlay/basecrm/ent/role"
 	"github.com/derfinlay/basecrm/ent/schema"
 	"github.com/derfinlay/basecrm/ent/tel"
 	"github.com/derfinlay/basecrm/ent/user"
+	"github.com/derfinlay/basecrm/ent/usersession"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -193,32 +195,22 @@ func init() {
 	loginreset.UpdateDefaultUpdatedAt = loginresetDescUpdatedAt.UpdateDefault.(func() time.Time)
 	noteFields := schema.Note{}.Fields()
 	_ = noteFields
+	// noteDescTitle is the schema descriptor for title field.
+	noteDescTitle := noteFields[0].Descriptor()
+	// note.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	note.TitleValidator = noteDescTitle.Validators[0].(func(string) error)
 	// noteDescContent is the schema descriptor for content field.
-	noteDescContent := noteFields[0].Descriptor()
+	noteDescContent := noteFields[1].Descriptor()
 	// note.ContentValidator is a validator for the "content" field. It is called by the builders before save.
-	note.ContentValidator = func() func(string) error {
-		validators := noteDescContent.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(content string) error {
-			for _, fn := range fns {
-				if err := fn(content); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	note.ContentValidator = noteDescContent.Validators[0].(func(string) error)
 	// noteDescUpdatedAt is the schema descriptor for updated_at field.
-	noteDescUpdatedAt := noteFields[1].Descriptor()
+	noteDescUpdatedAt := noteFields[2].Descriptor()
 	// note.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	note.DefaultUpdatedAt = noteDescUpdatedAt.Default.(func() time.Time)
 	// note.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	note.UpdateDefaultUpdatedAt = noteDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// noteDescCreatedAt is the schema descriptor for created_at field.
-	noteDescCreatedAt := noteFields[2].Descriptor()
+	noteDescCreatedAt := noteFields[3].Descriptor()
 	// note.DefaultCreatedAt holds the default value on creation for the created_at field.
 	note.DefaultCreatedAt = noteDescCreatedAt.Default.(func() time.Time)
 	orderFields := schema.Order{}.Fields()
@@ -295,6 +287,26 @@ func init() {
 	productDescPrice := productFields[2].Descriptor()
 	// product.PriceValidator is a validator for the "price" field. It is called by the builders before save.
 	product.PriceValidator = productDescPrice.Validators[0].(func(float64) error)
+	roleFields := schema.Role{}.Fields()
+	_ = roleFields
+	// roleDescName is the schema descriptor for name field.
+	roleDescName := roleFields[0].Descriptor()
+	// role.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	role.NameValidator = func() func(string) error {
+		validators := roleDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	telFields := schema.Tel{}.Fields()
 	_ = telFields
 	// telDescTel is the schema descriptor for tel field.
@@ -349,4 +361,35 @@ func init() {
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
+	usersessionFields := schema.UserSession{}.Fields()
+	_ = usersessionFields
+	// usersessionDescToken is the schema descriptor for token field.
+	usersessionDescToken := usersessionFields[0].Descriptor()
+	// usersession.TokenValidator is a validator for the "token" field. It is called by the builders before save.
+	usersession.TokenValidator = func() func(string) error {
+		validators := usersessionDescToken.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(token string) error {
+			for _, fn := range fns {
+				if err := fn(token); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// usersessionDescCreatedAt is the schema descriptor for created_at field.
+	usersessionDescCreatedAt := usersessionFields[1].Descriptor()
+	// usersession.DefaultCreatedAt holds the default value on creation for the created_at field.
+	usersession.DefaultCreatedAt = usersessionDescCreatedAt.Default.(func() time.Time)
+	// usersessionDescUpdatedAt is the schema descriptor for updated_at field.
+	usersessionDescUpdatedAt := usersessionFields[2].Descriptor()
+	// usersession.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	usersession.DefaultUpdatedAt = usersessionDescUpdatedAt.Default.(func() time.Time)
+	// usersession.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	usersession.UpdateDefaultUpdatedAt = usersessionDescUpdatedAt.UpdateDefault.(func() time.Time)
 }

@@ -105,10 +105,17 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByNotesField orders the results by notes field.
-func ByNotesField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByNotesCount orders the results by notes count.
+func ByNotesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newNotesStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newNotesStep(), opts...)
+	}
+}
+
+// ByNotes orders the results by notes terms.
+func ByNotes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNotesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -122,7 +129,7 @@ func newNotesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(NotesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, NotesTable, NotesColumn),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
 	)
 }
 func newCustomerStep() *sqlgraph.Step {

@@ -13,6 +13,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/loginreset"
+	"github.com/derfinlay/basecrm/ent/note"
 )
 
 // LoginCreate is the builder for creating a Login entity.
@@ -100,6 +101,21 @@ func (lc *LoginCreate) AddLoginResets(l ...*LoginReset) *LoginCreate {
 		ids[i] = l[i].ID
 	}
 	return lc.AddLoginResetIDs(ids...)
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (lc *LoginCreate) AddNoteIDs(ids ...int) *LoginCreate {
+	lc.mutation.AddNoteIDs(ids...)
+	return lc
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (lc *LoginCreate) AddNotes(n ...*Note) *LoginCreate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return lc.AddNoteIDs(ids...)
 }
 
 // Mutation returns the LoginMutation object of the builder.
@@ -246,6 +262,22 @@ func (lc *LoginCreate) createSpec() (*Login, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := lc.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   login.NotesTable,
+			Columns: []string{login.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

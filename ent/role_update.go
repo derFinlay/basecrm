@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/role"
 )
@@ -27,9 +28,45 @@ func (ru *RoleUpdate) Where(ps ...predicate.Role) *RoleUpdate {
 	return ru
 }
 
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (ru *RoleUpdate) AddNoteIDs(ids ...int) *RoleUpdate {
+	ru.mutation.AddNoteIDs(ids...)
+	return ru
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (ru *RoleUpdate) AddNotes(n ...*Note) *RoleUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return ru.AddNoteIDs(ids...)
+}
+
 // Mutation returns the RoleMutation object of the builder.
 func (ru *RoleUpdate) Mutation() *RoleMutation {
 	return ru.mutation
+}
+
+// ClearNotes clears all "notes" edges to the Note entity.
+func (ru *RoleUpdate) ClearNotes() *RoleUpdate {
+	ru.mutation.ClearNotes()
+	return ru
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (ru *RoleUpdate) RemoveNoteIDs(ids ...int) *RoleUpdate {
+	ru.mutation.RemoveNoteIDs(ids...)
+	return ru
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (ru *RoleUpdate) RemoveNotes(n ...*Note) *RoleUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return ru.RemoveNoteIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -68,6 +105,51 @@ func (ru *RoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if ru.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   role.NotesTable,
+			Columns: []string{role.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.RemovedNotesIDs(); len(nodes) > 0 && !ru.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   role.NotesTable,
+			Columns: []string{role.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   role.NotesTable,
+			Columns: []string{role.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{role.Label}
@@ -88,9 +170,45 @@ type RoleUpdateOne struct {
 	mutation *RoleMutation
 }
 
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (ruo *RoleUpdateOne) AddNoteIDs(ids ...int) *RoleUpdateOne {
+	ruo.mutation.AddNoteIDs(ids...)
+	return ruo
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (ruo *RoleUpdateOne) AddNotes(n ...*Note) *RoleUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return ruo.AddNoteIDs(ids...)
+}
+
 // Mutation returns the RoleMutation object of the builder.
 func (ruo *RoleUpdateOne) Mutation() *RoleMutation {
 	return ruo.mutation
+}
+
+// ClearNotes clears all "notes" edges to the Note entity.
+func (ruo *RoleUpdateOne) ClearNotes() *RoleUpdateOne {
+	ruo.mutation.ClearNotes()
+	return ruo
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (ruo *RoleUpdateOne) RemoveNoteIDs(ids ...int) *RoleUpdateOne {
+	ruo.mutation.RemoveNoteIDs(ids...)
+	return ruo
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (ruo *RoleUpdateOne) RemoveNotes(n ...*Note) *RoleUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return ruo.RemoveNoteIDs(ids...)
 }
 
 // Where appends a list predicates to the RoleUpdate builder.
@@ -158,6 +276,51 @@ func (ruo *RoleUpdateOne) sqlSave(ctx context.Context) (_node *Role, err error) 
 				ps[i](selector)
 			}
 		}
+	}
+	if ruo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   role.NotesTable,
+			Columns: []string{role.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.RemovedNotesIDs(); len(nodes) > 0 && !ruo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   role.NotesTable,
+			Columns: []string{role.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   role.NotesTable,
+			Columns: []string{role.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Role{config: ruo.config}
 	_spec.Assign = _node.assignValues

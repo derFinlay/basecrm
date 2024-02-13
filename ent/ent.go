@@ -24,6 +24,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/role"
 	"github.com/derfinlay/basecrm/ent/tel"
 	"github.com/derfinlay/basecrm/ent/user"
+	"github.com/derfinlay/basecrm/ent/usersession"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -96,6 +97,7 @@ func checkColumn(table, column string) error {
 			role.Table:            role.ValidColumn,
 			tel.Table:             tel.ValidColumn,
 			user.Table:            user.ValidColumn,
+			usersession.Table:     usersession.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

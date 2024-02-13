@@ -32,6 +32,8 @@ const (
 	EdgeNotes = "notes"
 	// EdgeOrders holds the string denoting the orders edge name in mutations.
 	EdgeOrders = "orders"
+	// EdgeSessions holds the string denoting the sessions edge name in mutations.
+	EdgeSessions = "sessions"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// CustomersTable is the table that holds the customers relation/edge.
@@ -47,7 +49,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "note" package.
 	NotesInverseTable = "notes"
 	// NotesColumn is the table column denoting the notes relation/edge.
-	NotesColumn = "note_created_by"
+	NotesColumn = "user_notes"
 	// OrdersTable is the table that holds the orders relation/edge.
 	OrdersTable = "orders"
 	// OrdersInverseTable is the table name for the Order entity.
@@ -55,6 +57,13 @@ const (
 	OrdersInverseTable = "orders"
 	// OrdersColumn is the table column denoting the orders relation/edge.
 	OrdersColumn = "order_created_by"
+	// SessionsTable is the table that holds the sessions relation/edge.
+	SessionsTable = "users"
+	// SessionsInverseTable is the table name for the UserSession entity.
+	// It exists in this package in order to avoid circular dependency with the "usersession" package.
+	SessionsInverseTable = "user_sessions"
+	// SessionsColumn is the table column denoting the sessions relation/edge.
+	SessionsColumn = "user_session_user"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -68,10 +77,21 @@ var Columns = []string{
 	FieldUpdatedAt,
 }
 
+// ForeignKeys holds the SQL foreign-keys that are owned by the "users"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"user_session_user",
+}
+
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -172,6 +192,13 @@ func ByOrders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newOrdersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// BySessionsField orders the results by sessions field.
+func BySessionsField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSessionsStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newCustomersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -183,7 +210,7 @@ func newNotesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(NotesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, true, NotesTable, NotesColumn),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
 	)
 }
 func newOrdersStep() *sqlgraph.Step {
@@ -191,5 +218,12 @@ func newOrdersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrdersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, true, OrdersTable, OrdersColumn),
+	)
+}
+func newSessionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SessionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, SessionsTable, SessionsColumn),
 	)
 }

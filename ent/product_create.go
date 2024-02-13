@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/product"
 )
 
@@ -43,6 +44,21 @@ func (pc *ProductCreate) SetNillableDescription(s *string) *ProductCreate {
 func (pc *ProductCreate) SetPrice(f float64) *ProductCreate {
 	pc.mutation.SetPrice(f)
 	return pc
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (pc *ProductCreate) AddNoteIDs(ids ...int) *ProductCreate {
+	pc.mutation.AddNoteIDs(ids...)
+	return pc
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (pc *ProductCreate) AddNotes(n ...*Note) *ProductCreate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return pc.AddNoteIDs(ids...)
 }
 
 // Mutation returns the ProductMutation object of the builder.
@@ -132,6 +148,22 @@ func (pc *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 	if value, ok := pc.mutation.Price(); ok {
 		_spec.SetField(product.FieldPrice, field.TypeFloat64, value)
 		_node.Price = value
+	}
+	if nodes := pc.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.NotesTable,
+			Columns: []string{product.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

@@ -37,17 +37,28 @@ type Position struct {
 
 // PositionEdges holds the relations/edges for other nodes in the graph.
 type PositionEdges struct {
+	// Notes holds the value of the notes edge.
+	Notes []*Note `json:"notes,omitempty"`
 	// Order holds the value of the order edge.
 	Order *Order `json:"order,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
+}
+
+// NotesOrErr returns the Notes value or an error if the edge
+// was not loaded in eager-loading.
+func (e PositionEdges) NotesOrErr() ([]*Note, error) {
+	if e.loadedTypes[0] {
+		return e.Notes, nil
+	}
+	return nil, &NotLoadedError{edge: "notes"}
 }
 
 // OrderOrErr returns the Order value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PositionEdges) OrderOrErr() (*Order, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		if e.Order == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: order.Label}
@@ -141,6 +152,11 @@ func (po *Position) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (po *Position) Value(name string) (ent.Value, error) {
 	return po.selectValues.Get(name)
+}
+
+// QueryNotes queries the "notes" edge of the Position entity.
+func (po *Position) QueryNotes() *NoteQuery {
+	return NewPositionClient(po.config).QueryNotes(po)
 }
 
 // QueryOrder queries the "order" edge of the Position entity.

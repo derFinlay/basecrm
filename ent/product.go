@@ -21,8 +21,29 @@ type Product struct {
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
 	// Price holds the value of the "price" field.
-	Price        float64 `json:"price,omitempty"`
+	Price float64 `json:"price,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ProductQuery when eager-loading is set.
+	Edges        ProductEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// ProductEdges holds the relations/edges for other nodes in the graph.
+type ProductEdges struct {
+	// Notes holds the value of the notes edge.
+	Notes []*Note `json:"notes,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// NotesOrErr returns the Notes value or an error if the edge
+// was not loaded in eager-loading.
+func (e ProductEdges) NotesOrErr() ([]*Note, error) {
+	if e.loadedTypes[0] {
+		return e.Notes, nil
+	}
+	return nil, &NotLoadedError{edge: "notes"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -86,6 +107,11 @@ func (pr *Product) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (pr *Product) Value(name string) (ent.Value, error) {
 	return pr.selectValues.Get(name)
+}
+
+// QueryNotes queries the "notes" edge of the Product entity.
+func (pr *Product) QueryNotes() *NoteQuery {
+	return NewProductClient(pr.config).QueryNotes(pr)
 }
 
 // Update returns a builder for updating this Product.

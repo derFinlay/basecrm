@@ -13,8 +13,13 @@ import (
 	"github.com/derfinlay/basecrm/ent/billingaddress"
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/deliveryaddress"
+	"github.com/derfinlay/basecrm/ent/login"
+	"github.com/derfinlay/basecrm/ent/loginreset"
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
+	"github.com/derfinlay/basecrm/ent/position"
+	"github.com/derfinlay/basecrm/ent/product"
+	"github.com/derfinlay/basecrm/ent/role"
 	"github.com/derfinlay/basecrm/ent/tel"
 	"github.com/derfinlay/basecrm/ent/user"
 )
@@ -24,6 +29,12 @@ type NoteCreate struct {
 	config
 	mutation *NoteMutation
 	hooks    []Hook
+}
+
+// SetTitle sets the "title" field.
+func (nc *NoteCreate) SetTitle(s string) *NoteCreate {
+	nc.mutation.SetTitle(s)
+	return nc
 }
 
 // SetContent sets the "content" field.
@@ -60,6 +71,25 @@ func (nc *NoteCreate) SetNillableCreatedAt(t *time.Time) *NoteCreate {
 	return nc
 }
 
+// SetBillingAddressID sets the "billing_address" edge to the BillingAddress entity by ID.
+func (nc *NoteCreate) SetBillingAddressID(id int) *NoteCreate {
+	nc.mutation.SetBillingAddressID(id)
+	return nc
+}
+
+// SetNillableBillingAddressID sets the "billing_address" edge to the BillingAddress entity by ID if the given value is not nil.
+func (nc *NoteCreate) SetNillableBillingAddressID(id *int) *NoteCreate {
+	if id != nil {
+		nc = nc.SetBillingAddressID(*id)
+	}
+	return nc
+}
+
+// SetBillingAddress sets the "billing_address" edge to the BillingAddress entity.
+func (nc *NoteCreate) SetBillingAddress(b *BillingAddress) *NoteCreate {
+	return nc.SetBillingAddressID(b.ID)
+}
+
 // SetCustomerID sets the "customer" edge to the Customer entity by ID.
 func (nc *NoteCreate) SetCustomerID(id int) *NoteCreate {
 	nc.mutation.SetCustomerID(id)
@@ -77,6 +107,63 @@ func (nc *NoteCreate) SetNillableCustomerID(id *int) *NoteCreate {
 // SetCustomer sets the "customer" edge to the Customer entity.
 func (nc *NoteCreate) SetCustomer(c *Customer) *NoteCreate {
 	return nc.SetCustomerID(c.ID)
+}
+
+// SetDeliveryAddressID sets the "delivery_address" edge to the DeliveryAddress entity by ID.
+func (nc *NoteCreate) SetDeliveryAddressID(id int) *NoteCreate {
+	nc.mutation.SetDeliveryAddressID(id)
+	return nc
+}
+
+// SetNillableDeliveryAddressID sets the "delivery_address" edge to the DeliveryAddress entity by ID if the given value is not nil.
+func (nc *NoteCreate) SetNillableDeliveryAddressID(id *int) *NoteCreate {
+	if id != nil {
+		nc = nc.SetDeliveryAddressID(*id)
+	}
+	return nc
+}
+
+// SetDeliveryAddress sets the "delivery_address" edge to the DeliveryAddress entity.
+func (nc *NoteCreate) SetDeliveryAddress(d *DeliveryAddress) *NoteCreate {
+	return nc.SetDeliveryAddressID(d.ID)
+}
+
+// SetLoginResetID sets the "login_reset" edge to the LoginReset entity by ID.
+func (nc *NoteCreate) SetLoginResetID(id int) *NoteCreate {
+	nc.mutation.SetLoginResetID(id)
+	return nc
+}
+
+// SetNillableLoginResetID sets the "login_reset" edge to the LoginReset entity by ID if the given value is not nil.
+func (nc *NoteCreate) SetNillableLoginResetID(id *int) *NoteCreate {
+	if id != nil {
+		nc = nc.SetLoginResetID(*id)
+	}
+	return nc
+}
+
+// SetLoginReset sets the "login_reset" edge to the LoginReset entity.
+func (nc *NoteCreate) SetLoginReset(l *LoginReset) *NoteCreate {
+	return nc.SetLoginResetID(l.ID)
+}
+
+// SetLoginID sets the "login" edge to the Login entity by ID.
+func (nc *NoteCreate) SetLoginID(id int) *NoteCreate {
+	nc.mutation.SetLoginID(id)
+	return nc
+}
+
+// SetNillableLoginID sets the "login" edge to the Login entity by ID if the given value is not nil.
+func (nc *NoteCreate) SetNillableLoginID(id *int) *NoteCreate {
+	if id != nil {
+		nc = nc.SetLoginID(*id)
+	}
+	return nc
+}
+
+// SetLogin sets the "login" edge to the Login entity.
+func (nc *NoteCreate) SetLogin(l *Login) *NoteCreate {
+	return nc.SetLoginID(l.ID)
 }
 
 // SetOrderID sets the "order" edge to the Order entity by ID.
@@ -98,42 +185,61 @@ func (nc *NoteCreate) SetOrder(o *Order) *NoteCreate {
 	return nc.SetOrderID(o.ID)
 }
 
-// SetBillingAddressID sets the "billing_address" edge to the BillingAddress entity by ID.
-func (nc *NoteCreate) SetBillingAddressID(id int) *NoteCreate {
-	nc.mutation.SetBillingAddressID(id)
+// SetPositionID sets the "position" edge to the Position entity by ID.
+func (nc *NoteCreate) SetPositionID(id int) *NoteCreate {
+	nc.mutation.SetPositionID(id)
 	return nc
 }
 
-// SetNillableBillingAddressID sets the "billing_address" edge to the BillingAddress entity by ID if the given value is not nil.
-func (nc *NoteCreate) SetNillableBillingAddressID(id *int) *NoteCreate {
+// SetNillablePositionID sets the "position" edge to the Position entity by ID if the given value is not nil.
+func (nc *NoteCreate) SetNillablePositionID(id *int) *NoteCreate {
 	if id != nil {
-		nc = nc.SetBillingAddressID(*id)
+		nc = nc.SetPositionID(*id)
 	}
 	return nc
 }
 
-// SetBillingAddress sets the "billing_address" edge to the BillingAddress entity.
-func (nc *NoteCreate) SetBillingAddress(b *BillingAddress) *NoteCreate {
-	return nc.SetBillingAddressID(b.ID)
+// SetPosition sets the "position" edge to the Position entity.
+func (nc *NoteCreate) SetPosition(p *Position) *NoteCreate {
+	return nc.SetPositionID(p.ID)
 }
 
-// SetDeliveryAddressID sets the "delivery_address" edge to the DeliveryAddress entity by ID.
-func (nc *NoteCreate) SetDeliveryAddressID(id int) *NoteCreate {
-	nc.mutation.SetDeliveryAddressID(id)
+// SetProductID sets the "product" edge to the Product entity by ID.
+func (nc *NoteCreate) SetProductID(id int) *NoteCreate {
+	nc.mutation.SetProductID(id)
 	return nc
 }
 
-// SetNillableDeliveryAddressID sets the "delivery_address" edge to the DeliveryAddress entity by ID if the given value is not nil.
-func (nc *NoteCreate) SetNillableDeliveryAddressID(id *int) *NoteCreate {
+// SetNillableProductID sets the "product" edge to the Product entity by ID if the given value is not nil.
+func (nc *NoteCreate) SetNillableProductID(id *int) *NoteCreate {
 	if id != nil {
-		nc = nc.SetDeliveryAddressID(*id)
+		nc = nc.SetProductID(*id)
 	}
 	return nc
 }
 
-// SetDeliveryAddress sets the "delivery_address" edge to the DeliveryAddress entity.
-func (nc *NoteCreate) SetDeliveryAddress(d *DeliveryAddress) *NoteCreate {
-	return nc.SetDeliveryAddressID(d.ID)
+// SetProduct sets the "product" edge to the Product entity.
+func (nc *NoteCreate) SetProduct(p *Product) *NoteCreate {
+	return nc.SetProductID(p.ID)
+}
+
+// SetRoleID sets the "role" edge to the Role entity by ID.
+func (nc *NoteCreate) SetRoleID(id int) *NoteCreate {
+	nc.mutation.SetRoleID(id)
+	return nc
+}
+
+// SetNillableRoleID sets the "role" edge to the Role entity by ID if the given value is not nil.
+func (nc *NoteCreate) SetNillableRoleID(id *int) *NoteCreate {
+	if id != nil {
+		nc = nc.SetRoleID(*id)
+	}
+	return nc
+}
+
+// SetRole sets the "role" edge to the Role entity.
+func (nc *NoteCreate) SetRole(r *Role) *NoteCreate {
+	return nc.SetRoleID(r.ID)
 }
 
 // SetTelID sets the "tel" edge to the Tel entity by ID.
@@ -221,6 +327,14 @@ func (nc *NoteCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (nc *NoteCreate) check() error {
+	if _, ok := nc.mutation.Title(); !ok {
+		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "Note.title"`)}
+	}
+	if v, ok := nc.mutation.Title(); ok {
+		if err := note.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Note.title": %w`, err)}
+		}
+	}
 	if _, ok := nc.mutation.Content(); !ok {
 		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "Note.content"`)}
 	}
@@ -261,6 +375,10 @@ func (nc *NoteCreate) createSpec() (*Note, *sqlgraph.CreateSpec) {
 		_node = &Note{config: nc.config}
 		_spec = sqlgraph.NewCreateSpec(note.Table, sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt))
 	)
+	if value, ok := nc.mutation.Title(); ok {
+		_spec.SetField(note.FieldTitle, field.TypeString, value)
+		_node.Title = value
+	}
 	if value, ok := nc.mutation.Content(); ok {
 		_spec.SetField(note.FieldContent, field.TypeString, value)
 		_node.Content = value
@@ -272,40 +390,6 @@ func (nc *NoteCreate) createSpec() (*Note, *sqlgraph.CreateSpec) {
 	if value, ok := nc.mutation.CreatedAt(); ok {
 		_spec.SetField(note.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
-	}
-	if nodes := nc.mutation.CustomerIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   note.CustomerTable,
-			Columns: []string{note.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.customer_notes = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := nc.mutation.OrderIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   note.OrderTable,
-			Columns: []string{note.OrderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.order_notes = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := nc.mutation.BillingAddressIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -322,6 +406,23 @@ func (nc *NoteCreate) createSpec() (*Note, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.billing_address_notes = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := nc.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   note.CustomerTable,
+			Columns: []string{note.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.customer_notes = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := nc.mutation.DeliveryAddressIDs(); len(nodes) > 0 {
@@ -341,9 +442,111 @@ func (nc *NoteCreate) createSpec() (*Note, *sqlgraph.CreateSpec) {
 		_node.delivery_address_notes = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := nc.mutation.LoginResetIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   note.LoginResetTable,
+			Columns: []string{note.LoginResetColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(loginreset.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.login_reset_notes = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := nc.mutation.LoginIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   note.LoginTable,
+			Columns: []string{note.LoginColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(login.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.login_notes = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := nc.mutation.OrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   note.OrderTable,
+			Columns: []string{note.OrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.order_notes = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := nc.mutation.PositionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   note.PositionTable,
+			Columns: []string{note.PositionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.position_notes = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := nc.mutation.ProductIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   note.ProductTable,
+			Columns: []string{note.ProductColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(product.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.product_notes = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := nc.mutation.RoleIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   note.RoleTable,
+			Columns: []string{note.RoleColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(role.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.role_notes = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := nc.mutation.TelIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   note.TelTable,
 			Columns: []string{note.TelColumn},

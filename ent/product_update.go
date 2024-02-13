@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/product"
 )
@@ -24,40 +25,6 @@ type ProductUpdate struct {
 // Where appends a list predicates to the ProductUpdate builder.
 func (pu *ProductUpdate) Where(ps ...predicate.Product) *ProductUpdate {
 	pu.mutation.Where(ps...)
-	return pu
-}
-
-// SetName sets the "name" field.
-func (pu *ProductUpdate) SetName(s string) *ProductUpdate {
-	pu.mutation.SetName(s)
-	return pu
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (pu *ProductUpdate) SetNillableName(s *string) *ProductUpdate {
-	if s != nil {
-		pu.SetName(*s)
-	}
-	return pu
-}
-
-// SetDescription sets the "description" field.
-func (pu *ProductUpdate) SetDescription(s string) *ProductUpdate {
-	pu.mutation.SetDescription(s)
-	return pu
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (pu *ProductUpdate) SetNillableDescription(s *string) *ProductUpdate {
-	if s != nil {
-		pu.SetDescription(*s)
-	}
-	return pu
-}
-
-// ClearDescription clears the value of the "description" field.
-func (pu *ProductUpdate) ClearDescription() *ProductUpdate {
-	pu.mutation.ClearDescription()
 	return pu
 }
 
@@ -82,9 +49,45 @@ func (pu *ProductUpdate) AddPrice(f float64) *ProductUpdate {
 	return pu
 }
 
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (pu *ProductUpdate) AddNoteIDs(ids ...int) *ProductUpdate {
+	pu.mutation.AddNoteIDs(ids...)
+	return pu
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (pu *ProductUpdate) AddNotes(n ...*Note) *ProductUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return pu.AddNoteIDs(ids...)
+}
+
 // Mutation returns the ProductMutation object of the builder.
 func (pu *ProductUpdate) Mutation() *ProductMutation {
 	return pu.mutation
+}
+
+// ClearNotes clears all "notes" edges to the Note entity.
+func (pu *ProductUpdate) ClearNotes() *ProductUpdate {
+	pu.mutation.ClearNotes()
+	return pu
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (pu *ProductUpdate) RemoveNoteIDs(ids ...int) *ProductUpdate {
+	pu.mutation.RemoveNoteIDs(ids...)
+	return pu
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (pu *ProductUpdate) RemoveNotes(n ...*Note) *ProductUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return pu.RemoveNoteIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -116,11 +119,6 @@ func (pu *ProductUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (pu *ProductUpdate) check() error {
-	if v, ok := pu.mutation.Name(); ok {
-		if err := product.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Product.name": %w`, err)}
-		}
-	}
 	if v, ok := pu.mutation.Price(); ok {
 		if err := product.PriceValidator(v); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`ent: validator failed for field "Product.price": %w`, err)}
@@ -141,12 +139,6 @@ func (pu *ProductUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := pu.mutation.Name(); ok {
-		_spec.SetField(product.FieldName, field.TypeString, value)
-	}
-	if value, ok := pu.mutation.Description(); ok {
-		_spec.SetField(product.FieldDescription, field.TypeString, value)
-	}
 	if pu.mutation.DescriptionCleared() {
 		_spec.ClearField(product.FieldDescription, field.TypeString)
 	}
@@ -155,6 +147,51 @@ func (pu *ProductUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := pu.mutation.AddedPrice(); ok {
 		_spec.AddField(product.FieldPrice, field.TypeFloat64, value)
+	}
+	if pu.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.NotesTable,
+			Columns: []string{product.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedNotesIDs(); len(nodes) > 0 && !pu.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.NotesTable,
+			Columns: []string{product.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.NotesTable,
+			Columns: []string{product.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -174,40 +211,6 @@ type ProductUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ProductMutation
-}
-
-// SetName sets the "name" field.
-func (puo *ProductUpdateOne) SetName(s string) *ProductUpdateOne {
-	puo.mutation.SetName(s)
-	return puo
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (puo *ProductUpdateOne) SetNillableName(s *string) *ProductUpdateOne {
-	if s != nil {
-		puo.SetName(*s)
-	}
-	return puo
-}
-
-// SetDescription sets the "description" field.
-func (puo *ProductUpdateOne) SetDescription(s string) *ProductUpdateOne {
-	puo.mutation.SetDescription(s)
-	return puo
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (puo *ProductUpdateOne) SetNillableDescription(s *string) *ProductUpdateOne {
-	if s != nil {
-		puo.SetDescription(*s)
-	}
-	return puo
-}
-
-// ClearDescription clears the value of the "description" field.
-func (puo *ProductUpdateOne) ClearDescription() *ProductUpdateOne {
-	puo.mutation.ClearDescription()
-	return puo
 }
 
 // SetPrice sets the "price" field.
@@ -231,9 +234,45 @@ func (puo *ProductUpdateOne) AddPrice(f float64) *ProductUpdateOne {
 	return puo
 }
 
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (puo *ProductUpdateOne) AddNoteIDs(ids ...int) *ProductUpdateOne {
+	puo.mutation.AddNoteIDs(ids...)
+	return puo
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (puo *ProductUpdateOne) AddNotes(n ...*Note) *ProductUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return puo.AddNoteIDs(ids...)
+}
+
 // Mutation returns the ProductMutation object of the builder.
 func (puo *ProductUpdateOne) Mutation() *ProductMutation {
 	return puo.mutation
+}
+
+// ClearNotes clears all "notes" edges to the Note entity.
+func (puo *ProductUpdateOne) ClearNotes() *ProductUpdateOne {
+	puo.mutation.ClearNotes()
+	return puo
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (puo *ProductUpdateOne) RemoveNoteIDs(ids ...int) *ProductUpdateOne {
+	puo.mutation.RemoveNoteIDs(ids...)
+	return puo
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (puo *ProductUpdateOne) RemoveNotes(n ...*Note) *ProductUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return puo.RemoveNoteIDs(ids...)
 }
 
 // Where appends a list predicates to the ProductUpdate builder.
@@ -278,11 +317,6 @@ func (puo *ProductUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (puo *ProductUpdateOne) check() error {
-	if v, ok := puo.mutation.Name(); ok {
-		if err := product.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Product.name": %w`, err)}
-		}
-	}
 	if v, ok := puo.mutation.Price(); ok {
 		if err := product.PriceValidator(v); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`ent: validator failed for field "Product.price": %w`, err)}
@@ -320,12 +354,6 @@ func (puo *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err e
 			}
 		}
 	}
-	if value, ok := puo.mutation.Name(); ok {
-		_spec.SetField(product.FieldName, field.TypeString, value)
-	}
-	if value, ok := puo.mutation.Description(); ok {
-		_spec.SetField(product.FieldDescription, field.TypeString, value)
-	}
 	if puo.mutation.DescriptionCleared() {
 		_spec.ClearField(product.FieldDescription, field.TypeString)
 	}
@@ -334,6 +362,51 @@ func (puo *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err e
 	}
 	if value, ok := puo.mutation.AddedPrice(); ok {
 		_spec.AddField(product.FieldPrice, field.TypeFloat64, value)
+	}
+	if puo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.NotesTable,
+			Columns: []string{product.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedNotesIDs(); len(nodes) > 0 && !puo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.NotesTable,
+			Columns: []string{product.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.NotesTable,
+			Columns: []string{product.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Product{config: puo.config}
 	_spec.Assign = _node.assignValues

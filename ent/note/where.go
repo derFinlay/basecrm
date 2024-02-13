@@ -55,6 +55,11 @@ func IDLTE(id int) predicate.Note {
 	return predicate.Note(sql.FieldLTE(FieldID, id))
 }
 
+// Title applies equality check predicate on the "title" field. It's identical to TitleEQ.
+func Title(v string) predicate.Note {
+	return predicate.Note(sql.FieldEQ(FieldTitle, v))
+}
+
 // Content applies equality check predicate on the "content" field. It's identical to ContentEQ.
 func Content(v string) predicate.Note {
 	return predicate.Note(sql.FieldEQ(FieldContent, v))
@@ -68,6 +73,71 @@ func UpdatedAt(v time.Time) predicate.Note {
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Note {
 	return predicate.Note(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// TitleEQ applies the EQ predicate on the "title" field.
+func TitleEQ(v string) predicate.Note {
+	return predicate.Note(sql.FieldEQ(FieldTitle, v))
+}
+
+// TitleNEQ applies the NEQ predicate on the "title" field.
+func TitleNEQ(v string) predicate.Note {
+	return predicate.Note(sql.FieldNEQ(FieldTitle, v))
+}
+
+// TitleIn applies the In predicate on the "title" field.
+func TitleIn(vs ...string) predicate.Note {
+	return predicate.Note(sql.FieldIn(FieldTitle, vs...))
+}
+
+// TitleNotIn applies the NotIn predicate on the "title" field.
+func TitleNotIn(vs ...string) predicate.Note {
+	return predicate.Note(sql.FieldNotIn(FieldTitle, vs...))
+}
+
+// TitleGT applies the GT predicate on the "title" field.
+func TitleGT(v string) predicate.Note {
+	return predicate.Note(sql.FieldGT(FieldTitle, v))
+}
+
+// TitleGTE applies the GTE predicate on the "title" field.
+func TitleGTE(v string) predicate.Note {
+	return predicate.Note(sql.FieldGTE(FieldTitle, v))
+}
+
+// TitleLT applies the LT predicate on the "title" field.
+func TitleLT(v string) predicate.Note {
+	return predicate.Note(sql.FieldLT(FieldTitle, v))
+}
+
+// TitleLTE applies the LTE predicate on the "title" field.
+func TitleLTE(v string) predicate.Note {
+	return predicate.Note(sql.FieldLTE(FieldTitle, v))
+}
+
+// TitleContains applies the Contains predicate on the "title" field.
+func TitleContains(v string) predicate.Note {
+	return predicate.Note(sql.FieldContains(FieldTitle, v))
+}
+
+// TitleHasPrefix applies the HasPrefix predicate on the "title" field.
+func TitleHasPrefix(v string) predicate.Note {
+	return predicate.Note(sql.FieldHasPrefix(FieldTitle, v))
+}
+
+// TitleHasSuffix applies the HasSuffix predicate on the "title" field.
+func TitleHasSuffix(v string) predicate.Note {
+	return predicate.Note(sql.FieldHasSuffix(FieldTitle, v))
+}
+
+// TitleEqualFold applies the EqualFold predicate on the "title" field.
+func TitleEqualFold(v string) predicate.Note {
+	return predicate.Note(sql.FieldEqualFold(FieldTitle, v))
+}
+
+// TitleContainsFold applies the ContainsFold predicate on the "title" field.
+func TitleContainsFold(v string) predicate.Note {
+	return predicate.Note(sql.FieldContainsFold(FieldTitle, v))
 }
 
 // ContentEQ applies the EQ predicate on the "content" field.
@@ -215,52 +285,6 @@ func CreatedAtLTE(v time.Time) predicate.Note {
 	return predicate.Note(sql.FieldLTE(FieldCreatedAt, v))
 }
 
-// HasCustomer applies the HasEdge predicate on the "customer" edge.
-func HasCustomer() predicate.Note {
-	return predicate.Note(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasCustomerWith applies the HasEdge predicate on the "customer" edge with a given conditions (other predicates).
-func HasCustomerWith(preds ...predicate.Customer) predicate.Note {
-	return predicate.Note(func(s *sql.Selector) {
-		step := newCustomerStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasOrder applies the HasEdge predicate on the "order" edge.
-func HasOrder() predicate.Note {
-	return predicate.Note(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OrderTable, OrderColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasOrderWith applies the HasEdge predicate on the "order" edge with a given conditions (other predicates).
-func HasOrderWith(preds ...predicate.Order) predicate.Note {
-	return predicate.Note(func(s *sql.Selector) {
-		step := newOrderStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasBillingAddress applies the HasEdge predicate on the "billing_address" edge.
 func HasBillingAddress() predicate.Note {
 	return predicate.Note(func(s *sql.Selector) {
@@ -276,6 +300,29 @@ func HasBillingAddress() predicate.Note {
 func HasBillingAddressWith(preds ...predicate.BillingAddress) predicate.Note {
 	return predicate.Note(func(s *sql.Selector) {
 		step := newBillingAddressStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCustomer applies the HasEdge predicate on the "customer" edge.
+func HasCustomer() predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCustomerWith applies the HasEdge predicate on the "customer" edge with a given conditions (other predicates).
+func HasCustomerWith(preds ...predicate.Customer) predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := newCustomerStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -307,12 +354,150 @@ func HasDeliveryAddressWith(preds ...predicate.DeliveryAddress) predicate.Note {
 	})
 }
 
+// HasLoginReset applies the HasEdge predicate on the "login_reset" edge.
+func HasLoginReset() predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, LoginResetTable, LoginResetColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLoginResetWith applies the HasEdge predicate on the "login_reset" edge with a given conditions (other predicates).
+func HasLoginResetWith(preds ...predicate.LoginReset) predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := newLoginResetStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasLogin applies the HasEdge predicate on the "login" edge.
+func HasLogin() predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, LoginTable, LoginColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLoginWith applies the HasEdge predicate on the "login" edge with a given conditions (other predicates).
+func HasLoginWith(preds ...predicate.Login) predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := newLoginStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrder applies the HasEdge predicate on the "order" edge.
+func HasOrder() predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, OrderTable, OrderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrderWith applies the HasEdge predicate on the "order" edge with a given conditions (other predicates).
+func HasOrderWith(preds ...predicate.Order) predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := newOrderStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPosition applies the HasEdge predicate on the "position" edge.
+func HasPosition() predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PositionTable, PositionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPositionWith applies the HasEdge predicate on the "position" edge with a given conditions (other predicates).
+func HasPositionWith(preds ...predicate.Position) predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := newPositionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasProduct applies the HasEdge predicate on the "product" edge.
+func HasProduct() predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ProductTable, ProductColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProductWith applies the HasEdge predicate on the "product" edge with a given conditions (other predicates).
+func HasProductWith(preds ...predicate.Product) predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := newProductStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasRole applies the HasEdge predicate on the "role" edge.
+func HasRole() predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, RoleTable, RoleColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRoleWith applies the HasEdge predicate on the "role" edge with a given conditions (other predicates).
+func HasRoleWith(preds ...predicate.Role) predicate.Note {
+	return predicate.Note(func(s *sql.Selector) {
+		step := newRoleStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasTel applies the HasEdge predicate on the "tel" edge.
 func HasTel() predicate.Note {
 	return predicate.Note(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, TelTable, TelColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, TelTable, TelColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

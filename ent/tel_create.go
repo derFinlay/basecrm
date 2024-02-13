@@ -56,23 +56,19 @@ func (tc *TelCreate) SetNillableUpdatedAt(t *time.Time) *TelCreate {
 	return tc
 }
 
-// SetNotesID sets the "notes" edge to the Note entity by ID.
-func (tc *TelCreate) SetNotesID(id int) *TelCreate {
-	tc.mutation.SetNotesID(id)
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (tc *TelCreate) AddNoteIDs(ids ...int) *TelCreate {
+	tc.mutation.AddNoteIDs(ids...)
 	return tc
 }
 
-// SetNillableNotesID sets the "notes" edge to the Note entity by ID if the given value is not nil.
-func (tc *TelCreate) SetNillableNotesID(id *int) *TelCreate {
-	if id != nil {
-		tc = tc.SetNotesID(*id)
+// AddNotes adds the "notes" edges to the Note entity.
+func (tc *TelCreate) AddNotes(n ...*Note) *TelCreate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
 	}
-	return tc
-}
-
-// SetNotes sets the "notes" edge to the Note entity.
-func (tc *TelCreate) SetNotes(n *Note) *TelCreate {
-	return tc.SetNotesID(n.ID)
+	return tc.AddNoteIDs(ids...)
 }
 
 // SetCustomerID sets the "customer" edge to the Customer entity by ID.
@@ -195,7 +191,7 @@ func (tc *TelCreate) createSpec() (*Tel, *sqlgraph.CreateSpec) {
 	}
 	if nodes := tc.mutation.NotesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   tel.NotesTable,
 			Columns: []string{tel.NotesColumn},

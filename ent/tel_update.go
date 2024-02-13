@@ -36,23 +36,19 @@ func (tu *TelUpdate) SetUpdatedAt(t time.Time) *TelUpdate {
 	return tu
 }
 
-// SetNotesID sets the "notes" edge to the Note entity by ID.
-func (tu *TelUpdate) SetNotesID(id int) *TelUpdate {
-	tu.mutation.SetNotesID(id)
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (tu *TelUpdate) AddNoteIDs(ids ...int) *TelUpdate {
+	tu.mutation.AddNoteIDs(ids...)
 	return tu
 }
 
-// SetNillableNotesID sets the "notes" edge to the Note entity by ID if the given value is not nil.
-func (tu *TelUpdate) SetNillableNotesID(id *int) *TelUpdate {
-	if id != nil {
-		tu = tu.SetNotesID(*id)
+// AddNotes adds the "notes" edges to the Note entity.
+func (tu *TelUpdate) AddNotes(n ...*Note) *TelUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
 	}
-	return tu
-}
-
-// SetNotes sets the "notes" edge to the Note entity.
-func (tu *TelUpdate) SetNotes(n *Note) *TelUpdate {
-	return tu.SetNotesID(n.ID)
+	return tu.AddNoteIDs(ids...)
 }
 
 // SetCustomerID sets the "customer" edge to the Customer entity by ID.
@@ -79,10 +75,25 @@ func (tu *TelUpdate) Mutation() *TelMutation {
 	return tu.mutation
 }
 
-// ClearNotes clears the "notes" edge to the Note entity.
+// ClearNotes clears all "notes" edges to the Note entity.
 func (tu *TelUpdate) ClearNotes() *TelUpdate {
 	tu.mutation.ClearNotes()
 	return tu
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (tu *TelUpdate) RemoveNoteIDs(ids ...int) *TelUpdate {
+	tu.mutation.RemoveNoteIDs(ids...)
+	return tu
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (tu *TelUpdate) RemoveNotes(n ...*Note) *TelUpdate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return tu.RemoveNoteIDs(ids...)
 }
 
 // ClearCustomer clears the "customer" edge to the Customer entity.
@@ -141,7 +152,7 @@ func (tu *TelUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if tu.mutation.NotesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   tel.NotesTable,
 			Columns: []string{tel.NotesColumn},
@@ -152,9 +163,25 @@ func (tu *TelUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
+	if nodes := tu.mutation.RemovedNotesIDs(); len(nodes) > 0 && !tu.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tel.NotesTable,
+			Columns: []string{tel.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
 	if nodes := tu.mutation.NotesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   tel.NotesTable,
 			Columns: []string{tel.NotesColumn},
@@ -223,23 +250,19 @@ func (tuo *TelUpdateOne) SetUpdatedAt(t time.Time) *TelUpdateOne {
 	return tuo
 }
 
-// SetNotesID sets the "notes" edge to the Note entity by ID.
-func (tuo *TelUpdateOne) SetNotesID(id int) *TelUpdateOne {
-	tuo.mutation.SetNotesID(id)
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (tuo *TelUpdateOne) AddNoteIDs(ids ...int) *TelUpdateOne {
+	tuo.mutation.AddNoteIDs(ids...)
 	return tuo
 }
 
-// SetNillableNotesID sets the "notes" edge to the Note entity by ID if the given value is not nil.
-func (tuo *TelUpdateOne) SetNillableNotesID(id *int) *TelUpdateOne {
-	if id != nil {
-		tuo = tuo.SetNotesID(*id)
+// AddNotes adds the "notes" edges to the Note entity.
+func (tuo *TelUpdateOne) AddNotes(n ...*Note) *TelUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
 	}
-	return tuo
-}
-
-// SetNotes sets the "notes" edge to the Note entity.
-func (tuo *TelUpdateOne) SetNotes(n *Note) *TelUpdateOne {
-	return tuo.SetNotesID(n.ID)
+	return tuo.AddNoteIDs(ids...)
 }
 
 // SetCustomerID sets the "customer" edge to the Customer entity by ID.
@@ -266,10 +289,25 @@ func (tuo *TelUpdateOne) Mutation() *TelMutation {
 	return tuo.mutation
 }
 
-// ClearNotes clears the "notes" edge to the Note entity.
+// ClearNotes clears all "notes" edges to the Note entity.
 func (tuo *TelUpdateOne) ClearNotes() *TelUpdateOne {
 	tuo.mutation.ClearNotes()
 	return tuo
+}
+
+// RemoveNoteIDs removes the "notes" edge to Note entities by IDs.
+func (tuo *TelUpdateOne) RemoveNoteIDs(ids ...int) *TelUpdateOne {
+	tuo.mutation.RemoveNoteIDs(ids...)
+	return tuo
+}
+
+// RemoveNotes removes "notes" edges to Note entities.
+func (tuo *TelUpdateOne) RemoveNotes(n ...*Note) *TelUpdateOne {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return tuo.RemoveNoteIDs(ids...)
 }
 
 // ClearCustomer clears the "customer" edge to the Customer entity.
@@ -358,7 +396,7 @@ func (tuo *TelUpdateOne) sqlSave(ctx context.Context) (_node *Tel, err error) {
 	}
 	if tuo.mutation.NotesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   tel.NotesTable,
 			Columns: []string{tel.NotesColumn},
@@ -369,9 +407,25 @@ func (tuo *TelUpdateOne) sqlSave(ctx context.Context) (_node *Tel, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
+	if nodes := tuo.mutation.RemovedNotesIDs(); len(nodes) > 0 && !tuo.mutation.NotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tel.NotesTable,
+			Columns: []string{tel.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
 	if nodes := tuo.mutation.NotesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   tel.NotesTable,
 			Columns: []string{tel.NotesColumn},

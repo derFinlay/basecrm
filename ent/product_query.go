@@ -4,12 +4,14 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/predicate"
 	"github.com/derfinlay/basecrm/ent/product"
 )
@@ -21,6 +23,7 @@ type ProductQuery struct {
 	order      []product.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Product
+	withNotes  *NoteQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -55,6 +58,28 @@ func (pq *ProductQuery) Unique(unique bool) *ProductQuery {
 func (pq *ProductQuery) Order(o ...product.OrderOption) *ProductQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryNotes chains the current query on the "notes" edge.
+func (pq *ProductQuery) QueryNotes() *NoteQuery {
+	query := (&NoteClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(product.Table, product.FieldID, selector),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, product.NotesTable, product.NotesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Product entity from the query.
@@ -249,10 +274,22 @@ func (pq *ProductQuery) Clone() *ProductQuery {
 		order:      append([]product.OrderOption{}, pq.order...),
 		inters:     append([]Interceptor{}, pq.inters...),
 		predicates: append([]predicate.Product{}, pq.predicates...),
+		withNotes:  pq.withNotes.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
 	}
+}
+
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *ProductQuery) WithNotes(opts ...func(*NoteQuery)) *ProductQuery {
+	query := (&NoteClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withNotes = query
+	return pq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -331,8 +368,11 @@ func (pq *ProductQuery) prepareQuery(ctx context.Context) error {
 
 func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Product, error) {
 	var (
-		nodes = []*Product{}
-		_spec = pq.querySpec()
+		nodes       = []*Product{}
+		_spec       = pq.querySpec()
+		loadedTypes = [1]bool{
+			pq.withNotes != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Product).scanValues(nil, columns)
@@ -340,6 +380,7 @@ func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Product{config: pq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -351,7 +392,46 @@ func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := pq.withNotes; query != nil {
+		if err := pq.loadNotes(ctx, query, nodes,
+			func(n *Product) { n.Edges.Notes = []*Note{} },
+			func(n *Product, e *Note) { n.Edges.Notes = append(n.Edges.Notes, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (pq *ProductQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*Product, init func(*Product), assign func(*Product, *Note)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Product)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Note(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(product.NotesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.product_notes
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "product_notes" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "product_notes" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (pq *ProductQuery) sqlCount(ctx context.Context) (int, error) {

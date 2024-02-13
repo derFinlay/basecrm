@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/loginreset"
+	"github.com/derfinlay/basecrm/ent/note"
 )
 
 // LoginResetCreate is the builder for creating a LoginReset entity.
@@ -67,6 +68,21 @@ func (lrc *LoginResetCreate) SetNillableUpdatedAt(t *time.Time) *LoginResetCreat
 		lrc.SetUpdatedAt(*t)
 	}
 	return lrc
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (lrc *LoginResetCreate) AddNoteIDs(ids ...int) *LoginResetCreate {
+	lrc.mutation.AddNoteIDs(ids...)
+	return lrc
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (lrc *LoginResetCreate) AddNotes(n ...*Note) *LoginResetCreate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return lrc.AddNoteIDs(ids...)
 }
 
 // SetLoginID sets the "login" edge to the Login entity by ID.
@@ -197,6 +213,22 @@ func (lrc *LoginResetCreate) createSpec() (*LoginReset, *sqlgraph.CreateSpec) {
 	if value, ok := lrc.mutation.UpdatedAt(); ok {
 		_spec.SetField(loginreset.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := lrc.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   loginreset.NotesTable,
+			Columns: []string{loginreset.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := lrc.mutation.LoginIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -14,6 +14,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/customer"
 	"github.com/derfinlay/basecrm/ent/login"
 	"github.com/derfinlay/basecrm/ent/loginreset"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/predicate"
 )
 
@@ -26,6 +27,7 @@ type LoginQuery struct {
 	predicates      []predicate.Login
 	withCustomer    *CustomerQuery
 	withLoginResets *LoginResetQuery
+	withNotes       *NoteQuery
 	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -100,6 +102,28 @@ func (lq *LoginQuery) QueryLoginResets() *LoginResetQuery {
 			sqlgraph.From(login.Table, login.FieldID, selector),
 			sqlgraph.To(loginreset.Table, loginreset.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, login.LoginResetsTable, login.LoginResetsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(lq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNotes chains the current query on the "notes" edge.
+func (lq *LoginQuery) QueryNotes() *NoteQuery {
+	query := (&NoteClient{config: lq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := lq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := lq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(login.Table, login.FieldID, selector),
+			sqlgraph.To(note.Table, note.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, login.NotesTable, login.NotesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(lq.driver.Dialect(), step)
 		return fromU, nil
@@ -301,6 +325,7 @@ func (lq *LoginQuery) Clone() *LoginQuery {
 		predicates:      append([]predicate.Login{}, lq.predicates...),
 		withCustomer:    lq.withCustomer.Clone(),
 		withLoginResets: lq.withLoginResets.Clone(),
+		withNotes:       lq.withNotes.Clone(),
 		// clone intermediate query.
 		sql:  lq.sql.Clone(),
 		path: lq.path,
@@ -326,6 +351,17 @@ func (lq *LoginQuery) WithLoginResets(opts ...func(*LoginResetQuery)) *LoginQuer
 		opt(query)
 	}
 	lq.withLoginResets = query
+	return lq
+}
+
+// WithNotes tells the query-builder to eager-load the nodes that are connected to
+// the "notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (lq *LoginQuery) WithNotes(opts ...func(*NoteQuery)) *LoginQuery {
+	query := (&NoteClient{config: lq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	lq.withNotes = query
 	return lq
 }
 
@@ -408,9 +444,10 @@ func (lq *LoginQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Login,
 		nodes       = []*Login{}
 		withFKs     = lq.withFKs
 		_spec       = lq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			lq.withCustomer != nil,
 			lq.withLoginResets != nil,
+			lq.withNotes != nil,
 		}
 	)
 	if lq.withCustomer != nil {
@@ -447,6 +484,13 @@ func (lq *LoginQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Login,
 		if err := lq.loadLoginResets(ctx, query, nodes,
 			func(n *Login) { n.Edges.LoginResets = []*LoginReset{} },
 			func(n *Login, e *LoginReset) { n.Edges.LoginResets = append(n.Edges.LoginResets, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := lq.withNotes; query != nil {
+		if err := lq.loadNotes(ctx, query, nodes,
+			func(n *Login) { n.Edges.Notes = []*Note{} },
+			func(n *Login, e *Note) { n.Edges.Notes = append(n.Edges.Notes, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -511,6 +555,37 @@ func (lq *LoginQuery) loadLoginResets(ctx context.Context, query *LoginResetQuer
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "login_login_resets" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (lq *LoginQuery) loadNotes(ctx context.Context, query *NoteQuery, nodes []*Login, init func(*Login), assign func(*Login, *Note)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Login)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Note(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(login.NotesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.login_notes
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "login_notes" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "login_notes" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

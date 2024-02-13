@@ -14,6 +14,7 @@ import (
 	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/order"
 	"github.com/derfinlay/basecrm/ent/user"
+	"github.com/derfinlay/basecrm/ent/usersession"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -126,6 +127,25 @@ func (uc *UserCreate) AddOrders(o ...*Order) *UserCreate {
 		ids[i] = o[i].ID
 	}
 	return uc.AddOrderIDs(ids...)
+}
+
+// SetSessionsID sets the "sessions" edge to the UserSession entity by ID.
+func (uc *UserCreate) SetSessionsID(id int) *UserCreate {
+	uc.mutation.SetSessionsID(id)
+	return uc
+}
+
+// SetNillableSessionsID sets the "sessions" edge to the UserSession entity by ID if the given value is not nil.
+func (uc *UserCreate) SetNillableSessionsID(id *int) *UserCreate {
+	if id != nil {
+		uc = uc.SetSessionsID(*id)
+	}
+	return uc
+}
+
+// SetSessions sets the "sessions" edge to the UserSession entity.
+func (uc *UserCreate) SetSessions(u *UserSession) *UserCreate {
+	return uc.SetSessionsID(u.ID)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -274,7 +294,7 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if nodes := uc.mutation.NotesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: true,
+			Inverse: false,
 			Table:   user.NotesTable,
 			Columns: []string{user.NotesColumn},
 			Bidi:    false,
@@ -301,6 +321,23 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.SessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usersession.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.user_session_user = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

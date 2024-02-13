@@ -4,10 +4,12 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/derfinlay/basecrm/ent/note"
 	"github.com/derfinlay/basecrm/ent/role"
 )
 
@@ -16,6 +18,27 @@ type RoleCreate struct {
 	config
 	mutation *RoleMutation
 	hooks    []Hook
+}
+
+// SetName sets the "name" field.
+func (rc *RoleCreate) SetName(s string) *RoleCreate {
+	rc.mutation.SetName(s)
+	return rc
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by IDs.
+func (rc *RoleCreate) AddNoteIDs(ids ...int) *RoleCreate {
+	rc.mutation.AddNoteIDs(ids...)
+	return rc
+}
+
+// AddNotes adds the "notes" edges to the Note entity.
+func (rc *RoleCreate) AddNotes(n ...*Note) *RoleCreate {
+	ids := make([]int, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return rc.AddNoteIDs(ids...)
 }
 
 // Mutation returns the RoleMutation object of the builder.
@@ -52,6 +75,14 @@ func (rc *RoleCreate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (rc *RoleCreate) check() error {
+	if _, ok := rc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Role.name"`)}
+	}
+	if v, ok := rc.mutation.Name(); ok {
+		if err := role.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Role.name": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -78,6 +109,26 @@ func (rc *RoleCreate) createSpec() (*Role, *sqlgraph.CreateSpec) {
 		_node = &Role{config: rc.config}
 		_spec = sqlgraph.NewCreateSpec(role.Table, sqlgraph.NewFieldSpec(role.FieldID, field.TypeInt))
 	)
+	if value, ok := rc.mutation.Name(); ok {
+		_spec.SetField(role.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if nodes := rc.mutation.NotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   role.NotesTable,
+			Columns: []string{role.NotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 

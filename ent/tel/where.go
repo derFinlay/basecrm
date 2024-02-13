@@ -220,7 +220,7 @@ func HasNotes() predicate.Tel {
 	return predicate.Tel(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, NotesTable, NotesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, NotesTable, NotesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

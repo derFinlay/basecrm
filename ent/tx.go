@@ -36,6 +36,8 @@ type Tx struct {
 	Tel *TelClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserSession is the client for interacting with the UserSession builders.
+	UserSession *UserSessionClient
 
 	// lazily loaded.
 	client     *Client
@@ -179,6 +181,7 @@ func (tx *Tx) init() {
 	tx.Role = NewRoleClient(tx.config)
 	tx.Tel = NewTelClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.UserSession = NewUserSessionClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
