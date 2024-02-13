@@ -224,6 +224,6 @@ func newSessionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SessionsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, SessionsTable, SessionsColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, SessionsTable, SessionsColumn),
 	)
 }

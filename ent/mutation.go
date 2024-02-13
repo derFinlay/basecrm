@@ -9736,7 +9736,8 @@ type UserSessionMutation struct {
 	created_at    *time.Time
 	updated_at    *time.Time
 	clearedFields map[string]struct{}
-	user          *int
+	user          map[int]struct{}
+	removeduser   map[int]struct{}
 	cleareduser   bool
 	done          bool
 	oldValue      func(context.Context) (*UserSession, error)
@@ -9949,9 +9950,14 @@ func (m *UserSessionMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetUserID sets the "user" edge to the User entity by id.
-func (m *UserSessionMutation) SetUserID(id int) {
-	m.user = &id
+// AddUserIDs adds the "user" edge to the User entity by ids.
+func (m *UserSessionMutation) AddUserIDs(ids ...int) {
+	if m.user == nil {
+		m.user = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.user[ids[i]] = struct{}{}
+	}
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -9964,20 +9970,29 @@ func (m *UserSessionMutation) UserCleared() bool {
 	return m.cleareduser
 }
 
-// UserID returns the "user" edge ID in the mutation.
-func (m *UserSessionMutation) UserID() (id int, exists bool) {
-	if m.user != nil {
-		return *m.user, true
+// RemoveUserIDs removes the "user" edge to the User entity by IDs.
+func (m *UserSessionMutation) RemoveUserIDs(ids ...int) {
+	if m.removeduser == nil {
+		m.removeduser = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.user, ids[i])
+		m.removeduser[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUser returns the removed IDs of the "user" edge to the User entity.
+func (m *UserSessionMutation) RemovedUserIDs() (ids []int) {
+	for id := range m.removeduser {
+		ids = append(ids, id)
 	}
 	return
 }
 
 // UserIDs returns the "user" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// UserID instead. It exists only for internal usage by the builders.
 func (m *UserSessionMutation) UserIDs() (ids []int) {
-	if id := m.user; id != nil {
-		ids = append(ids, *id)
+	for id := range m.user {
+		ids = append(ids, id)
 	}
 	return
 }
@@ -9986,6 +10001,7 @@ func (m *UserSessionMutation) UserIDs() (ids []int) {
 func (m *UserSessionMutation) ResetUser() {
 	m.user = nil
 	m.cleareduser = false
+	m.removeduser = nil
 }
 
 // Where appends a list predicates to the UserSessionMutation builder.
@@ -10167,9 +10183,11 @@ func (m *UserSessionMutation) AddedEdges() []string {
 func (m *UserSessionMutation) AddedIDs(name string) []ent.Value {
 	switch name {
 	case usersession.EdgeUser:
-		if id := m.user; id != nil {
-			return []ent.Value{*id}
+		ids := make([]ent.Value, 0, len(m.user))
+		for id := range m.user {
+			ids = append(ids, id)
 		}
+		return ids
 	}
 	return nil
 }
@@ -10177,12 +10195,23 @@ func (m *UserSessionMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserSessionMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 1)
+	if m.removeduser != nil {
+		edges = append(edges, usersession.EdgeUser)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UserSessionMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case usersession.EdgeUser:
+		ids := make([]ent.Value, 0, len(m.removeduser))
+		for id := range m.removeduser {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
@@ -10209,9 +10238,6 @@ func (m *UserSessionMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *UserSessionMutation) ClearEdge(name string) error {
 	switch name {
-	case usersession.EdgeUser:
-		m.ClearUser()
-		return nil
 	}
 	return fmt.Errorf("unknown UserSession unique edge %s", name)
 }

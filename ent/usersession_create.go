@@ -55,23 +55,19 @@ func (usc *UserSessionCreate) SetNillableUpdatedAt(t *time.Time) *UserSessionCre
 	return usc
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (usc *UserSessionCreate) SetUserID(id int) *UserSessionCreate {
-	usc.mutation.SetUserID(id)
+// AddUserIDs adds the "user" edge to the User entity by IDs.
+func (usc *UserSessionCreate) AddUserIDs(ids ...int) *UserSessionCreate {
+	usc.mutation.AddUserIDs(ids...)
 	return usc
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (usc *UserSessionCreate) SetNillableUserID(id *int) *UserSessionCreate {
-	if id != nil {
-		usc = usc.SetUserID(*id)
+// AddUser adds the "user" edges to the User entity.
+func (usc *UserSessionCreate) AddUser(u ...*User) *UserSessionCreate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return usc
-}
-
-// SetUser sets the "user" edge to the User entity.
-func (usc *UserSessionCreate) SetUser(u *User) *UserSessionCreate {
-	return usc.SetUserID(u.ID)
+	return usc.AddUserIDs(ids...)
 }
 
 // Mutation returns the UserSessionMutation object of the builder.
@@ -175,7 +171,7 @@ func (usc *UserSessionCreate) createSpec() (*UserSession, *sqlgraph.CreateSpec) 
 	}
 	if nodes := usc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   usersession.UserTable,
 			Columns: []string{usersession.UserColumn},

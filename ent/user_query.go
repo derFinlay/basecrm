@@ -147,7 +147,7 @@ func (uq *UserQuery) QuerySessions() *UserSessionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(usersession.Table, usersession.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, user.SessionsTable, user.SessionsColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, user.SessionsTable, user.SessionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil

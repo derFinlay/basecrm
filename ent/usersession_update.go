@@ -35,23 +35,19 @@ func (usu *UserSessionUpdate) SetUpdatedAt(t time.Time) *UserSessionUpdate {
 	return usu
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (usu *UserSessionUpdate) SetUserID(id int) *UserSessionUpdate {
-	usu.mutation.SetUserID(id)
+// AddUserIDs adds the "user" edge to the User entity by IDs.
+func (usu *UserSessionUpdate) AddUserIDs(ids ...int) *UserSessionUpdate {
+	usu.mutation.AddUserIDs(ids...)
 	return usu
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (usu *UserSessionUpdate) SetNillableUserID(id *int) *UserSessionUpdate {
-	if id != nil {
-		usu = usu.SetUserID(*id)
+// AddUser adds the "user" edges to the User entity.
+func (usu *UserSessionUpdate) AddUser(u ...*User) *UserSessionUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return usu
-}
-
-// SetUser sets the "user" edge to the User entity.
-func (usu *UserSessionUpdate) SetUser(u *User) *UserSessionUpdate {
-	return usu.SetUserID(u.ID)
+	return usu.AddUserIDs(ids...)
 }
 
 // Mutation returns the UserSessionMutation object of the builder.
@@ -59,10 +55,25 @@ func (usu *UserSessionUpdate) Mutation() *UserSessionMutation {
 	return usu.mutation
 }
 
-// ClearUser clears the "user" edge to the User entity.
+// ClearUser clears all "user" edges to the User entity.
 func (usu *UserSessionUpdate) ClearUser() *UserSessionUpdate {
 	usu.mutation.ClearUser()
 	return usu
+}
+
+// RemoveUserIDs removes the "user" edge to User entities by IDs.
+func (usu *UserSessionUpdate) RemoveUserIDs(ids ...int) *UserSessionUpdate {
+	usu.mutation.RemoveUserIDs(ids...)
+	return usu
+}
+
+// RemoveUser removes "user" edges to User entities.
+func (usu *UserSessionUpdate) RemoveUser(u ...*User) *UserSessionUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return usu.RemoveUserIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -115,7 +126,7 @@ func (usu *UserSessionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if usu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   usersession.UserTable,
 			Columns: []string{usersession.UserColumn},
@@ -126,9 +137,25 @@ func (usu *UserSessionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
+	if nodes := usu.mutation.RemovedUserIDs(); len(nodes) > 0 && !usu.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   usersession.UserTable,
+			Columns: []string{usersession.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
 	if nodes := usu.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   usersession.UserTable,
 			Columns: []string{usersession.UserColumn},
@@ -168,23 +195,19 @@ func (usuo *UserSessionUpdateOne) SetUpdatedAt(t time.Time) *UserSessionUpdateOn
 	return usuo
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (usuo *UserSessionUpdateOne) SetUserID(id int) *UserSessionUpdateOne {
-	usuo.mutation.SetUserID(id)
+// AddUserIDs adds the "user" edge to the User entity by IDs.
+func (usuo *UserSessionUpdateOne) AddUserIDs(ids ...int) *UserSessionUpdateOne {
+	usuo.mutation.AddUserIDs(ids...)
 	return usuo
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (usuo *UserSessionUpdateOne) SetNillableUserID(id *int) *UserSessionUpdateOne {
-	if id != nil {
-		usuo = usuo.SetUserID(*id)
+// AddUser adds the "user" edges to the User entity.
+func (usuo *UserSessionUpdateOne) AddUser(u ...*User) *UserSessionUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return usuo
-}
-
-// SetUser sets the "user" edge to the User entity.
-func (usuo *UserSessionUpdateOne) SetUser(u *User) *UserSessionUpdateOne {
-	return usuo.SetUserID(u.ID)
+	return usuo.AddUserIDs(ids...)
 }
 
 // Mutation returns the UserSessionMutation object of the builder.
@@ -192,10 +215,25 @@ func (usuo *UserSessionUpdateOne) Mutation() *UserSessionMutation {
 	return usuo.mutation
 }
 
-// ClearUser clears the "user" edge to the User entity.
+// ClearUser clears all "user" edges to the User entity.
 func (usuo *UserSessionUpdateOne) ClearUser() *UserSessionUpdateOne {
 	usuo.mutation.ClearUser()
 	return usuo
+}
+
+// RemoveUserIDs removes the "user" edge to User entities by IDs.
+func (usuo *UserSessionUpdateOne) RemoveUserIDs(ids ...int) *UserSessionUpdateOne {
+	usuo.mutation.RemoveUserIDs(ids...)
+	return usuo
+}
+
+// RemoveUser removes "user" edges to User entities.
+func (usuo *UserSessionUpdateOne) RemoveUser(u ...*User) *UserSessionUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return usuo.RemoveUserIDs(ids...)
 }
 
 // Where appends a list predicates to the UserSessionUpdate builder.
@@ -278,7 +316,7 @@ func (usuo *UserSessionUpdateOne) sqlSave(ctx context.Context) (_node *UserSessi
 	}
 	if usuo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   usersession.UserTable,
 			Columns: []string{usersession.UserColumn},
@@ -289,9 +327,25 @@ func (usuo *UserSessionUpdateOne) sqlSave(ctx context.Context) (_node *UserSessi
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
+	if nodes := usuo.mutation.RemovedUserIDs(); len(nodes) > 0 && !usuo.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   usersession.UserTable,
+			Columns: []string{usersession.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
 	if nodes := usuo.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   usersession.UserTable,
 			Columns: []string{usersession.UserColumn},

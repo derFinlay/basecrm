@@ -368,7 +368,7 @@ var (
 		{Name: "last_login", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "user_session_user", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "user_session_user", Type: field.TypeInt, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
