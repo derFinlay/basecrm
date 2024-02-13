@@ -9,6 +9,7 @@ import (
 	"github.com/derfinlay/basecrm/database"
 	"github.com/derfinlay/basecrm/ent"
 	"github.com/derfinlay/basecrm/ent/user"
+	"github.com/derfinlay/basecrm/ent/usersession"
 	"github.com/derfinlay/basecrm/service"
 )
 
@@ -45,7 +46,25 @@ func GenerateUsernameFromName(name string) string {
 	return username
 }
 
-func Login(username string, password string, ctx context.Context) (*ent.User, error) {
+func CreateUserSession(user *ent.User, ctx context.Context) (*ent.UserSession, error) {
+	user.Update().SetLastLogin(time.Now()).Save(ctx)
+
+	token := service.GenerateRandomString(32)
+
+	session, err := database.Client.UserSession.Create().
+		SetToken(token).
+		SetUser(user).
+		Save(ctx)
+
+	return session, err
+}
+
+func GetUserSessionByToken(token string, ctx context.Context) (*ent.UserSession, error) {
+	session, err := database.Client.UserSession.Query().Where(usersession.Token(token)).First(ctx)
+	return session, err
+}
+
+func Login(username string, password string, ctx context.Context) (*ent.UserSession, error) {
 	user, err := database.Client.User.Query().Where(user.Username(username)).First(ctx)
 	if err != nil {
 		return nil, err
@@ -56,8 +75,10 @@ func Login(username string, password string, ctx context.Context) (*ent.User, er
 	if !service.CompareHash(password, user.Password) {
 		return nil, ErrInvalidLogin
 	}
-	user.Update().SetLastLogin(time.Now()).Save(ctx)
-	return user, nil
+
+	session, err := CreateUserSession(user, ctx)
+
+	return session, err
 }
 
 func GetUsers(ctx context.Context) ([]*ent.User, error) {
