@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -24,6 +23,7 @@ type UserSessionQuery struct {
 	inters     []Interceptor
 	predicates []predicate.UserSession
 	withUser   *UserQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -74,7 +74,7 @@ func (usq *UserSessionQuery) QueryUser() *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(usersession.Table, usersession.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, usersession.UserTable, usersession.UserColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, usersession.UserTable, usersession.UserColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(usq.driver.Dialect(), step)
 		return fromU, nil
@@ -369,11 +369,18 @@ func (usq *UserSessionQuery) prepareQuery(ctx context.Context) error {
 func (usq *UserSessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*UserSession, error) {
 	var (
 		nodes       = []*UserSession{}
+		withFKs     = usq.withFKs
 		_spec       = usq.querySpec()
 		loadedTypes = [1]bool{
 			usq.withUser != nil,
 		}
 	)
+	if usq.withUser != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, usersession.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*UserSession).scanValues(nil, columns)
 	}
@@ -393,9 +400,8 @@ func (usq *UserSessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		return nodes, nil
 	}
 	if query := usq.withUser; query != nil {
-		if err := usq.loadUser(ctx, query, nodes,
-			func(n *UserSession) { n.Edges.User = []*User{} },
-			func(n *UserSession, e *User) { n.Edges.User = append(n.Edges.User, e) }); err != nil {
+		if err := usq.loadUser(ctx, query, nodes, nil,
+			func(n *UserSession, e *User) { n.Edges.User = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -403,33 +409,34 @@ func (usq *UserSessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 }
 
 func (usq *UserSessionQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*UserSession, init func(*UserSession), assign func(*UserSession, *User)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*UserSession)
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*UserSession)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		if nodes[i].user_session_user == nil {
+			continue
 		}
+		fk := *nodes[i].user_session_user
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.withFKs = true
-	query.Where(predicate.User(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(usersession.UserColumn), fks...))
-	}))
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_session_user
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_session_user" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_session_user" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_session_user" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

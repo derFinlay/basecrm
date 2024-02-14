@@ -22,6 +22,6 @@ func (UserSession) Fields() []ent.Field {
 
 func (UserSession) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("user", User.Type),
+		edge.To("user", User.Type).Unique(),
 	}
 }

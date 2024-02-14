@@ -60,7 +60,11 @@ func CreateUserSession(user *ent.User, ctx context.Context) (*ent.UserSession, e
 }
 
 func GetUserSessionByToken(token string, ctx context.Context) (*ent.UserSession, error) {
-	session, err := database.Client.UserSession.Query().Where(usersession.Token(token)).First(ctx)
+	session, err := database.Client.UserSession.
+		Query().
+		Where(usersession.Token(token)).
+		WithUser().
+		First(ctx)
 	return session, err
 }
 

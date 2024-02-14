@@ -23,24 +23,68 @@ func CreateCustomer(name string, gender customer.Gender, user *ent.User, ctx con
 		Save(ctx)
 }
 
+func SearchCustomerByAll(search string, ctx context.Context) ([]*ent.Customer, error) {
+	customers := []*ent.Customer{}
+
+	if byName, err := SearchCustomerByName(search, ctx); err != nil {
+		return nil, err
+	} else {
+		customers = append(customers, byName...)
+	}
+
+	if byNotes, err := SearchCustomerByNotes(search, ctx); err != nil {
+		return nil, err
+	} else {
+		customers = append(customers, byNotes...)
+	}
+
+	if byBillingAddress, err := SearchCustomerByBillingAddress(search, ctx); err != nil {
+		return nil, err
+	} else {
+		customers = append(customers, byBillingAddress...)
+	}
+
+	if byDeliveryAddress, err := SearchCustomerByDeliveryAddress(search, ctx); err != nil {
+		return nil, err
+	} else {
+		customers = append(customers, byDeliveryAddress...)
+	}
+
+	return customers, nil
+}
+
 func SearchCustomer(search string, searchIn []string, ctx context.Context) ([]*ent.Customer, error) {
 	customers := []*ent.Customer{}
 	for i := 0; i < len(searchIn); i++ {
 		toSearch := searchIn[i]
+		if toSearch == "*" {
+			return SearchCustomerByAll(search, ctx)
+		}
 		switch toSearch {
 		case "name":
-			byName, _ := SearchCustomerByName(search, ctx)
-			customers = append(customers, byName...)
+			if byName, err := SearchCustomerByName(search, ctx); err != nil {
+				return nil, err
+			} else {
+				customers = append(customers, byName...)
+			}
 		case "notes":
-			byNotes, _ := SearchCustomerByNotes(search, ctx)
-			customers = append(customers, byNotes...)
+			if byNotes, err := SearchCustomerByNotes(search, ctx); err != nil {
+				return nil, err
+			} else {
+				customers = append(customers, byNotes...)
+			}
 		case "billingaddress":
-			byBillingAddress, _ := SearchCustomerByBillingAddress(search, ctx)
-			customers = append(customers, byBillingAddress...)
+			if byBillingAddress, err := SearchCustomerByBillingAddress(search, ctx); err != nil {
+				return nil, err
+			} else {
+				customers = append(customers, byBillingAddress...)
+			}
 		case "deliveryaddress":
-			byDeliveryAddress, _ := SearchCustomerByDeliveryAddress(search, ctx)
-			customers = append(customers, byDeliveryAddress...)
-
+			if byDeliveryAddress, err := SearchCustomerByDeliveryAddress(search, ctx); err != nil {
+				return nil, err
+			} else {
+				customers = append(customers, byDeliveryAddress...)
+			}
 		}
 	}
 	return customers, nil
@@ -53,11 +97,12 @@ func SearchCustomerByName(name string, ctx context.Context) ([]*ent.Customer, er
 		All(ctx)
 }
 
-func SearchCustomerByNotes(content string, ctx context.Context) ([]*ent.Customer, error) {
+func SearchCustomerByNotes(query string, ctx context.Context) ([]*ent.Customer, error) {
 	return database.Client.Customer.Query().
 		Where(
-			customer.HasNotesWith(
-				note.ContentContains(content))).
+			customer.HasNotesWith(note.Or(
+				note.TitleContains(query),
+				note.ContentContains(query)))).
 		All(ctx)
 }
 

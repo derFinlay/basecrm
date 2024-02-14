@@ -368,21 +368,12 @@ var (
 		{Name: "last_login", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "user_session_user", Type: field.TypeInt, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "users_user_sessions_user",
-				Columns:    []*schema.Column{UsersColumns[7]},
-				RefColumns: []*schema.Column{UserSessionsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-		},
 	}
 	// UserSessionsColumns holds the columns for the "user_sessions" table.
 	UserSessionsColumns = []*schema.Column{
@@ -390,12 +381,21 @@ var (
 		{Name: "token", Type: field.TypeString, Size: 32},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "user_session_user", Type: field.TypeInt, Nullable: true},
 	}
 	// UserSessionsTable holds the schema information for the "user_sessions" table.
 	UserSessionsTable = &schema.Table{
 		Name:       "user_sessions",
 		Columns:    UserSessionsColumns,
 		PrimaryKey: []*schema.Column{UserSessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "user_sessions_users_user",
+				Columns:    []*schema.Column{UserSessionsColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
@@ -441,5 +441,5 @@ func init() {
 	OrdersTable.ForeignKeys[2].RefTable = UsersTable
 	PositionsTable.ForeignKeys[0].RefTable = OrdersTable
 	TelsTable.ForeignKeys[0].RefTable = CustomersTable
-	UsersTable.ForeignKeys[0].RefTable = UserSessionsTable
+	UserSessionsTable.ForeignKeys[0].RefTable = UsersTable
 }

@@ -30,7 +30,6 @@ type UserQuery struct {
 	withNotes     *NoteQuery
 	withOrders    *OrderQuery
 	withSessions  *UserSessionQuery
-	withFKs       bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -147,7 +146,7 @@ func (uq *UserQuery) QuerySessions() *UserSessionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(usersession.Table, usersession.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, user.SessionsTable, user.SessionsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.SessionsTable, user.SessionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -478,7 +477,6 @@ func (uq *UserQuery) prepareQuery(ctx context.Context) error {
 func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, error) {
 	var (
 		nodes       = []*User{}
-		withFKs     = uq.withFKs
 		_spec       = uq.querySpec()
 		loadedTypes = [4]bool{
 			uq.withCustomers != nil,
@@ -487,12 +485,6 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			uq.withSessions != nil,
 		}
 	)
-	if uq.withSessions != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, user.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*User).scanValues(nil, columns)
 	}
@@ -533,8 +525,9 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		}
 	}
 	if query := uq.withSessions; query != nil {
-		if err := uq.loadSessions(ctx, query, nodes, nil,
-			func(n *User, e *UserSession) { n.Edges.Sessions = e }); err != nil {
+		if err := uq.loadSessions(ctx, query, nodes,
+			func(n *User) { n.Edges.Sessions = []*UserSession{} },
+			func(n *User, e *UserSession) { n.Edges.Sessions = append(n.Edges.Sessions, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -635,34 +628,33 @@ func (uq *UserQuery) loadOrders(ctx context.Context, query *OrderQuery, nodes []
 	return nil
 }
 func (uq *UserQuery) loadSessions(ctx context.Context, query *UserSessionQuery, nodes []*User, init func(*User), assign func(*User, *UserSession)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*User)
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
 	for i := range nodes {
-		if nodes[i].user_session_user == nil {
-			continue
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
 		}
-		fk := *nodes[i].user_session_user
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(usersession.IDIn(ids...))
+	query.withFKs = true
+	query.Where(predicate.UserSession(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.SessionsColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.user_session_user
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_session_user" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_session_user" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_session_user" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
