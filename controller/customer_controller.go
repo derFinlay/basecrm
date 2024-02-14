@@ -12,7 +12,16 @@ import (
 )
 
 func GetCustomerByID(id int, ctx context.Context) (*ent.Customer, error) {
-	return database.Client.Customer.Query().Where(customer.ID(id)).First(ctx)
+	return database.Client.Customer.Query().
+		Where(customer.ID(id)).
+		WithBillingAddresses().
+		WithCreatedBy().
+		WithDeliveryAddresses().
+		WithLogin().
+		WithNotes().
+		WithOrders().
+		WithTels().
+		First(ctx)
 }
 
 func CreateCustomer(name string, gender customer.Gender, user *ent.User, ctx context.Context) (*ent.Customer, error) {
