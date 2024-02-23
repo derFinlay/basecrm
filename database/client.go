@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"entgo.io/ent/dialect"
 	"github.com/derfinlay/basecrm/ent"
 	"github.com/derfinlay/basecrm/service"
 	_ "github.com/lib/pq"
@@ -12,9 +13,9 @@ import (
 
 var Client *ent.Client
 
-func Create(host string, port int, user string, password string, ctx context.Context) (*ent.Client, error) {
-	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", host, port, user, "basecrm", password)
-	client, err := ent.Open("postgres", connectionString)
+func Create(host string, port int, user string, password string, dbname string, ctx context.Context) (*ent.Client, error) {
+	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", host, port, user, dbname, password)
+	client, err := ent.Open(dialect.Postgres, connectionString)
 	if err != nil {
 		return nil, err
 	}
