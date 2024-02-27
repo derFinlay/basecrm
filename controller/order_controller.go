@@ -37,6 +37,7 @@ func CreateOrder(customer *ent.Customer, billingAddress *ent.BillingAddress, del
 		SetTax(taxMultiplier).
 		SetDue(due).
 		SetCreatedBy(user).
+		AddPositions(positions...).
 		Save(ctx)
 	if err != nil {
 		return nil, err
