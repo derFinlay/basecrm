@@ -382,12 +382,16 @@ func init() {
 			return nil
 		}
 	}()
+	// usersessionDescActive is the schema descriptor for active field.
+	usersessionDescActive := usersessionFields[1].Descriptor()
+	// usersession.DefaultActive holds the default value on creation for the active field.
+	usersession.DefaultActive = usersessionDescActive.Default.(bool)
 	// usersessionDescCreatedAt is the schema descriptor for created_at field.
-	usersessionDescCreatedAt := usersessionFields[1].Descriptor()
+	usersessionDescCreatedAt := usersessionFields[2].Descriptor()
 	// usersession.DefaultCreatedAt holds the default value on creation for the created_at field.
 	usersession.DefaultCreatedAt = usersessionDescCreatedAt.Default.(func() time.Time)
 	// usersessionDescUpdatedAt is the schema descriptor for updated_at field.
-	usersessionDescUpdatedAt := usersessionFields[2].Descriptor()
+	usersessionDescUpdatedAt := usersessionFields[3].Descriptor()
 	// usersession.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	usersession.DefaultUpdatedAt = usersessionDescUpdatedAt.Default.(func() time.Time)
 	// usersession.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

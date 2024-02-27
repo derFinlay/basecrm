@@ -60,6 +60,11 @@ func Token(v string) predicate.UserSession {
 	return predicate.UserSession(sql.FieldEQ(FieldToken, v))
 }
 
+// Active applies equality check predicate on the "active" field. It's identical to ActiveEQ.
+func Active(v bool) predicate.UserSession {
+	return predicate.UserSession(sql.FieldEQ(FieldActive, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.UserSession {
 	return predicate.UserSession(sql.FieldEQ(FieldCreatedAt, v))
@@ -133,6 +138,16 @@ func TokenEqualFold(v string) predicate.UserSession {
 // TokenContainsFold applies the ContainsFold predicate on the "token" field.
 func TokenContainsFold(v string) predicate.UserSession {
 	return predicate.UserSession(sql.FieldContainsFold(FieldToken, v))
+}
+
+// ActiveEQ applies the EQ predicate on the "active" field.
+func ActiveEQ(v bool) predicate.UserSession {
+	return predicate.UserSession(sql.FieldEQ(FieldActive, v))
+}
+
+// ActiveNEQ applies the NEQ predicate on the "active" field.
+func ActiveNEQ(v bool) predicate.UserSession {
+	return predicate.UserSession(sql.FieldNEQ(FieldActive, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

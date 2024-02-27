@@ -20,6 +20,8 @@ type UserSession struct {
 	ID int `json:"id,omitempty"`
 	// Token holds the value of the "token" field.
 	Token string `json:"token,omitempty"`
+	// Active holds the value of the "active" field.
+	Active bool `json:"active,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -58,6 +60,8 @@ func (*UserSession) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case usersession.FieldActive:
+			values[i] = new(sql.NullBool)
 		case usersession.FieldID:
 			values[i] = new(sql.NullInt64)
 		case usersession.FieldToken:
@@ -92,6 +96,12 @@ func (us *UserSession) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field token", values[i])
 			} else if value.Valid {
 				us.Token = value.String
+			}
+		case usersession.FieldActive:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field active", values[i])
+			} else if value.Valid {
+				us.Active = value.Bool
 			}
 		case usersession.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -155,6 +165,9 @@ func (us *UserSession) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", us.ID))
 	builder.WriteString("token=")
 	builder.WriteString(us.Token)
+	builder.WriteString(", ")
+	builder.WriteString("active=")
+	builder.WriteString(fmt.Sprintf("%v", us.Active))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(us.CreatedAt.Format(time.ANSIC))

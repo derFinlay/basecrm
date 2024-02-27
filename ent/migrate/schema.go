@@ -379,6 +379,7 @@ var (
 	UserSessionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "token", Type: field.TypeString, Size: 32},
+		{Name: "active", Type: field.TypeBool, Default: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "user_session_user", Type: field.TypeInt, Nullable: true},
@@ -391,7 +392,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "user_sessions_users_user",
-				Columns:    []*schema.Column{UserSessionsColumns[4]},
+				Columns:    []*schema.Column{UserSessionsColumns[5]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

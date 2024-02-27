@@ -27,6 +27,20 @@ func (usc *UserSessionCreate) SetToken(s string) *UserSessionCreate {
 	return usc
 }
 
+// SetActive sets the "active" field.
+func (usc *UserSessionCreate) SetActive(b bool) *UserSessionCreate {
+	usc.mutation.SetActive(b)
+	return usc
+}
+
+// SetNillableActive sets the "active" field if the given value is not nil.
+func (usc *UserSessionCreate) SetNillableActive(b *bool) *UserSessionCreate {
+	if b != nil {
+		usc.SetActive(*b)
+	}
+	return usc
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (usc *UserSessionCreate) SetCreatedAt(t time.Time) *UserSessionCreate {
 	usc.mutation.SetCreatedAt(t)
@@ -109,6 +123,10 @@ func (usc *UserSessionCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (usc *UserSessionCreate) defaults() {
+	if _, ok := usc.mutation.Active(); !ok {
+		v := usersession.DefaultActive
+		usc.mutation.SetActive(v)
+	}
 	if _, ok := usc.mutation.CreatedAt(); !ok {
 		v := usersession.DefaultCreatedAt()
 		usc.mutation.SetCreatedAt(v)
@@ -128,6 +146,9 @@ func (usc *UserSessionCreate) check() error {
 		if err := usersession.TokenValidator(v); err != nil {
 			return &ValidationError{Name: "token", err: fmt.Errorf(`ent: validator failed for field "UserSession.token": %w`, err)}
 		}
+	}
+	if _, ok := usc.mutation.Active(); !ok {
+		return &ValidationError{Name: "active", err: errors.New(`ent: missing required field "UserSession.active"`)}
 	}
 	if _, ok := usc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "UserSession.created_at"`)}
@@ -164,6 +185,10 @@ func (usc *UserSessionCreate) createSpec() (*UserSession, *sqlgraph.CreateSpec) 
 	if value, ok := usc.mutation.Token(); ok {
 		_spec.SetField(usersession.FieldToken, field.TypeString, value)
 		_node.Token = value
+	}
+	if value, ok := usc.mutation.Active(); ok {
+		_spec.SetField(usersession.FieldActive, field.TypeBool, value)
+		_node.Active = value
 	}
 	if value, ok := usc.mutation.CreatedAt(); ok {
 		_spec.SetField(usersession.FieldCreatedAt, field.TypeTime, value)

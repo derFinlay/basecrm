@@ -15,6 +15,7 @@ type UserSession struct {
 func (UserSession) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("token").Immutable().MaxLen(32).MinLen(32).NotEmpty(),
+		field.Bool("active").Default(true),
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}

@@ -29,6 +29,20 @@ func (usu *UserSessionUpdate) Where(ps ...predicate.UserSession) *UserSessionUpd
 	return usu
 }
 
+// SetActive sets the "active" field.
+func (usu *UserSessionUpdate) SetActive(b bool) *UserSessionUpdate {
+	usu.mutation.SetActive(b)
+	return usu
+}
+
+// SetNillableActive sets the "active" field if the given value is not nil.
+func (usu *UserSessionUpdate) SetNillableActive(b *bool) *UserSessionUpdate {
+	if b != nil {
+		usu.SetActive(*b)
+	}
+	return usu
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (usu *UserSessionUpdate) SetUpdatedAt(t time.Time) *UserSessionUpdate {
 	usu.mutation.SetUpdatedAt(t)
@@ -110,6 +124,9 @@ func (usu *UserSessionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if value, ok := usu.mutation.Active(); ok {
+		_spec.SetField(usersession.FieldActive, field.TypeBool, value)
+	}
 	if value, ok := usu.mutation.UpdatedAt(); ok {
 		_spec.SetField(usersession.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -160,6 +177,20 @@ type UserSessionUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *UserSessionMutation
+}
+
+// SetActive sets the "active" field.
+func (usuo *UserSessionUpdateOne) SetActive(b bool) *UserSessionUpdateOne {
+	usuo.mutation.SetActive(b)
+	return usuo
+}
+
+// SetNillableActive sets the "active" field if the given value is not nil.
+func (usuo *UserSessionUpdateOne) SetNillableActive(b *bool) *UserSessionUpdateOne {
+	if b != nil {
+		usuo.SetActive(*b)
+	}
+	return usuo
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -272,6 +303,9 @@ func (usuo *UserSessionUpdateOne) sqlSave(ctx context.Context) (_node *UserSessi
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := usuo.mutation.Active(); ok {
+		_spec.SetField(usersession.FieldActive, field.TypeBool, value)
 	}
 	if value, ok := usuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(usersession.FieldUpdatedAt, field.TypeTime, value)
