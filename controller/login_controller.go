@@ -12,8 +12,8 @@ import (
 	"github.com/derfinlay/basecrm/service"
 )
 
-var ErrTokenNotFound = errors.New("Invalid reset token")
-var ErrTokenAlreadyUsed = errors.New("Reset token was already used")
+var ErrTokenNotFound = errors.New("invalid reset token")
+var ErrTokenAlreadyUsed = errors.New("reset token was already used")
 
 func CreateLogin(c *ent.Customer, email string, ctx context.Context) (*ent.Customer, error) {
 	err := service.ValidateEmail(email)
