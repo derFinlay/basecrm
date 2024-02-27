@@ -13,8 +13,8 @@ import (
 	"github.com/derfinlay/basecrm/service"
 )
 
-var ErrUserNotFound = errors.New("User not found")
-var ErrInvalidLogin = errors.New("Invalid login")
+var ErrUserNotFound = errors.New("user not found")
+var ErrInvalidLogin = errors.New("invalid login")
 
 func CreateUser(name string, password string, ctx context.Context) (*ent.User, error) {
 	username := GenerateUsernameFromName(name)
@@ -57,6 +57,10 @@ func CreateUserSession(user *ent.User, ctx context.Context) (*ent.UserSession, e
 		Save(ctx)
 
 	return session, err
+}
+
+func LogoutUserSession(session *ent.UserSession, ctx context.Context) (*ent.UserSession, error) {
+	return session.Update().SetActive(false).Save(ctx)
 }
 
 func GetUserSessionByToken(token string, ctx context.Context) (*ent.UserSession, error) {
