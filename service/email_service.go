@@ -3,8 +3,6 @@ package service
 import (
 	"fmt"
 	"net/smtp"
-
-	"github.com/derfinlay/basecrm/ent"
 )
 
 type EmailConfig struct {
@@ -41,12 +39,4 @@ func (config *EmailClient) SendEmail(to []string, msg string) error {
 	messageBytes := []byte(msg)
 
 	return smtp.SendMail(config.Address, config.Authentication, config.From, to, messageBytes)
-}
-
-func SendDefaultPasswordEmail(login *ent.Login, password string) error {
-	return Client.SendEmail([]string{login.Email}, "Ihr Standartpasswort lautet: "+password)
-}
-
-func SendLoginResetEmail(login *ent.Login, reset *ent.LoginReset) error {
-	return Client.SendEmail([]string{login.Email}, "Ihr Passwort Reset Link: "+reset.Token)
 }

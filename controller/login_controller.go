@@ -1,70 +1,59 @@
 package controller
 
 import (
-	"context"
 	"errors"
 	"strings"
 
 	"github.com/derfinlay/basecrm/database"
-	"github.com/derfinlay/basecrm/ent"
-	"github.com/derfinlay/basecrm/ent/login"
-	"github.com/derfinlay/basecrm/ent/loginreset"
+	"github.com/derfinlay/basecrm/models"
 	"github.com/derfinlay/basecrm/service"
 )
 
 var ErrTokenNotFound = errors.New("invalid reset token")
 var ErrTokenAlreadyUsed = errors.New("reset token was already used")
 
-func CreateLogin(c *ent.Customer, email string, ctx context.Context) (*ent.Customer, error) {
-	err := service.ValidateEmail(email)
+func GetLoginByCustomerId(customerId int) (*models.Login, error) {
+	customer, err := GetCustomerByID(customerId)
 	if err != nil {
 		return nil, err
 	}
-	defaultPassword := service.GenerateRandomString(12)
-	login, err := database.Client.Login.Create().SetEmail(email).Save(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	service.SendDefaultPasswordEmail(login, defaultPassword)
-
-	return c.Update().
-		SetLogin(login).
-		Save(ctx)
+	return customer.Login, nil
 }
 
-func GetLoginByCustomerId(customerId int, ctx context.Context) (*ent.Login, error) {
-	customer, err := GetCustomerByID(customerId, ctx)
-	if err != nil {
-		return nil, err
-	}
-	return customer.QueryLogin().First(ctx)
+func GetLoginByEmail(email string) (*models.Login, error) {
+	var login *models.Login
+	err := database.Client.Model(&models.Login{}).Where("email = ?", strings.ToLower(email)).First(login).Error
+	return login, err
 }
 
-func GetLoginByEmail(email string, ctx context.Context) (*ent.Login, error) {
-	return database.Client.Login.Query().Where(login.Email(strings.ToLower(email))).First(ctx)
+func GetLoginResetByToken(token string) (*models.LoginReset, error) {
+	var loginReset *models.LoginReset
+	err := database.Client.Model(&models.LoginReset{}).Where("token = ?", token).First(loginReset).Error
+	return loginReset, err
 }
 
-func GetLoginResetByToken(token string, ctx context.Context) (*ent.LoginReset, error) {
-	return database.Client.LoginReset.Query().Where(loginreset.Token(token)).First(ctx)
+func GetActiveLoginResetByLogin(login *models.Login) (*models.LoginReset, error) {
+	reset := &models.LoginReset{}
+	err := database.Client.Model(reset).Where("id = ?", login.ID).Preload("LoginResets").First(login).Error
+	return reset, err
 }
 
-func GetActiveLoginResetByLogin(login *ent.Login, ctx context.Context) (*ent.LoginReset, error) {
-	return login.QueryLoginResets().Where(loginreset.Active(true)).First(ctx)
-}
-
-func CreateLoginPasswordReset(login *ent.Login, ctx context.Context) (*ent.LoginReset, error) {
-	if activeReset, err := GetActiveLoginResetByLogin(login, ctx); err == nil {
+func CreateLoginPasswordReset(login *models.Login) (*models.LoginReset, error) {
+	if activeReset, err := GetActiveLoginResetByLogin(login); err == nil {
 		return activeReset, nil
 	}
 
 	token := service.GenerateRandomString(32)
-	return database.Client.LoginReset.Create().SetActive(true).SetToken(token).SetLogin(login).Save(ctx)
+	reset := &models.LoginReset{
+		Active: true,
+		Token:  token,
+	}
+	err := database.Client.Model(login).Association("LoginResets").Append(reset)
+	return reset, err
 }
 
-func ResetLoginPassword(resetToken string, newPassword string, ctx context.Context) (*ent.Login, error) {
-	reset, err := GetLoginResetByToken(resetToken, ctx)
+func ResetLoginPassword(resetToken string, newPassword string) (*models.Login, error) {
+	reset, err := GetLoginResetByToken(resetToken)
 	if err != nil {
 		return nil, err
 	}
@@ -73,16 +62,21 @@ func ResetLoginPassword(resetToken string, newPassword string, ctx context.Conte
 		return nil, err
 	}
 
-	hash, hashErr := service.CreateHash(newPassword)
-	if hashErr != nil {
-		return nil, hashErr
+	login, err := GetLoginById(int(reset.LoginID))
+	if err != nil {
+		return nil, err
 	}
 
-	login := reset.Edges.Login
-	return login.Update().SetPassword(hash).Save(ctx)
+	return nil, login.ResetPassword(newPassword, database.Client)
 }
 
-func CheckLoginReset(reset *ent.LoginReset) error {
+func GetLoginById(id int) (*models.Login, error) {
+	var login *models.Login
+	err := database.Client.First(login).Where("id = ?", id).Error
+	return login, err
+}
+
+func CheckLoginReset(reset *models.LoginReset) error {
 	if reset == nil {
 		return ErrTokenNotFound
 	}

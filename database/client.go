@@ -1,62 +1,79 @@
 package database
 
 import (
-	"context"
 	"fmt"
 	"log"
 
-	"entgo.io/ent/dialect"
-	"github.com/derfinlay/basecrm/ent"
+	"github.com/derfinlay/basecrm/models"
 	"github.com/derfinlay/basecrm/service"
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-var Client *ent.Client
+var Client *gorm.DB
 
-func Create(host string, port int, user string, password string, dbname string, ctx context.Context) (*ent.Client, error) {
+func Create(host string, port int, user string, password string, dbname string) (*gorm.DB, error) {
 	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", host, port, user, dbname, password)
-	client, err := ent.Open(dialect.Postgres, connectionString)
+	client, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("Connection to postgres successful")
-
-	// Run the auto migration tool.
-	if err := client.Schema.Create(ctx); err != nil {
-		return nil, err
-	}
-	log.Printf("Schema migration successful")
 	Client = client
 
-	if count, err := GetUserCount(ctx); count > 0 {
+	// Run the auto migration tool.
+	autoMigrate()
+	log.Printf("Schema migration successful")
+
+	if count, err := getUserCount(); count > 0 {
 		return client, nil
 	} else if err != nil {
 		return nil, err
 	}
 
-	if _, err := CreateDefaultUser(ctx); err != nil {
+	if _, err := createDefaultUser(); err != nil {
 		return nil, err
 	}
 
 	return client, nil
 }
 
-func Close() error {
-	return Client.Close()
+func autoMigrate() {
+	Client.AutoMigrate(&models.BillingAddress{})
+	Client.AutoMigrate(&models.Customer{})
+	Client.AutoMigrate(&models.DeliveryAddress{})
+	Client.AutoMigrate(&models.Invoice{})
+	Client.AutoMigrate(&models.LoginReset{})
+	Client.AutoMigrate(&models.Login{})
+	Client.AutoMigrate(&models.Note{})
+	Client.AutoMigrate(&models.Order{})
+	Client.AutoMigrate(&models.Position{})
+	Client.AutoMigrate(&models.Product{})
+	Client.AutoMigrate(&models.Role{})
+	Client.AutoMigrate(&models.Tel{})
+	Client.AutoMigrate(&models.UserSession{})
+	Client.AutoMigrate(&models.User{})
 }
 
-func GetUserCount(ctx context.Context) (int, error) {
-	return Client.User.Query().Count(ctx)
+func getUserCount() (int64, error) {
+	var count int64
+	err := Client.Model(&models.User{}).Count(&count).Error
+	return count, err
 }
 
-func CreateDefaultUser(ctx context.Context) (*ent.User, error) {
+func createDefaultUser() (*models.User, error) {
 	hash, err := service.CreateHash("admin")
 	if err != nil {
 		return nil, err
 	}
-	adminUser, err := Client.User.Create().SetName("Administrator").SetUsername("admin").SetPassword(hash).Save(ctx)
+
+	adminUser := &models.User{
+		Name: "Administrator", Username: "admin", Password: hash,
+	}
+
+	cerr := Client.Create(adminUser).Error
 	if err != nil {
-		return nil, err
+		return nil, cerr
 	}
 	log.Printf("Created admin user")
 	return adminUser, nil

@@ -1,164 +1,56 @@
 package controller
 
 import (
-	"context"
-
 	"github.com/derfinlay/basecrm/database"
-	"github.com/derfinlay/basecrm/ent"
-	"github.com/derfinlay/basecrm/ent/billingaddress"
-	"github.com/derfinlay/basecrm/ent/customer"
-	"github.com/derfinlay/basecrm/ent/deliveryaddress"
-	"github.com/derfinlay/basecrm/ent/note"
+	"github.com/derfinlay/basecrm/models"
 )
 
-func GetCustomerByID(id int, ctx context.Context) (*ent.Customer, error) {
-	return database.Client.Customer.Query().
-		Where(customer.ID(id)).
-		WithBillingAddresses().
-		WithCreatedBy().
-		WithDeliveryAddresses().
-		WithLogin().
-		WithNotes().
-		WithOrders().
-		WithTels().
-		First(ctx)
+func GetCustomerByID(id int) (*models.Customer, error) {
+	var customer *models.Customer
+	err := database.Client.Model(&models.Customer{}).First(customer, id).Preload("Orders").Preload("BillingAddresses").Preload("DevliveryAddresses").Preload("Login").Preload("CreatedBy").Error
+	return customer, err
 }
 
-func CreateCustomer(name string, gender customer.Gender, user *ent.User, ctx context.Context) (*ent.Customer, error) {
-	return database.Client.Customer.Create().
-		SetName(name).
-		SetGender(gender).
-		SetCreatedBy(user).
-		Save(ctx)
+func CreateCustomer(name string, gender string, user *models.User) (*models.Customer, error) {
+	customer := &models.Customer{
+		Name:      name,
+		Gender:    gender,
+		CreatedBy: user,
+	}
+	err := customer.Save(database.Client)
+	return customer, err
 }
 
-func SearchCustomerByAll(search string, ctx context.Context) ([]*ent.Customer, error) {
-	customers := []*ent.Customer{}
+func SearchCustomer(query string) ([]*models.Customer, error) {
+	var customers []*models.Customer
 
-	if byName, err := SearchCustomerByName(search, ctx); err != nil {
-		return nil, err
-	} else {
-		customers = append(customers, byName...)
+	err := database.Client.Model(&models.Customer{}).Where("name = ? OR id = ?", query, query).Find(customers).Error
+
+	return customers, err
+}
+
+func CreateDeliveryAddress(street string, city string, zipcode string, housenumber string, customer *models.Customer, user *models.User) (*models.DeliveryAddress, error) {
+	deliveryAddress := &models.DeliveryAddress{
+		City:      city,
+		Street:    street,
+		ZIP:       zipcode,
+		Number:    housenumber,
+		CreatedBy: user,
 	}
 
-	if byNotes, err := SearchCustomerByNotes(search, ctx); err != nil {
-		return nil, err
-	} else {
-		customers = append(customers, byNotes...)
+	err := database.Client.Model(customer).Association("DeliveryAddresses").Append(deliveryAddress)
+	return deliveryAddress, err
+}
+
+func CreateBillingAddres(street string, city string, zipcode string, housenumber string, customer *models.Customer, user *models.User) (*models.BillingAddress, error) {
+	billingAddress := &models.BillingAddress{
+		City:      city,
+		Street:    street,
+		ZIP:       zipcode,
+		Number:    housenumber,
+		CreatedBy: user,
 	}
 
-	if byBillingAddress, err := SearchCustomerByBillingAddress(search, ctx); err != nil {
-		return nil, err
-	} else {
-		customers = append(customers, byBillingAddress...)
-	}
-
-	if byDeliveryAddress, err := SearchCustomerByDeliveryAddress(search, ctx); err != nil {
-		return nil, err
-	} else {
-		customers = append(customers, byDeliveryAddress...)
-	}
-
-	return customers, nil
-}
-
-func SearchCustomer(search string, searchIn []string, ctx context.Context) ([]*ent.Customer, error) {
-	customers := []*ent.Customer{}
-	for i := 0; i < len(searchIn); i++ {
-		toSearch := searchIn[i]
-		if toSearch == "*" {
-			return SearchCustomerByAll(search, ctx)
-		}
-		switch toSearch {
-		case "name":
-			if byName, err := SearchCustomerByName(search, ctx); err != nil {
-				return nil, err
-			} else {
-				customers = append(customers, byName...)
-			}
-		case "notes":
-			if byNotes, err := SearchCustomerByNotes(search, ctx); err != nil {
-				return nil, err
-			} else {
-				customers = append(customers, byNotes...)
-			}
-		case "billingaddress":
-			if byBillingAddress, err := SearchCustomerByBillingAddress(search, ctx); err != nil {
-				return nil, err
-			} else {
-				customers = append(customers, byBillingAddress...)
-			}
-		case "deliveryaddress":
-			if byDeliveryAddress, err := SearchCustomerByDeliveryAddress(search, ctx); err != nil {
-				return nil, err
-			} else {
-				customers = append(customers, byDeliveryAddress...)
-			}
-		}
-	}
-	return customers, nil
-}
-
-func SearchCustomerByName(name string, ctx context.Context) ([]*ent.Customer, error) {
-	return database.Client.Customer.Query().
-		Where(
-			customer.NameContains(name)).
-		All(ctx)
-}
-
-func SearchCustomerByNotes(query string, ctx context.Context) ([]*ent.Customer, error) {
-	return database.Client.Customer.Query().
-		Where(
-			customer.HasNotesWith(note.Or(
-				note.TitleContains(query),
-				note.ContentContains(query)))).
-		All(ctx)
-}
-
-func SearchCustomerByBillingAddress(address string, ctx context.Context) ([]*ent.Customer, error) {
-	return database.Client.Customer.Query().
-		Where(
-			customer.HasBillingAddressesWith(
-				billingaddress.Or(
-					billingaddress.CityContains(address),
-					billingaddress.StreetContains(address),
-					billingaddress.ZipContains(address),
-				))).
-		All(ctx)
-
-}
-
-func SearchCustomerByDeliveryAddress(address string, ctx context.Context) ([]*ent.Customer, error) {
-	return database.Client.Customer.Query().
-		Where(
-			customer.HasDeliveryAddressesWith(
-				deliveryaddress.Or(
-					deliveryaddress.CityContains(address),
-					deliveryaddress.StreetContains(address),
-					deliveryaddress.ZipContains(address),
-				))).
-		All(ctx)
-}
-
-func CreateDeliveryAddress(street string, city string, zipcode string, housenumber string, customer *ent.Customer, ctx context.Context) (*ent.DeliveryAddress, error) {
-	return database.Client.DeliveryAddress.
-		Create().
-		SetCustomer(customer).
-		SetCity(city).
-		SetHousenumber(housenumber).
-		SetStreet(street).
-		SetZip(zipcode).
-		Save(ctx)
-
-}
-
-func CreateBillingAddres(street string, city string, zipcode string, housenumber string, customer *ent.Customer, ctx context.Context) (*ent.BillingAddress, error) {
-	return database.Client.BillingAddress.
-		Create().
-		SetCustomer(customer).
-		SetCity(city).
-		SetHousenumber(housenumber).
-		SetStreet(street).
-		SetZip(zipcode).
-		Save(ctx)
+	err := database.Client.Model(customer).Association("BillingAddresses").Append(billingAddress)
+	return billingAddress, err
 }
