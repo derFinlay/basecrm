@@ -21,3 +21,10 @@ type Invoice struct {
 func (invoice *Invoice) Save(db *gorm.DB) error {
 	return db.Save(invoice).Error
 }
+
+func (invoice *Invoice) IsEmpty() bool {
+	if invoice == nil {
+		return true
+	}
+	return invoice.ID == 0
+}

@@ -28,6 +28,13 @@ func (customer *Customer) Save(db *gorm.DB) error {
 	return db.Save(customer).Error
 }
 
+func (customer *Customer) IsEmpty() bool {
+	if customer == nil {
+		return true
+	}
+	return customer.ID == 0
+}
+
 func (customer *Customer) CreateLogin(email string, emailClient *service.EmailClient, db *gorm.DB) error {
 	err := service.ValidateEmail(email)
 	if err != nil {

@@ -21,3 +21,10 @@ type Position struct {
 func (position *Position) Save(db *gorm.DB) error {
 	return db.Save(position).Error
 }
+
+func (position *Position) IsEmpty() bool {
+	if position == nil {
+		return true
+	}
+	return position.ID == 0
+}

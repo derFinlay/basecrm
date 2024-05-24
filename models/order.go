@@ -30,3 +30,10 @@ type Order struct {
 func (order *Order) Save(db *gorm.DB) error {
 	return db.Save(order).Error
 }
+
+func (order *Order) IsEmpty() bool {
+	if order == nil {
+		return true
+	}
+	return order.ID == 0
+}

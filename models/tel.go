@@ -20,3 +20,10 @@ type Tel struct {
 func (tel *Tel) Save(db *gorm.DB) error {
 	return db.Save(tel).Error
 }
+
+func (tel *Tel) IsEmpty() bool {
+	if tel == nil {
+		return true
+	}
+	return tel.ID == 0
+}

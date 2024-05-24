@@ -25,3 +25,10 @@ type DeliveryAddress struct {
 func (deliveryAddress *DeliveryAddress) Save(db *gorm.DB) error {
 	return db.Save(deliveryAddress).Error
 }
+
+func (deliveryAddress *DeliveryAddress) IsEmpty() bool {
+	if deliveryAddress == nil {
+		return true
+	}
+	return deliveryAddress.ID == 0
+}

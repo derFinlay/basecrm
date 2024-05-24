@@ -17,3 +17,10 @@ type Role struct {
 func (role *Role) Save(db *gorm.DB) error {
 	return db.Save(role).Error
 }
+
+func (role *Role) IsEmpty() bool {
+	if role == nil {
+		return true
+	}
+	return role.ID == 0
+}

@@ -31,3 +31,10 @@ type Note struct {
 func (note *Note) Save(db *gorm.DB) error {
 	return db.Save(note).Error
 }
+
+func (note *Note) IsEmpty() bool {
+	if note == nil || (note.Content == "" && note.Title == "") {
+		return true
+	}
+	return note.ID == 0
+}

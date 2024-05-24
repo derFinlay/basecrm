@@ -23,3 +23,10 @@ type BillingAddress struct {
 func (billingAddress *BillingAddress) Save(db *gorm.DB) error {
 	return db.Save(billingAddress).Error
 }
+
+func (billingAddress *BillingAddress) IsEmpty() bool {
+	if billingAddress == nil {
+		return true
+	}
+	return billingAddress.ID == 0
+}

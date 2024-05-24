@@ -20,6 +20,13 @@ func (product *Product) Save(db *gorm.DB) error {
 	return db.Save(product).Error
 }
 
+func (product *Product) IsEmpty() bool {
+	if product == nil {
+		return true
+	}
+	return product.ID == 0
+}
+
 func RemoveDuplicates[T string | int | *Product](input []T) []T {
 	allKeys := make(map[T]bool)
 	list := []T{}

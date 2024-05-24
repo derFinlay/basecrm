@@ -23,6 +23,13 @@ func (user *User) Save(db *gorm.DB) error {
 	return db.Save(user).Error
 }
 
+func (user *User) IsEmpty() bool {
+	if user == nil {
+		return true
+	}
+	return user.ID == 0
+}
+
 func (user *User) ResetPassword(newPassword string) error {
 	hash, err := service.CreateHash(newPassword)
 	if err != nil {

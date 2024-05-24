@@ -20,6 +20,14 @@ type UserSession struct {
 func (session *UserSession) Save(db *gorm.DB) error {
 	return db.Save(session).Error
 }
+
+func (session *UserSession) IsEmpty() bool {
+	if session == nil {
+		return true
+	}
+	return session.ID == 0
+}
+
 func (session *UserSession) Logout(db *gorm.DB) error {
 	session.Active = false
 	return session.Save(db)

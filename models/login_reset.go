@@ -19,3 +19,10 @@ type LoginReset struct {
 func (loginReset *LoginReset) Save(db *gorm.DB) error {
 	return db.Save(loginReset).Error
 }
+
+func (loginReset *LoginReset) IsEmpty() bool {
+	if loginReset == nil {
+		return true
+	}
+	return loginReset.ID == 0
+}
