@@ -13,7 +13,7 @@ import (
 var Client *gorm.DB
 
 func Create(host string, port int, user string, password string, dbname string) (*gorm.DB, error) {
-	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", host, port, user, dbname, password)
+	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s client_encoding=UTF8", host, port, user, dbname, password)
 	client, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		return nil, err
