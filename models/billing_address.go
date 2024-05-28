@@ -7,17 +7,17 @@ import (
 )
 
 type BillingAddress struct {
-	ID          uint      `gorm:"primarykey"`
-	CreatedAt   time.Time `gorm:"index"`
-	UpdatedAt   time.Time `gorm:"index"`
-	City        string
-	Street      string
-	ZIP         string
-	Number      string
-	Notes       []*Note
-	CustomerID  uint
-	CreatedByID uint
-	CreatedBy   *User
+	ID          uint      `gorm:"primarykey" json:"id"`
+	CreatedAt   time.Time `gorm:"index" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"index" json:"updatedAt"`
+	City        string    `json:"city"`
+	Street      string    `json:"street"`
+	ZIP         string    `json:"zip"`
+	Number      string    `json:"number"`
+	Notes       []*Note   `json:"notes"`
+	CustomerID  uint      `json:"customerId"`
+	CreatedByID uint      `json:"createdById"`
+	CreatedBy   *User     `json:"createdBy"`
 }
 
 func (billingAddress *BillingAddress) Save(db *gorm.DB) error {

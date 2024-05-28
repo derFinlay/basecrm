@@ -7,24 +7,24 @@ import (
 )
 
 type Order struct {
-	ID                uint      `gorm:"primarykey"`
-	CreatedAt         time.Time `gorm:"index"`
-	UpdatedAt         time.Time `gorm:"index"`
-	tax               float64
-	Due               time.Time
-	PrintedAt         time.Time
-	PayedAt           time.Time
-	DoneAt            time.Time
-	CustomerID        uint
-	Customer          *Customer
-	BillingAddressID  uint
-	BillingAddress    *BillingAddress
-	DeliveryAddressID uint
-	DeliveryAddress   *DeliveryAddress
-	Notes             []*Note
-	Invoices          []*Invoice
-	CreatedByID       uint
-	CreatedBy         *User
+	ID                uint             `gorm:"primarykey" json:"id"`
+	CreatedAt         time.Time        `gorm:"index" json:"createdAt"`
+	UpdatedAt         time.Time        `gorm:"index" json:"updatedAt"`
+	tax               float64          `json:"tax"`
+	Due               time.Time        `json:"due"`
+	PrintedAt         time.Time        `json:"printedAt"`
+	PayedAt           time.Time        `json:"paidAt"`
+	DoneAt            time.Time        `json:"doneAt"`
+	CustomerID        uint             `json:"customerId"`
+	Customer          *Customer        `json:"customer"`
+	BillingAddressID  uint             `json:"billingAddressId"`
+	BillingAddress    *BillingAddress  `json:"billingAddress"`
+	DeliveryAddressID uint             `json:"deliveryAddressId"`
+	DeliveryAddress   *DeliveryAddress `json:"deliveryAddress"`
+	Notes             []*Note          `json:"notes"`
+	Invoices          []*Invoice       `json:"invoices"`
+	CreatedByID       uint             `json:"createdById"`
+	CreatedBy         *User            `json:"createdBy"`
 }
 
 func (order *Order) Save(db *gorm.DB) error {

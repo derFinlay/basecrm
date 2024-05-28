@@ -7,15 +7,16 @@ import (
 )
 
 type Position struct {
-	ID          uint      `gorm:"primarykey"`
-	CreatedAt   time.Time `gorm:"index"`
-	UpdatedAt   time.Time `gorm:"index"`
-	Name        string
-	Description string
-	UnitPrice   float64
-	Amount      int
-	InvoiceID   uint
-	Notes       []*Note
+	ID          uint      `gorm:"primarykey" json:"id"`
+	CreatedAt   time.Time `gorm:"index" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"index" json:"updatedAt"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	UnitPrice   float64   `json:"unitPrice"`
+	Amount      int       `json:"amount"`
+	InvoiceID   uint      `json:"invoiceID"`
+	Invoice     *Invoice  `json:"invoice"`
+	Notes       []*Note   `json:"notes"`
 }
 
 func (position *Position) Save(db *gorm.DB) error {

@@ -7,14 +7,13 @@ import (
 )
 
 type UserSession struct {
-	ID        uint      `gorm:"primarykey"`
-	CreatedAt time.Time `gorm:"index"`
-	UpdatedAt time.Time `gorm:"index"`
-	Token     string
-	Active    bool
-	UserId    uint
-	User      *User
-	UserID    uint
+	ID        uint      `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time `gorm:"index" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"index" json:"updatedAt"`
+	Token     string    `json:"-"`
+	Active    bool      `json:"active"`
+	User      *User     `json:"user,omitempty"`
+	UserID    uint      `json:"userId,omitempty"`
 }
 
 func (session *UserSession) Save(db *gorm.DB) error {

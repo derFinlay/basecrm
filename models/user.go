@@ -8,15 +8,15 @@ import (
 )
 
 type User struct {
-	ID        uint      `gorm:"primarykey"`
-	CreatedAt time.Time `gorm:"index"`
-	UpdatedAt time.Time `gorm:"index"`
-	Name      string
-	Username  string
-	Password  string
-	LastLogin time.Time
-	Sessions  []*UserSession
-	Notes     []*Note
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `gorm:"index" json:"createdAt"`
+	UpdatedAt time.Time      `gorm:"index" json:"updatedAt"`
+	Name      string         `json:"name"`
+	Username  string         `json:"username"`
+	Password  string         `json:"-"`
+	LastLogin time.Time      `json:"lastLogin"`
+	Sessions  []*UserSession `json:"sessions,omitempty"`
+	Notes     []*Note        `json:"notes,omitempty"`
 }
 
 func (user *User) Save(db *gorm.DB) error {

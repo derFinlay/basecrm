@@ -7,13 +7,14 @@ import (
 )
 
 type LoginReset struct {
-	ID        uint      `gorm:"primarykey"`
-	CreatedAt time.Time `gorm:"index"`
-	UpdatedAt time.Time `gorm:"index"`
-	Token     string
-	Active    bool
-	Notes     []*Note
-	LoginID   uint
+	ID        uint      `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time `gorm:"index" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"index" json:"updatedAt"`
+	Token     string    `json:"token"`
+	Active    bool      `json:"active"`
+	Notes     []*Note   `json:"notes"`
+	LoginID   uint      `json:"loginId"`
+	Login     *Login    `json:"login"`
 }
 
 func (loginReset *LoginReset) Save(db *gorm.DB) error {

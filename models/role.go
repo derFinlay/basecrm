@@ -7,11 +7,11 @@ import (
 )
 
 type Role struct {
-	ID        uint      `gorm:"primarykey"`
-	CreatedAt time.Time `gorm:"index"`
-	UpdatedAt time.Time `gorm:"index"`
-	Name      string
-	Notes     []*Note
+	ID        uint      `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time `gorm:"index" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"index" json:"updatedAt"`
+	Name      string    `json:"name"`
+	Notes     []*Note   `json:"notes"`
 }
 
 func (role *Role) Save(db *gorm.DB) error {

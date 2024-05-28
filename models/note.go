@@ -7,24 +7,24 @@ import (
 )
 
 type Note struct {
-	ID                uint      `gorm:"primarykey"`
-	CreatedAt         time.Time `gorm:"index"`
-	UpdatedAt         time.Time `gorm:"index"`
-	Title             string
-	Content           string
-	UserID            uint
-	CustomerID        uint
-	BillingAddressID  uint
-	DeliveryAddressID uint
-	InvoiceID         uint
-	LoginID           uint
-	LoginResetID      uint
-	CreatedByID       uint
-	OrderID           uint
-	PositionID        uint
-	ProductID         uint
-	RoleID            uint
-	TelID             uint
+	ID                uint      `gorm:"primarykey" json:"id"`
+	CreatedAt         time.Time `gorm:"index" json:"createdAt"`
+	UpdatedAt         time.Time `gorm:"index" json:"updatedAt"`
+	Title             string    `json:"title"`
+	Content           string    `json:"content"`
+	UserID            *uint
+	CustomerID        *uint
+	BillingAddressID  *uint
+	DeliveryAddressID *uint
+	InvoiceID         *uint
+	LoginID           *uint
+	LoginResetID      *uint
+	CreatedByID       *uint
+	OrderID           *uint
+	PositionID        *uint
+	ProductID         *uint
+	RoleID            *uint
+	TelID             *uint
 	CreatedBy         *User
 }
 
