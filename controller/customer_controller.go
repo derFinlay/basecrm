@@ -1,21 +1,26 @@
 package controller
 
 import (
+	"strconv"
+
 	"github.com/derfinlay/basecrm/database"
 	"github.com/derfinlay/basecrm/models"
 )
 
 func GetCustomerByID(id int) (*models.Customer, error) {
 	var customer *models.Customer
-	err := database.Client.Model(&models.Customer{}).First(customer, id).Preload("Orders").Preload("BillingAddresses").Preload("DevliveryAddresses").Preload("Login").Preload("CreatedBy").Error
+	err := database.Client.Model(&models.Customer{}).Preload("BillingAddress").First(&customer, id).Preload("Orders").Preload("DevliveryAddresses").Preload("Login").Preload("CreatedBy").Error
 	return customer, err
 }
 
-func CreateCustomer(name string, gender string, user *models.User) (*models.Customer, error) {
+func CreateCustomer(name string, gender string, billingAddress *models.BillingAddress, deliveryAddresses []*models.DeliveryAddress, user *models.User) (*models.Customer, error) {
+	billingAddress.CreatedByID = user.ID
 	customer := &models.Customer{
-		Name:      name,
-		Gender:    gender,
-		CreatedBy: user,
+		Name:              name,
+		Gender:            gender,
+		CreatedBy:         user,
+		DeliveryAddresses: deliveryAddresses,
+		BillingAddress:    billingAddress,
 	}
 	err := customer.Save(database.Client)
 	return customer, err
@@ -24,7 +29,15 @@ func CreateCustomer(name string, gender string, user *models.User) (*models.Cust
 func SearchCustomer(query string) ([]*models.Customer, error) {
 	var customers []*models.Customer
 
-	err := database.Client.Model(&models.Customer{}).Where("name = ? OR id = ?", query, query).Find(customers).Error
+	var idd int
+
+	if id, err := strconv.Atoi(query); err != nil {
+		id = 0
+	} else {
+		idd = id
+	}
+
+	err := database.Client.Model(&models.Customer{}).Where("name = ? OR id = ?", query, idd).Find(&customers).Error
 
 	return customers, err
 }
