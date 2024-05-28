@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/derfinlay/basecrm/database"
@@ -11,6 +12,7 @@ import (
 
 var ErrUserNotFound = errors.New("user not found")
 var ErrInvalidLogin = errors.New("invalid login")
+var ErrInvalidSession = errors.New("invalid session")
 
 func CreateUser(name string, password string) (*models.User, error) {
 	username := GenerateUsernameFromName(name)
@@ -48,14 +50,18 @@ func GenerateUsernameFromName(name string) string {
 
 func GetUserSessionByToken(token string) (*models.UserSession, error) {
 	var session *models.UserSession
-	err := database.Client.Model(session).Where("token = ?", token).Preload("User").Error
+	err := database.Client.Model(&session).Where("token = ?", token).Preload("User").First(&session).Error
+	if session.IsEmpty() {
+		return nil, ErrInvalidSession
+	}
 	return session, err
 }
 
 func Login(username string, password string) (*models.UserSession, error) {
 	var user *models.User
-	err := database.Client.Find(user).Where("username = ?", username).First(user).Error
+	err := database.Client.Find(&user).Where("username = ?", username).First(user).Error
 	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
 	if user == nil {
