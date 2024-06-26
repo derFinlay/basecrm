@@ -9,7 +9,7 @@ import (
 type Invoice struct {
 	ID         uint        `gorm:"primarykey" json:"id"`
 	CreatedAt  time.Time   `gorm:"index" json:"createdAt"`
-	UpdatedAt  time.Time   `gorm:"index" json:"updatedAt`
+	UpdatedAt  time.Time   `gorm:"index" json:"updatedAt"`
 	Positions  []*Position `json:"positions"`
 	CustomerID uint        `json:"customerId"`
 	Customer   *Customer   `json:"customer"`

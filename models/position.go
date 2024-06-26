@@ -12,7 +12,7 @@ type Position struct {
 	UpdatedAt   time.Time `gorm:"index" json:"updatedAt"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	UnitPrice   float64   `json:"unitPrice"`
+	UnitPrice   float32   `json:"unitPrice"`
 	Amount      int       `json:"amount"`
 	InvoiceID   uint      `json:"invoiceID"`
 	Invoice     *Invoice  `json:"invoice"`

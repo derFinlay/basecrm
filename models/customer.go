@@ -15,7 +15,7 @@ type Customer struct {
 	Gender            string             `json:"gender"`
 	Orders            []*Order           `json:"orders"`
 	BillingAddress    *BillingAddress    `json:"billingAddress"`
-	DeliveryAddresses []*DeliveryAddress `json:"deliverAddresses"`
+	DeliveryAddresses []*DeliveryAddress `json:"deliveryAddresses"`
 	Tels              []*Tel             `json:"tels"`
 	CreatedByID       uint               `json:"createdById"`
 	CreatedBy         *User              `json:"createdBy"`

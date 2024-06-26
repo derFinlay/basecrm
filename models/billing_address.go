@@ -14,8 +14,8 @@ type BillingAddress struct {
 	Street      string    `json:"street"`
 	ZIP         string    `json:"zip"`
 	Number      string    `json:"number"`
-	Notes       []*Note   `json:"notes"`
 	CustomerID  uint      `json:"customerId"`
+	Customer    *Customer `json:"customer"`
 	CreatedByID uint      `json:"createdById"`
 	CreatedBy   *User     `json:"createdBy"`
 }

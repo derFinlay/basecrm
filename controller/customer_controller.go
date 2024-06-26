@@ -2,6 +2,7 @@ package controller
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/derfinlay/basecrm/database"
 	"github.com/derfinlay/basecrm/models"
@@ -9,16 +10,28 @@ import (
 
 func GetCustomerByID(id int) (*models.Customer, error) {
 	var customer *models.Customer
-	err := database.Client.Model(&models.Customer{}).Preload("BillingAddress").First(&customer, id).Preload("Orders").Preload("DevliveryAddresses").Preload("Login").Preload("CreatedBy").Error
+	err := database.Client.Model(&models.Customer{}).
+		Preload("Notes").
+		Preload("BillingAddress").
+		Preload("Orders").
+		Preload("DeliveryAddresses").
+		Preload("DeliveryAddresses.CreatedBy").
+		Preload("DeliveryAddresses.Notes").
+		Preload("DeliveryAddresses.Tels").
+		Preload("Login").
+		Preload("CreatedBy").
+		First(&customer, id).Error
 	return customer, err
 }
 
-func CreateCustomer(name string, gender string, billingAddress *models.BillingAddress, deliveryAddresses []*models.DeliveryAddress, user *models.User) (*models.Customer, error) {
+func CreateCustomer(name string, gender string, billingAddress *models.BillingAddress, deliveryAddresses []*models.DeliveryAddress, tels []*models.Tel, notes []*models.Note, user *models.User) (*models.Customer, error) {
 	billingAddress.CreatedByID = user.ID
 	customer := &models.Customer{
 		Name:              name,
 		Gender:            gender,
 		CreatedBy:         user,
+		Tels:              tels,
+		Notes:             notes,
 		DeliveryAddresses: deliveryAddresses,
 		BillingAddress:    billingAddress,
 	}
@@ -28,7 +41,6 @@ func CreateCustomer(name string, gender string, billingAddress *models.BillingAd
 
 func SearchCustomer(query string) ([]*models.Customer, error) {
 	var customers []*models.Customer
-
 	var idd int
 
 	if id, err := strconv.Atoi(query); err != nil {
@@ -37,33 +49,25 @@ func SearchCustomer(query string) ([]*models.Customer, error) {
 		idd = id
 	}
 
-	err := database.Client.Model(&models.Customer{}).Where("name = ? OR id = ?", query, idd).Find(&customers).Error
+	err := database.Client.Model(&models.Customer{}).Where("LOWER(name) LIKE ? OR id = ?", "%"+strings.ToLower(query)+"%", idd).
+		Preload("BillingAddress").
+		Preload("Notes").
+		Preload("CreatedBy").
+		Preload("Tels").
+		Find(&customers).Error
 
 	return customers, err
 }
 
 func CreateDeliveryAddress(street string, city string, zipcode string, housenumber string, customer *models.Customer, user *models.User) (*models.DeliveryAddress, error) {
 	deliveryAddress := &models.DeliveryAddress{
-		City:      city,
-		Street:    street,
-		ZIP:       zipcode,
-		Number:    housenumber,
-		CreatedBy: user,
+		City:       city,
+		Street:     street,
+		ZIP:        zipcode,
+		Number:     housenumber,
+		CustomerID: customer.ID,
+		CreatedBy:  user,
 	}
-
-	err := database.Client.Model(customer).Association("DeliveryAddresses").Append(deliveryAddress)
+	err := deliveryAddress.Save(database.Client)
 	return deliveryAddress, err
-}
-
-func CreateBillingAddres(street string, city string, zipcode string, housenumber string, customer *models.Customer, user *models.User) (*models.BillingAddress, error) {
-	billingAddress := &models.BillingAddress{
-		City:      city,
-		Street:    street,
-		ZIP:       zipcode,
-		Number:    housenumber,
-		CreatedBy: user,
-	}
-
-	err := database.Client.Model(customer).Association("BillingAddresses").Append(billingAddress)
-	return billingAddress, err
 }

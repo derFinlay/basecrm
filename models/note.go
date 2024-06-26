@@ -12,20 +12,19 @@ type Note struct {
 	UpdatedAt         time.Time `gorm:"index" json:"updatedAt"`
 	Title             string    `json:"title"`
 	Content           string    `json:"content"`
-	UserID            *uint
-	CustomerID        *uint
-	BillingAddressID  *uint
-	DeliveryAddressID *uint
-	InvoiceID         *uint
-	LoginID           *uint
-	LoginResetID      *uint
-	CreatedByID       *uint
-	OrderID           *uint
-	PositionID        *uint
-	ProductID         *uint
-	RoleID            *uint
-	TelID             *uint
-	CreatedBy         *User
+	UserID            *uint     `json:"-"`
+	CustomerID        *uint     `json:"-"`
+	DeliveryAddressID *uint     `json:"-"`
+	InvoiceID         *uint     `json:"-"`
+	LoginID           *uint     `json:"-"`
+	LoginResetID      *uint     `json:"-"`
+	CreatedByID       *uint     `json:"-"`
+	OrderID           *uint     `json:"-"`
+	PositionID        *uint     `json:"-"`
+	ProductID         *uint     `json:"-"`
+	RoleID            *uint     `json:"-"`
+	TelID             *uint     `json:"-"`
+	CreatedBy         *User     `json:"user"`
 }
 
 func (note *Note) Save(db *gorm.DB) error {

@@ -10,7 +10,7 @@ type Order struct {
 	ID                uint             `gorm:"primarykey" json:"id"`
 	CreatedAt         time.Time        `gorm:"index" json:"createdAt"`
 	UpdatedAt         time.Time        `gorm:"index" json:"updatedAt"`
-	tax               float64          `json:"tax"`
+	tax               float32          `json:"tax"`
 	Due               time.Time        `json:"due"`
 	PrintedAt         time.Time        `json:"printedAt"`
 	PayedAt           time.Time        `json:"paidAt"`

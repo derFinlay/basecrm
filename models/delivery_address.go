@@ -7,7 +7,7 @@ import (
 )
 
 type DeliveryAddress struct {
-	ID          uint      `gorm:"primarykey" json:"id`
+	ID          uint      `gorm:"primarykey" json:"id"`
 	CreatedAt   time.Time `gorm:"index" json:"createdAt"`
 	UpdatedAt   time.Time `gorm:"index" json:"updatedAt"`
 	City        string    `json:"city"`

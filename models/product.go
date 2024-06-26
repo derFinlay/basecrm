@@ -12,7 +12,7 @@ type Product struct {
 	UpdatedAt   time.Time `gorm:"index" json:"updatedAt"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	Price       float64   `json:"price"`
+	Price       float32   `json:"price"`
 	Notes       []*Note   `json:"notes"`
 }
 
