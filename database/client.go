@@ -72,7 +72,7 @@ func createDefaultUser() (*models.User, error) {
 	}
 
 	cerr := Client.Create(adminUser).Error
-	if err != nil {
+	if cerr != nil {
 		return nil, cerr
 	}
 	log.Printf("Created admin user")
